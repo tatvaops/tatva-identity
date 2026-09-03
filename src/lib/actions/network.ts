@@ -2,21 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createServerSupabase } from "@/lib/supabase/server";
-import { getAuthContext } from "@/lib/data/query";
-
-export type ActionResult = { ok: true } | { ok: false; error: string };
-
-function fail(error: string): ActionResult {
-  return { ok: false, error };
-}
-
-async function requireUser() {
-  const ctx = await getAuthContext();
-  const supabase = await createServerSupabase();
-  if (!supabase) return { error: "Supabase is not configured." as const, supabase: null, ctx };
-  if (!ctx.userId || !ctx.profile) return { error: "Sign in to continue." as const, supabase, ctx };
-  return { error: null, supabase, ctx };
-}
+import { fail, requireUser, type ActionResult } from "@/lib/actions/shared";
 
 export async function requestConnection(addresseeId: string): Promise<ActionResult> {
   const auth = await requireUser();
@@ -144,11 +130,13 @@ export async function sendMessage(conversationId: string, body: string): Promise
 export async function updateProfileAbout(formData: FormData): Promise<ActionResult> {
   const auth = await requireUser();
   if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
-  const headline = String(formData.get("headline") ?? "").trim();
-  const about = String(formData.get("about") ?? "").trim();
+  const headline = formData.get("headline");
+  const about = formData.get("about");
+  const headlineText = typeof headline === "string" ? headline.trim() : "";
+  const aboutText = typeof about === "string" ? about.trim() : "";
   const { error } = await auth.supabase
     .from("profiles")
-    .update({ headline: headline || null, about: about || null })
+    .update({ headline: headlineText || null, about: aboutText || null })
     .eq("id", auth.ctx.userId);
   if (error) return fail(error.message);
   revalidatePath(`/people/${auth.ctx.profile?.handle ?? ""}`);
