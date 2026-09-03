@@ -1,18 +1,55 @@
 import { GigCard, JobCard } from "@/components/cards/entity-cards";
-import { Card } from "@/components/ui/card";
+import { FilterDrawer } from "@/components/layout/filter-drawer";
+import { Input } from "@/components/ui/input";
 import { EmptyState, QueryNotice } from "@/components/states/empty-state";
 import { getOrganisationById, listGigs, listJobs } from "@/lib/data/network";
 
-export async function JobsView() {
-  const jobs = await listJobs();
+export async function JobsView({
+  city,
+  employmentType,
+}: {
+  city?: string;
+  employmentType?: string;
+}) {
+  const jobs = await listJobs({ city, employmentType });
   const names = await Promise.all(jobs.data.map((j) => getOrganisationById(j.organisationId)));
   return (
     <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
-      <Card className="h-fit space-y-3 p-4 text-sm text-muted-foreground">
-        <p className="font-semibold text-foreground">Jobs</p>
-        Permanent, contract, part-time, temporary and internships. Publishing a job requires an organisation you
-        administer.
-      </Card>
+      <FilterDrawer title="Filters">
+        <form method="get" className="h-fit space-y-5 rounded-2xl border border-border bg-white p-4 text-sm">
+          <p className="font-semibold text-foreground">Jobs</p>
+          <p className="text-muted-foreground">Permanent and contract roles. Not the same as gigs.</p>
+          <fieldset className="space-y-2">
+            <legend className="font-semibold text-foreground">Location</legend>
+            <label className="sr-only" htmlFor="job-city">
+              City
+            </label>
+            <Input id="job-city" name="city" defaultValue={city} placeholder="City" />
+          </fieldset>
+          <fieldset className="space-y-2">
+            <legend className="font-semibold text-foreground">Employment type</legend>
+            <label className="sr-only" htmlFor="job-type">
+              Employment type
+            </label>
+            <select
+              id="job-type"
+              name="type"
+              defaultValue={employmentType}
+              className="h-10 w-full rounded-lg border border-input bg-white px-3 text-sm"
+            >
+              <option value="">Any type</option>
+              <option value="permanent">Permanent</option>
+              <option value="contract">Contract</option>
+              <option value="part_time">Part time</option>
+              <option value="temporary">Temporary</option>
+              <option value="internship">Internship</option>
+            </select>
+          </fieldset>
+          <button type="submit" className="h-10 w-full rounded-lg bg-primary text-sm font-medium text-white">
+            Apply filters
+          </button>
+        </form>
+      </FilterDrawer>
       <div className="space-y-3">
         <QueryNotice configured={jobs.meta.configured} error={jobs.meta.error} />
         {jobs.data.length === 0 ? (
@@ -25,15 +62,34 @@ export async function JobsView() {
   );
 }
 
-export async function GigsView() {
-  const gigs = await listGigs();
+export async function GigsView({ city, trade }: { city?: string; trade?: string }) {
+  const gigs = await listGigs({ city, trade });
   const names = await Promise.all(gigs.data.map((g) => getOrganisationById(g.organisationId)));
   return (
     <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
-      <Card className="h-fit space-y-3 p-4 text-sm text-muted-foreground">
-        <p className="font-semibold text-foreground">Gigs</p>
-        Short work is not a job. Accepting a gig later creates a Vertex engagement.
-      </Card>
+      <FilterDrawer title="Filters">
+        <form method="get" className="h-fit space-y-5 rounded-2xl border border-border bg-white p-4 text-sm">
+          <p className="font-semibold text-foreground">Gigs</p>
+          <p className="text-muted-foreground">Immediate work. Date, shift and pay first — not a job listing.</p>
+          <fieldset className="space-y-2">
+            <legend className="font-semibold text-foreground">Location</legend>
+            <label className="sr-only" htmlFor="gig-city">
+              Site or city
+            </label>
+            <Input id="gig-city" name="city" defaultValue={city} placeholder="Site or city" />
+          </fieldset>
+          <fieldset className="space-y-2">
+            <legend className="font-semibold text-foreground">Trade</legend>
+            <label className="sr-only" htmlFor="gig-trade">
+              Trade
+            </label>
+            <Input id="gig-trade" name="trade" defaultValue={trade} placeholder="Trade" />
+          </fieldset>
+          <button type="submit" className="h-10 w-full rounded-lg bg-primary text-sm font-medium text-white">
+            Apply filters
+          </button>
+        </form>
+      </FilterDrawer>
       <div className="space-y-3">
         <QueryNotice configured={gigs.meta.configured} error={gigs.meta.error} />
         {gigs.data.length === 0 ? (

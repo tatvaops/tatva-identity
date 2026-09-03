@@ -1,6 +1,7 @@
 import { createServerSupabase } from "@/lib/supabase/server";
 import { supabaseConfigured } from "@/lib/supabase/env";
 import { mapPublicProfile } from "@/lib/data/mappers";
+import { publicErrorMessage } from "@/lib/public-error";
 import type { AuthContext, PublicProfile, QueryMeta } from "@/lib/types/identity";
 
 export function emptyMeta(error: string | null = null): QueryMeta {
@@ -31,16 +32,18 @@ export function listOk<T>(data: T[]): ListResult<T> {
   return { data, meta: emptyMeta() };
 }
 
-export function listFail<T>(message: string): ListResult<T> {
-  return { data: [], meta: emptyMeta(message) };
+export function listFail<T>(message?: string): ListResult<T> {
+  void message;
+  return { data: [], meta: emptyMeta(publicErrorMessage()) };
 }
 
 export function itemOk<T>(data: T | null): ItemResult<T> {
   return { data, meta: emptyMeta() };
 }
 
-export function itemFail<T>(message: string): ItemResult<T> {
-  return { data: null, meta: emptyMeta(message) };
+export function itemFail<T>(message?: string): ItemResult<T> {
+  void message;
+  return { data: null, meta: emptyMeta(publicErrorMessage()) };
 }
 
 export function unconfiguredList<T>(): ListResult<T> {

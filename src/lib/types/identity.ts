@@ -218,6 +218,7 @@ export type ServiceLedgerRow = {
   endLabel: string | null;
   verifiedShifts: number | null;
   rating: number | null;
+  verificationSource?: "organisation" | "project_record" | "vertex";
 };
 
 export type ConversationSummary = {

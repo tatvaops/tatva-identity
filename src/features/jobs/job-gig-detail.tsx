@@ -6,6 +6,7 @@ import Link from "next/link";
 import { CompanyCard, JobCard } from "@/components/cards/entity-cards";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useSession } from "@/components/providers/session-provider";
 import { applyToGig, applyToJob } from "@/lib/actions/network";
 import type { GigPost, JobPost, Organisation } from "@/lib/types/identity";
@@ -26,10 +27,11 @@ export function JobDetail({
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
       <Card className="p-6">
-        <p className="text-xs text-muted-foreground">{organisation?.name}</p>
+        <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Job</p>
+        <p className="mt-1 text-xs text-muted-foreground">{organisation?.name}</p>
         <h1 className="mt-1 text-2xl font-semibold">{job.title}</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          {[job.city, job.salaryLabel, job.employmentType.replace("_", " ")].filter(Boolean).join(" · ")}
+          {[job.city, job.employmentType.replace("_", " ")].filter(Boolean).join(" · ")}
         </p>
         <div className="mt-4 flex gap-2">
           {userId ? (
@@ -51,20 +53,64 @@ export function JobDetail({
             </Button>
           )}
         </div>
-        {error && <p className="mt-2 text-sm text-rose-700">{error}</p>}
-        <article className="mt-6 space-y-4 text-sm leading-6">
-          <p>{job.description}</p>
+        {error && (
+          <p className="mt-2 text-sm text-rose-700" role="alert">
+            {error}
+          </p>
+        )}
+        <article className="mt-6 space-y-6 text-sm leading-6">
+          <section>
+            <h2 className="text-[15px] font-semibold">Overview</h2>
+            <p className="mt-2">{job.description ?? "No overview yet."}</p>
+          </section>
           {job.responsibilities.length > 0 && (
-            <ul className="list-disc pl-5">
-              {job.responsibilities.map((r) => (
-                <li key={r}>{r}</li>
-              ))}
-            </ul>
+            <section>
+              <h2 className="text-[15px] font-semibold">Responsibilities</h2>
+              <ul className="mt-2 list-disc pl-5">
+                {job.responsibilities.map((r) => (
+                  <li key={r}>{r}</li>
+                ))}
+              </ul>
+            </section>
+          )}
+          {job.requirements.length > 0 && (
+            <section>
+              <h2 className="text-[15px] font-semibold">Requirements</h2>
+              <ul className="mt-2 list-disc pl-5">
+                {job.requirements.map((r) => (
+                  <li key={r}>{r}</li>
+                ))}
+              </ul>
+            </section>
+          )}
+          {job.skills.length > 0 && (
+            <section>
+              <h2 className="text-[15px] font-semibold">Skills</h2>
+              <div className="mt-2 flex flex-wrap gap-1">
+                {job.skills.map((skill) => (
+                  <Badge key={skill} variant="outline">
+                    {skill}
+                  </Badge>
+                ))}
+              </div>
+            </section>
+          )}
+          {job.salaryLabel && (
+            <section>
+              <h2 className="text-[15px] font-semibold">Compensation</h2>
+              <p className="mt-2">{job.salaryLabel}</p>
+            </section>
           )}
         </article>
       </Card>
       <aside className="space-y-3">
-        {organisation && <CompanyCard org={organisation} />}
+        {organisation && (
+          <div>
+            <p className="mb-2 text-sm font-semibold">Organisation</p>
+            <CompanyCard org={organisation} />
+          </div>
+        )}
+        {similar.length > 0 && <p className="text-sm font-semibold">Other roles</p>}
         {similar.map((j) => (
           <JobCard key={j.id} job={j} />
         ))}
@@ -78,17 +124,41 @@ export function GigDetail({ gig, organisation }: { gig: GigPost; organisation: O
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const facts = [
+    gig.startLabel ? { label: "When", value: gig.startLabel } : null,
+    gig.shiftLabel ? { label: "Shift", value: gig.shiftLabel } : null,
+    gig.duration ? { label: "Duration", value: gig.duration } : null,
+    gig.siteName ? { label: "Location", value: gig.siteName } : null,
+    gig.distanceKm != null ? { label: "Distance", value: `${gig.distanceKm} km` } : null,
+    gig.payLabel ? { label: "Pay", value: gig.payLabel } : null,
+    gig.seats != null ? { label: "Seats", value: String(gig.seats) } : null,
+    gig.trade ? { label: "Trade", value: gig.trade } : null,
+  ].filter((row): row is { label: string; value: string } => row !== null);
+
   return (
-    <Card className="mx-auto max-w-2xl p-6">
-      <h1 className="text-2xl font-semibold">{gig.title}</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        {[gig.siteName, gig.shiftLabel, gig.payLabel, gig.startLabel].filter(Boolean).join(" · ")}
-      </p>
-      <p className="mt-3 text-sm">{gig.description}</p>
-      {organisation && <p className="mt-2 text-sm">Organisation: {organisation.name}</p>}
+    <Card className="mx-auto max-w-2xl border-l-4 border-l-emerald-600 p-6">
+      <p className="text-[11px] font-medium tracking-wide text-emerald-800 uppercase">Gig</p>
+      <h1 className="mt-1 text-2xl font-semibold">{gig.title}</h1>
+      {organisation && (
+        <Link href={`/org/${organisation.slug}`} className="mt-2 inline-block text-sm text-primary hover:underline">
+          {organisation.name}
+        </Link>
+      )}
+      {facts.length > 0 && (
+        <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {facts.map((fact) => (
+            <div key={fact.label} className="rounded-xl bg-muted/60 px-3 py-2">
+              <dt className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{fact.label}</dt>
+              <dd className="mt-0.5 text-sm font-semibold">{fact.value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      <p className="mt-4 text-sm leading-6">{gig.description}</p>
       <div className="mt-4">
         {userId ? (
           <Button
+            className="w-full sm:w-auto"
             disabled={pending}
             onClick={() =>
               start(async () => {
@@ -101,12 +171,16 @@ export function GigDetail({ gig, organisation }: { gig: GigPost; organisation: O
             Accept gig
           </Button>
         ) : (
-          <Button asChild>
+          <Button className="w-full sm:w-auto" asChild>
             <Link href={`/auth/sign-in?next=/gigs/${gig.id}`}>Sign in to accept</Link>
           </Button>
         )}
       </div>
-      {error && <p className="mt-2 text-sm text-rose-700">{error}</p>}
+      {error && (
+        <p className="mt-2 text-sm text-rose-700" role="alert">
+          {error}
+        </p>
+      )}
     </Card>
   );
 }

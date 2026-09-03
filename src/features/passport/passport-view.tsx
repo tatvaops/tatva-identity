@@ -1,10 +1,21 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PassportStrength } from "@/components/cards/entity-cards";
 import { EmptyState } from "@/components/states/empty-state";
+import { ProfileSectionEdit } from "@/features/profile/profile-edit";
 import { calculatePassportStrength } from "@/lib/domain/passport-strength";
 import type { PublicProfile, Experience, ProfileSkill, ProfileCertification, NetworkProject, RecommendationRow } from "@/lib/types/identity";
+
+const SECTIONS = [
+  ["overview", "Overview"],
+  ["experience", "Experience"],
+  ["projects", "Projects"],
+  ["skills", "Skills"],
+  ["certifications", "Certifications"],
+  ["documents", "Documents"],
+  ["reputation", "Reputation"],
+  ["availability", "Availability"],
+] as const;
 
 export function PassportView({
   profile,
@@ -31,6 +42,7 @@ export function PassportView({
     projectCount: projects.length,
     recommendationCount: recommendations.length,
   });
+  const current = SECTIONS.some(([id]) => id === section) ? section : "overview";
 
   return (
     <div className="space-y-4">
@@ -43,27 +55,33 @@ export function PassportView({
           </Link>
         </p>
       </Card>
-      <Tabs defaultValue={section}>
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="experience">Experience</TabsTrigger>
-          <TabsTrigger value="projects">Projects</TabsTrigger>
-          <TabsTrigger value="skills">Skills</TabsTrigger>
-          <TabsTrigger value="certifications">Certifications</TabsTrigger>
-          <TabsTrigger value="documents">Documents</TabsTrigger>
-          <TabsTrigger value="reputation">Reputation</TabsTrigger>
-          <TabsTrigger value="availability">Availability</TabsTrigger>
-        </TabsList>
-        <TabsContent value="overview">
-          <Card className="p-5">
-            <PassportStrength completeness={strength.completeness} components={strength.components} />
-          </Card>
-        </TabsContent>
-        <TabsContent value="experience">
+      <div className="-mx-4 flex gap-1 overflow-x-auto px-4 pb-1">
+        {SECTIONS.map(([id, label]) => (
+          <Link
+            key={id}
+            href={id === "overview" ? "/passport" : `/passport/${id}`}
+            className={`shrink-0 rounded-full px-3 py-1.5 text-sm ${
+              current === id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+            }`}
+          >
+            {label}
+          </Link>
+        ))}
+      </div>
+      {current === "overview" && (
+        <Card className="p-5">
+          <PassportStrength completeness={strength.completeness} components={strength.components} />
+        </Card>
+      )}
+      {current === "experience" && (
+        <div className="space-y-3">
+          <div className="flex justify-end">
+            <ProfileSectionEdit kind="experience" label="Add experience" />
+          </div>
           {experiences.length === 0 ? (
-            <EmptyState title="No experience yet" body="Add roles from your public profile editor." />
+            <EmptyState title="No experience yet" body="Add roles from your profile." />
           ) : (
-            <Card className="p-5 text-sm space-y-2">
+            <Card className="space-y-2 p-5 text-sm">
               {experiences.map((e) => (
                 <p key={e.id}>
                   {e.title} · {e.source.replace("_", " ")}
@@ -71,8 +89,13 @@ export function PassportView({
               ))}
             </Card>
           )}
-        </TabsContent>
-        <TabsContent value="projects">
+        </div>
+      )}
+      {current === "projects" && (
+        <div className="space-y-3">
+          <div className="flex justify-end">
+            <ProfileSectionEdit kind="project" label="Add project" />
+          </div>
           {projects.length === 0 ? (
             <EmptyState title="No projects yet" body="Opted-in contributions appear here." />
           ) : (
@@ -82,8 +105,13 @@ export function PassportView({
               ))}
             </Card>
           )}
-        </TabsContent>
-        <TabsContent value="skills">
+        </div>
+      )}
+      {current === "skills" && (
+        <div className="space-y-3">
+          <div className="flex justify-end">
+            <ProfileSectionEdit kind="skill" label="Add skill" />
+          </div>
           {skills.length === 0 ? (
             <EmptyState title="No skills yet" body="Skill verification levels are public; evidence files are not." />
           ) : (
@@ -95,8 +123,13 @@ export function PassportView({
               ))}
             </Card>
           )}
-        </TabsContent>
-        <TabsContent value="certifications">
+        </div>
+      )}
+      {current === "certifications" && (
+        <div className="space-y-3">
+          <div className="flex justify-end">
+            <ProfileSectionEdit kind="certification" label="Add credential" />
+          </div>
           {certifications.length === 0 ? (
             <EmptyState title="No public credentials yet" body="Choose which credentials are visible on the public passport." />
           ) : (
@@ -106,27 +139,32 @@ export function PassportView({
               ))}
             </Card>
           )}
-        </TabsContent>
-        <TabsContent value="documents">
-          <Card className="p-5 text-sm text-muted-foreground">
-            KYC documents stay in private storage. Public profile only shows verification state.
-          </Card>
-        </TabsContent>
-        <TabsContent value="reputation">
-          <Card>
-            <CardHeader>
-              <CardTitle>Reputation</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              Reliability charts will use derived Vertex summaries, never raw attendance. Nothing to plot until that
-              feed exists.
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="availability">
+        </div>
+      )}
+      {current === "documents" && (
+        <Card className="p-5 text-sm text-muted-foreground">
+          KYC documents stay in private storage. Public profile only shows verification state.
+        </Card>
+      )}
+      {current === "reputation" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Reputation</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            Reliability charts will use derived Vertex summaries, never raw attendance. Nothing to plot until that
+            feed exists.
+          </CardContent>
+        </Card>
+      )}
+      {current === "availability" && (
+        <div className="space-y-3">
+          <div className="flex justify-end">
+            <ProfileSectionEdit kind="availability" label="Edit availability" />
+          </div>
           <Card className="p-5 text-sm">Status: {profile.availabilityStatus.replaceAll("_", " ")}</Card>
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
     </div>
   );
 }

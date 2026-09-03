@@ -1,75 +1,98 @@
 import Link from "next/link";
-import { MapPin } from "lucide-react";
+import { Clock, MapPin } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 import { AvailabilityBadge, VerificationBadge } from "@/components/identity/verification";
 import { InitialsAvatar } from "@/components/identity/visuals";
-import { ConnectionButton, FollowButton } from "@/components/identity/network-buttons";
+import { ConnectionButton } from "@/components/identity/network-buttons";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { flagsFromProfile } from "@/lib/domain/verification";
+import { flagsFromProfile, headerFlags } from "@/lib/domain/verification";
 import { hueFromId, initialsFromName } from "@/lib/domain/passport-strength";
-import type { GigPost, JobPost, OrgService, Organisation, PublicProfile, NetworkProject } from "@/lib/types/identity";
+import { organisationTypeLabel } from "@/lib/domain/org-config";
+import type {
+  GigPost,
+  JobPost,
+  OrgService,
+  Organisation,
+  PublicProfile,
+  NetworkProject,
+} from "@/lib/types/identity";
+import type { PassportComponent } from "@/lib/domain/passport-strength";
+import { cn } from "@/lib/utils";
+
+const PASSPORT_HREF: Record<string, string> = {
+  identity: "/passport",
+  employment: "/passport/experience",
+  skills: "/passport/skills",
+  credentials: "/passport/certifications",
+  projects: "/passport/projects",
+  references: "/passport/reputation",
+};
+
+const PASSPORT_STATUS_LABEL = {
+  verified: "Verified",
+  present: "Present",
+  not_provided: "Not provided",
+} as const;
 
 export function PersonCard({
   profile,
   connectionState = "connect",
-  following = false,
 }: {
   profile: PublicProfile;
   connectionState?: "connect" | "pending" | "connected";
   following?: boolean;
 }) {
-  const flags = flagsFromProfile(profile);
+  const flags = headerFlags(flagsFromProfile(profile));
+  const trade = profile.classification ?? profile.preferredRoles[0] ?? null;
   return (
     <Card className="p-4">
       <div className="flex gap-3">
-        <Link href={`/people/${profile.handle}`}>
+        <Link href={`/people/${profile.handle}`} aria-label={profile.fullName}>
           <InitialsAvatar initials={initialsFromName(profile.fullName)} hue={hueFromId(profile.id)} size={48} />
         </Link>
         <div className="min-w-0 flex-1">
           <Link href={`/people/${profile.handle}`} className="truncate text-sm font-semibold hover:text-primary">
             {profile.fullName}
           </Link>
-          <div className="mt-0.5 flex flex-wrap gap-1">
-            {flags.slice(0, 2).map((v) => (
+          <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{profile.headline ?? "Professional"}</p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            <AvailabilityBadge status={profile.availabilityStatus} />
+            {flags.slice(0, 1).map((v) => (
               <VerificationBadge key={v.kind} flag={v} compact />
             ))}
           </div>
-          <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{profile.headline ?? "Professional"}</p>
           {profile.city && (
-            <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-              <MapPin className="size-3" />
+            <p className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground">
+              <MapPin className="size-3" aria-hidden />
               {profile.city}
             </p>
           )}
+          {trade && <p className="mt-1 text-xs text-muted-foreground">{trade}</p>}
         </div>
       </div>
-      <div className="mt-3 flex gap-2">
+      <div className="mt-3">
         <ConnectionButton profileId={profile.id} initialState={connectionState} size="sm" />
-        <FollowButton personId={profile.id} following={following} size="sm" />
       </div>
     </Card>
   );
 }
 
-export function CompanyCard({ org, following = false }: { org: Organisation; following?: boolean }) {
+export function CompanyCard({ org }: { org: Organisation; following?: boolean }) {
   return (
     <Card className="p-4">
       <div className="flex gap-3">
-        <Link href={`/companies/${org.slug}`}>
+        <Link href={`/org/${org.slug}`} aria-label={org.name}>
           <InitialsAvatar initials={initialsFromName(org.name)} hue={250} size={48} className="rounded-xl" />
         </Link>
         <div className="min-w-0">
-          <Link href={`/companies/${org.slug}`} className="text-sm font-semibold hover:text-primary">
+          <Link href={`/org/${org.slug}`} className="text-sm font-semibold hover:text-primary">
             {org.name}
           </Link>
-          <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{org.tagline}</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {[org.industry, org.city].filter(Boolean).join(" · ")}
-          </p>
+          <p className="mt-1 text-xs text-muted-foreground">{organisationTypeLabel(org.type)}</p>
+          {org.tagline && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{org.tagline}</p>}
+          <p className="mt-1 text-xs text-muted-foreground">{[org.industry, org.city].filter(Boolean).join(" · ")}</p>
         </div>
-      </div>
-      <div className="mt-3">
-        <FollowButton organisationId={org.id} following={following} size="sm" />
       </div>
     </Card>
   );
@@ -78,7 +101,8 @@ export function CompanyCard({ org, following = false }: { org: Organisation; fol
 export function JobCard({ job, organisationName }: { job: JobPost; organisationName?: string }) {
   return (
     <Card className="p-4">
-      <Link href={`/jobs/${job.id}`} className="text-sm font-semibold hover:text-primary">
+      <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Job</p>
+      <Link href={`/jobs/${job.id}`} className="mt-1 block text-sm font-semibold hover:text-primary">
         {job.title}
       </Link>
       <p className="mt-1 text-xs text-muted-foreground">
@@ -87,44 +111,70 @@ export function JobCard({ job, organisationName }: { job: JobPost; organisationN
       <div className="mt-2 flex flex-wrap gap-1">
         <Badge>{job.employmentType.replace("_", " ")}</Badge>
         {job.experienceLabel && <Badge variant="outline">{job.experienceLabel}</Badge>}
-        {job.easyApply && <Badge variant="primary">Easy Apply</Badge>}
+        {job.skills.slice(0, 3).map((skill) => (
+          <Badge key={skill} variant="outline">
+            {skill}
+          </Badge>
+        ))}
       </div>
+      <p className="mt-2 text-xs text-muted-foreground">
+        Posted {formatDistanceToNow(new Date(job.createdAt), { addSuffix: true })}
+      </p>
     </Card>
   );
 }
 
 export function GigCard({ gig, organisationName }: { gig: GigPost; organisationName?: string }) {
   return (
-    <Card className="p-4">
+    <Card className="border-l-4 border-l-emerald-600 p-4">
       <div className="flex items-start justify-between gap-2">
-        <Link href={`/gigs/${gig.id}`} className="text-sm font-semibold hover:text-primary">
-          {gig.title}
-        </Link>
+        <div>
+          <p className="text-[11px] font-medium tracking-wide text-emerald-800 uppercase">Gig</p>
+          <Link href={`/gigs/${gig.id}`} className="mt-1 block text-sm font-semibold hover:text-primary">
+            {gig.title}
+          </Link>
+        </div>
         {gig.payLabel && <Badge variant="success">{gig.payLabel}</Badge>}
       </div>
-      <p className="mt-1 text-xs text-muted-foreground">
-        {[gig.siteName, gig.shiftLabel, gig.distanceKm != null ? `${gig.distanceKm} km` : null]
-          .filter(Boolean)
-          .join(" · ")}
-      </p>
-      {organisationName && <p className="mt-1 text-xs text-muted-foreground">{organisationName}</p>}
+      <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+        {gig.startLabel && (
+          <li className="flex items-center gap-1.5">
+            <Clock className="size-3" aria-hidden />
+            <span>
+              {gig.startLabel}
+              {gig.shiftLabel ? ` · ${gig.shiftLabel}` : ""}
+              {gig.duration ? ` · ${gig.duration}` : ""}
+            </span>
+          </li>
+        )}
+        {(gig.siteName || gig.distanceKm != null) && (
+          <li className="flex items-center gap-1.5">
+            <MapPin className="size-3" aria-hidden />
+            {[gig.siteName, gig.distanceKm != null ? `${gig.distanceKm} km` : null].filter(Boolean).join(" · ")}
+          </li>
+        )}
+        {gig.trade && <li>Trade: {gig.trade}</li>}
+        {gig.seats != null && <li>{gig.seats} {gig.seats === 1 ? "seat" : "seats"}</li>}
+        {organisationName && <li>{organisationName}</li>}
+      </ul>
     </Card>
   );
 }
 
-export function ProjectCard({ project }: { project: NetworkProject }) {
+export function ProjectCard({ project, roleTitle }: { project: NetworkProject; roleTitle?: string }) {
   return (
-    <Link href={`/projects/${project.slug}`}>
-      <Card className="overflow-hidden">
+    <Link href={`/projects/${project.slug}`} className="block">
+      <Card className="overflow-hidden transition-shadow hover:shadow-md">
         <div className="h-24 bg-gradient-to-r from-slate-800 to-indigo-900" />
         <div className="p-4">
           <p className="text-sm font-semibold">{project.name}</p>
+          {roleTitle && <p className="mt-1 text-xs text-muted-foreground">{roleTitle}</p>}
           <p className="mt-1 text-xs text-muted-foreground">
             {[project.locality, project.city].filter(Boolean).join(", ")}
           </p>
-          <div className="mt-2 flex gap-2">
+          <div className="mt-2 flex flex-wrap gap-2">
             {project.type && <Badge variant="outline">{project.type}</Badge>}
-            {project.verified && <Badge variant="verify">Project verified</Badge>}
+            {project.verified ? <Badge variant="verify">Verified project</Badge> : null}
             <Badge>{project.status.replace("_", " ")}</Badge>
           </div>
         </div>
@@ -135,11 +185,11 @@ export function ProjectCard({ project }: { project: NetworkProject }) {
 
 export function ServiceCard({ service }: { service: OrgService }) {
   return (
-    <Card className="p-4">
+    <Card className="flex h-full flex-col p-4">
       <p className="text-sm font-semibold">{service.name}</p>
-      <p className="mt-1 text-sm text-muted-foreground">{service.description}</p>
+      {service.description && <p className="mt-1 flex-1 text-sm text-muted-foreground">{service.description}</p>}
       {service.locations.length > 0 && (
-        <p className="mt-2 text-xs text-muted-foreground">{service.locations.join(" · ")}</p>
+        <p className="mt-2 text-xs text-muted-foreground">Coverage: {service.locations.join(" · ")}</p>
       )}
       {service.pricingModel && <p className="mt-1 text-xs">{service.pricingModel}</p>}
     </Card>
@@ -164,18 +214,42 @@ export function ProfileMiniCard({ profile }: { profile: PublicProfile }) {
   );
 }
 
-export function PassportStrength({ completeness, components }: { completeness: number; components: { id: string; label: string; complete: boolean; detail: string }[] }) {
+export function PassportStrength({
+  completeness,
+  components,
+}: {
+  completeness: number;
+  components: PassportComponent[];
+}) {
+  const verifiedCount = components.filter((c) => c.status === "verified").length;
   return (
-    <div>
-      <p className="text-sm text-muted-foreground">{completeness}% complete — transparent checks, not a hidden score</p>
-      <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
-        <div className="h-full bg-primary" style={{ width: `${completeness}%` }} />
-      </div>
-      <ul className="mt-4 space-y-2 text-sm">
+    <div className="overflow-hidden rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/80 to-white p-4">
+      <p className="text-[11px] font-semibold tracking-[0.14em] text-indigo-800 uppercase">Professional passport</p>
+      <p className="mt-2 text-sm text-foreground">
+        This profile is backed by verified professional information where a check has completed.
+      </p>
+      <p className="mt-2 text-xs text-muted-foreground">
+        {verifiedCount} verified · {completeness}% of sections present. Not a hidden score.
+      </p>
+      <ul className="mt-4 grid gap-2 sm:grid-cols-2">
         {components.map((c) => (
-          <li key={c.id} className="flex justify-between gap-3">
-            <span>{c.label}</span>
-            <span className="text-muted-foreground">{c.detail}</span>
+          <li key={c.id}>
+            <Link
+              href={PASSPORT_HREF[c.id] ?? "/passport"}
+              className="flex items-center justify-between gap-3 rounded-xl border border-border bg-white px-3 py-2 text-sm hover:border-primary/40"
+            >
+              <span className="font-medium">{c.label}</span>
+              <span
+                className={cn(
+                  "text-[11px] font-semibold tracking-wide uppercase",
+                  c.status === "verified" && "text-cyan-800",
+                  c.status === "present" && "text-indigo-800",
+                  c.status === "not_provided" && "text-muted-foreground",
+                )}
+              >
+                {PASSPORT_STATUS_LABEL[c.status]}
+              </span>
+            </Link>
           </li>
         ))}
       </ul>
@@ -183,22 +257,43 @@ export function PassportStrength({ completeness, components }: { completeness: n
   );
 }
 
-export function ServiceLedger({ rows }: { rows: { id: string; projectName: string; organisationName: string; role: string; startLabel: string | null; endLabel: string | null; verifiedShifts: number | null; rating: number | null }[] }) {
+function provenanceLabel(source?: "organisation" | "project_record" | "vertex") {
+  if (source === "organisation") return "Verified by organisation";
+  if (source === "project_record") return "Derived from verified project record";
+  return "Derived from verified operational record";
+}
+
+export function ServiceLedger({
+  rows,
+}: {
+  rows: {
+    id: string;
+    projectName: string;
+    organisationName: string;
+    role: string;
+    startLabel: string | null;
+    endLabel: string | null;
+    verifiedShifts: number | null;
+    rating: number | null;
+    verificationSource?: "organisation" | "project_record" | "vertex";
+  }[];
+}) {
   return (
     <ol className="relative space-y-4 border-l border-border pl-5">
       {rows.map((row) => (
         <li key={row.id}>
-          <span className="absolute -left-[5px] mt-1.5 size-2.5 rounded-full bg-primary" />
+          <span className="absolute -left-[5px] mt-1.5 size-2.5 rounded-full bg-primary" aria-hidden />
           <p className="text-sm font-semibold">{row.projectName}</p>
           <p className="text-xs text-muted-foreground">
             {row.organisationName} · {row.role}
             {row.startLabel ? ` · ${row.startLabel}` : ""}
             {row.endLabel ? `–${row.endLabel}` : ""}
           </p>
-          <p className="mt-1 text-sm">
-            {row.verifiedShifts != null ? `${row.verifiedShifts} verified shifts` : "Shift count from Vertex when connected"}
-            {row.rating != null ? ` · ${row.rating}` : ""}
-          </p>
+          <p className="mt-1 text-xs font-medium text-cyan-800">{provenanceLabel(row.verificationSource)}</p>
+          {row.verifiedShifts != null ? (
+            <p className="mt-1 text-sm">{row.verifiedShifts} verified shifts</p>
+          ) : null}
+          {row.rating != null ? <p className="text-sm">Rating {row.rating}</p> : null}
         </li>
       ))}
     </ol>

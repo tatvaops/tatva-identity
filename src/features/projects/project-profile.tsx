@@ -52,7 +52,7 @@ export function ProjectProfileView({
             {client && (
               <>
                 Client:{" "}
-                <Link className="text-primary" href={`/companies/${client.slug}`}>
+                <Link className="text-primary" href={`/org/${client.slug}`}>
                   {client.name}
                 </Link>
               </>
@@ -60,7 +60,7 @@ export function ProjectProfileView({
             {main && (
               <>
                 {" · "}Main contractor:{" "}
-                <Link className="text-primary" href={`/companies/${main.slug}`}>
+                <Link className="text-primary" href={`/org/${main.slug}`}>
                   {main.name}
                 </Link>
               </>
@@ -74,6 +74,8 @@ export function ProjectProfileView({
           <TabsTrigger value="updates">Updates</TabsTrigger>
           <TabsTrigger value="team">Team</TabsTrigger>
           <TabsTrigger value="companies">Companies</TabsTrigger>
+          <TabsTrigger value="gallery">Gallery</TabsTrigger>
+          <TabsTrigger value="milestones">Milestones</TabsTrigger>
         </TabsList>
         <TabsContent value="overview">
           <Card className="p-4 text-sm">{project.summary ?? "No overview yet."}</Card>
@@ -104,6 +106,12 @@ export function ProjectProfileView({
           {companies.map((o) => (
             <CompanyCard key={o.id} org={o} />
           ))}
+        </TabsContent>
+        <TabsContent value="gallery">
+          <EmptyState title="No gallery yet" body="Project photos appear here when contributors opt them in. Sensitive site data stays private." />
+        </TabsContent>
+        <TabsContent value="milestones">
+          <EmptyState title="No milestones yet" body="Verified project milestones will list here when recorded." />
         </TabsContent>
       </Tabs>
     </div>

@@ -7,8 +7,8 @@ import {
   listPublicCertifications,
   listRecommendations,
   listOptedInProjects,
-  listPostsByAuthor,
-} from "@/lib/data/network";
+} from "@/lib/data/profile";
+import { listPostsByAuthor } from "@/lib/data/discovery";
 import { QueryNotice } from "@/components/states/empty-state";
 
 export default async function PersonPage({ params }: { params: Promise<{ username: string }> }) {

@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Bell, Briefcase, Home, MessageSquare, Plus, Search, UserRound, Users } from "lucide-react";
-import { useState } from "react";
 import { InitialsAvatar } from "@/components/identity/visuals";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,16 +13,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
+import { SearchBox } from "@/features/search/search-box";
 import { useSession } from "@/components/providers/session-provider";
-import { product, searchPlaceholder } from "@/lib/config";
+import { product } from "@/lib/config";
 import { hueFromId, initialsFromName } from "@/lib/domain/passport-strength";
 import { signOut } from "@/lib/actions/network";
 import { cn } from "@/lib/utils";
 
 const nav = [
   { href: "/feed", label: "Home", icon: Home },
-  { href: "/network", label: "My Network", icon: Users },
+  { href: "/network", label: "Network", icon: Users },
   { href: "/jobs", label: "Jobs", icon: Briefcase },
   { href: "/messages", label: "Messages", icon: MessageSquare },
   { href: "/notifications", label: "Notifications", icon: Bell },
@@ -41,31 +40,19 @@ export function Wordmark({ compact = false }: { compact?: boolean }) {
 export function GlobalHeader() {
   const pathname = usePathname();
   const router = useRouter();
-  const [q, setQ] = useState("");
   const { profile, userId } = useSession();
+  const profileHref = profile ? `/people/${profile.handle}` : "/auth/sign-in";
+  const profileActive = profile ? pathname === `/people/${profile.handle}` : pathname.startsWith("/auth");
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-white/95 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-border bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur">
       <div className="page-wrap flex h-14 items-center gap-3 px-4">
         <Wordmark />
-        <form
-          className="hidden min-w-0 flex-1 md:block"
-          onSubmit={(e) => {
-            e.preventDefault();
-            router.push(`/search?q=${encodeURIComponent(q)}`);
-          }}
-        >
-          <div className="relative max-w-xl">
-            <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder={searchPlaceholder}
-              className="h-9 bg-[#eef3f8] pl-9"
-              aria-label="Search"
-            />
+        <div className="hidden min-w-0 flex-1 md:block">
+          <div className="mx-auto max-w-2xl">
+            <SearchBox />
           </div>
-        </form>
+        </div>
         <nav className="ml-auto hidden items-stretch lg:flex" aria-label="Primary">
           {nav.map((item) => {
             const active = pathname.startsWith(item.href);
@@ -73,27 +60,29 @@ export function GlobalHeader() {
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={active ? "page" : undefined}
                 className={cn(
                   "flex w-[76px] flex-col items-center justify-center gap-0.5 text-[11px] text-muted-foreground hover:text-foreground",
                   active && "text-foreground",
                 )}
               >
-                <item.icon className="size-5" />
+                <item.icon className="size-5" aria-hidden />
                 {item.label}
               </Link>
             );
           })}
           <Link
-            href={profile ? `/people/${profile.handle}` : "/auth/sign-in"}
+            href={profileHref}
+            aria-current={profileActive ? "page" : undefined}
             className={cn(
               "flex w-[76px] flex-col items-center justify-center gap-0.5 text-[11px] text-muted-foreground hover:text-foreground",
-              pathname.startsWith("/people") && "text-foreground",
+              profileActive && "text-foreground",
             )}
           >
             {profile ? (
               <InitialsAvatar initials={initialsFromName(profile.fullName)} hue={hueFromId(profile.id)} size={22} />
             ) : (
-              <UserRound className="size-5" />
+              <UserRound className="size-5" aria-hidden />
             )}
             Profile
           </Link>
@@ -104,11 +93,11 @@ export function GlobalHeader() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="hidden md:inline-flex">
-              For Business
+              Business
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Organisations</DropdownMenuLabel>
+            <DropdownMenuLabel>Business</DropdownMenuLabel>
             <DropdownMenuItem asChild>
               <Link href="/companies">Browse companies</Link>
             </DropdownMenuItem>
@@ -117,6 +106,9 @@ export function GlobalHeader() {
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link href="/gigs">Gigs</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/services">Services</Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -163,29 +155,37 @@ export function GlobalHeader() {
 export function MobileBottomNav() {
   const pathname = usePathname();
   const { profile } = useSession();
+  const profileHref = profile ? `/people/${profile.handle}` : "/auth/sign-in";
   const items = [
     { href: "/feed", label: "Home", icon: Home },
     { href: "/network", label: "Network", icon: Users },
     { href: "/feed?compose=1", label: "Post", icon: Plus },
     { href: "/jobs", label: "Jobs", icon: Briefcase },
-    { href: profile ? `/people/${profile.handle}` : "/auth/sign-in", label: "Profile", icon: UserRound },
+    { href: profileHref, label: "Profile", icon: UserRound },
   ];
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-white pb-[env(safe-area-inset-bottom)] lg:hidden" aria-label="Mobile">
+    <nav
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-white pb-[env(safe-area-inset-bottom)] lg:hidden"
+      aria-label="Mobile"
+    >
       <ul className="grid grid-cols-5">
         {items.map((item) => {
           const path = item.href.split("?")[0]!;
-          const active = pathname.startsWith(path) && item.label !== "Post";
+          const active =
+            item.label === "Profile"
+              ? pathname === path
+              : item.label !== "Post" && pathname.startsWith(path);
           return (
             <li key={item.label}>
               <Link
                 href={item.href}
+                aria-current={active ? "page" : undefined}
                 className={cn(
                   "flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] text-muted-foreground",
-                  active && "text-primary",
+                  active && "text-foreground",
                 )}
               >
-                <item.icon className="size-5" />
+                <item.icon className="size-5" aria-hidden />
                 {item.label}
               </Link>
             </li>
@@ -202,7 +202,7 @@ export function DesktopSidebar({ children }: { children: React.ReactNode }) {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen pb-16 lg:pb-0">
+    <div className="min-h-screen pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0">
       <GlobalHeader />
       <main className="page-wrap px-3 py-4 md:px-6 md:py-6">{children}</main>
       <MobileBottomNav />

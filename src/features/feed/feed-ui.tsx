@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Award, Briefcase, FolderKanban, ImageIcon, Video } from "lucide-react";
 import { InitialsAvatar } from "@/components/identity/visuals";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,15 +17,37 @@ import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 
 const POST_TYPES = [
-  ["update", "Update"],
+  ["update", "Professional update"],
   ["project_completion", "Project completion"],
+  ["before_after", "Before / after"],
   ["hiring", "Hiring"],
   ["gig_requirement", "Gig"],
   ["job_vacancy", "Job"],
   ["certification", "Credential"],
+  ["case_study", "Case study"],
+  ["product_service", "Service announcement"],
   ["site_progress", "Site progress"],
-  ["skill_achievement", "Skill"],
+  ["skill_achievement", "Achievement"],
+  ["project_milestone", "Project update"],
 ] as const;
+
+const POST_TYPE_LABEL: Record<string, string> = {
+  update: "Professional update",
+  project_completion: "Project",
+  before_after: "Project",
+  hiring: "Hiring",
+  gig_requirement: "Gig",
+  job_vacancy: "Job",
+  certification: "Credential",
+  new_employee: "Professional update",
+  work_anniversary: "Professional update",
+  project_milestone: "Project",
+  vendor_completion: "Project",
+  case_study: "Project",
+  product_service: "Service",
+  site_progress: "Project",
+  skill_achievement: "Achievement",
+};
 
 export function PostComposer({ openOnMount = false }: { openOnMount?: boolean }) {
   const { profile } = useSession();
@@ -152,8 +175,11 @@ export function PostCard({
             <p className="text-sm font-semibold">{name}</p>
           )}
           <p className="text-xs text-muted-foreground">
-            {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })} · {post.postType.replaceAll("_", " ")}
+            {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
           </p>
+          <Badge variant="outline" className="mt-2">
+            {POST_TYPE_LABEL[post.postType] ?? post.postType.replaceAll("_", " ")}
+          </Badge>
           <p className="mt-3 text-sm leading-6">{post.body}</p>
         </div>
       </div>

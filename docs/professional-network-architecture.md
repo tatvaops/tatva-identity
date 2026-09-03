@@ -21,11 +21,11 @@ This workspace (`PassportIdentity` / package `tatva-identity`) is a greenfield N
 | Forms | React Hook Form + Zod (dependencies present) |
 | Data fetching | TanStack Query provider exists |
 | Charts / flow | Recharts, React Flow (passport visualisation) |
-| Auth | **None.** No middleware, no session, no login routes |
-| Database | **No migrations, no SQL schema, no applied tables** |
-| Supabase | Client stub only (`src/lib/supabase/client.ts`). `.env` URL/key are empty |
-| Routes | App Router routes under `src/app` (feed, people, companies, jobs, gigs, etc.) |
-| Previous data | Hardcoded mock graph (removed in this phase) |
+| Auth | Supabase Auth magic link, `src/proxy.ts`, session provider, `/auth/sign-in` |
+| Database | Identity schema in `supabase/migrations/`; applied to the connected project |
+| Supabase | `@supabase/ssr` clients; app reads `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` |
+| Routes | App Router routes under `src/app` (feed, people, companies, jobs, gigs, passport, search, etc.) |
+| Data | No mock graph. Empty states until real rows exist. |
 
 There is no existing global navigation to preserve from Vertex. The Identity app shell **is** the navigation for this product.
 
@@ -52,27 +52,17 @@ This app must not duplicate them. It may store a nullable `worker_passport_id` o
 
 ## 3. Existing database entities (EXISTING)
 
-**None.** There is no `supabase/migrations` history and no live schema to introspect.
-
-Anything created under `supabase/migrations/` in this phase is **NEW**.
-
----
+Identity tables live in `supabase/migrations/` (`profiles`, `organisations`, `network_projects`, `job_posts`, `gig_posts`, graph and content tables). Vertex operational tables are still **not** in this repo.
 
 ## 4. Existing authentication model (EXISTING)
 
-**None.**
-
-**NEW:** Supabase Auth (`auth.users`) via `@supabase/ssr`, cookie session, middleware refresh.
+Supabase Auth (`auth.users`) via `@supabase/ssr`, cookie session, proxy refresh. Magic link sign-in creates the user; `handle_new_user` creates `profiles`.
 
 Identity: `auth.users.id` = `profiles.id`.
 
----
-
 ## 5. Existing authorization model (EXISTING)
 
-**None.**
-
-**NEW:** Supabase Row Level Security on Identity tables. Public reads use a safe column set. Sensitive columns (rates, private documents) are never granted to `anon`. Frontend hiding is not the security boundary.
+Supabase Row Level Security on Identity tables. Public reads use a safe column set. Sensitive columns (rates, private documents) are never granted to `anon`. Frontend hiding is not the security boundary.
 
 ---
 

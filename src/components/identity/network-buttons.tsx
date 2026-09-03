@@ -22,6 +22,7 @@ export function ConnectionButton({
   const [pending, start] = useTransition();
 
   if (!userId) {
+    if (size === "sm") return null;
     return (
       <Button size={size} variant="outline" asChild>
         <Link href={`/auth/sign-in?next=/people`}>Sign in to connect</Link>
@@ -83,6 +84,7 @@ export function FollowButton({
       </Button>
     );
   }
+  if (personId && userId === personId) return null;
 
   return (
     <Button

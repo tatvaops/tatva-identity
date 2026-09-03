@@ -63,9 +63,11 @@
   }
   html {
     scroll-behavior: smooth;
+    overflow-x: clip;
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    overflow-x: clip;
   }
   button,
   a {

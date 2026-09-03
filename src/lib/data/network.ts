@@ -44,6 +44,7 @@ export type PeopleFilters = {
   query?: string;
   city?: string;
   availability?: string;
+  organisationId?: string;
 };
 
 export async function listPublicProfiles(filters: PeopleFilters = {}): Promise<ListResult<PublicProfile>> {
@@ -52,6 +53,7 @@ export async function listPublicProfiles(filters: PeopleFilters = {}): Promise<L
   let q = supabase.from("public_profiles").select("*").order("full_name");
   if (filters.city) q = q.ilike("city", `%${filters.city}%`);
   if (filters.availability) q = q.eq("availability_status", filters.availability);
+  if (filters.organisationId) q = q.eq("current_organisation_id", filters.organisationId);
   if (filters.query) {
     q = q.or(
       `full_name.ilike.%${filters.query}%,headline.ilike.%${filters.query}%,about.ilike.%${filters.query}%`,
@@ -78,11 +80,12 @@ export async function getProfileById(id: string): Promise<ItemResult<PublicProfi
   return itemOk(data ? mapPublicProfile(data) : null);
 }
 
-export async function listOrganisations(query?: string): Promise<ListResult<Organisation>> {
+export async function listOrganisations(query?: string, type?: string): Promise<ListResult<Organisation>> {
   const supabase = await createServerSupabase();
   if (!supabase) return unconfiguredList();
   let q = supabase.from("organisations").select("*").order("name");
   if (query) q = q.or(`name.ilike.%${query}%,tagline.ilike.%${query}%,industry.ilike.%${query}%`);
+  if (type) q = q.eq("organisation_type", type);
   const { data, error } = await q;
   if (error) return listFail(error.message);
   return listOk((data ?? []).map(mapOrganisation));
@@ -123,10 +126,13 @@ export async function getProjectBySlug(slug: string): Promise<ItemResult<Network
   return itemOk(byId.data ? mapProject(byId.data) : null);
 }
 
-export async function listJobs(): Promise<ListResult<JobPost>> {
+export async function listJobs(filters: { city?: string; employmentType?: string } = {}): Promise<ListResult<JobPost>> {
   const supabase = await createServerSupabase();
   if (!supabase) return unconfiguredList();
-  const { data, error } = await supabase.from("job_posts").select("*").order("created_at", { ascending: false });
+  let q = supabase.from("job_posts").select("*").order("created_at", { ascending: false });
+  if (filters.city) q = q.ilike("city", `%${filters.city}%`);
+  if (filters.employmentType) q = q.eq("employment_type", filters.employmentType);
+  const { data, error } = await q;
   if (error) return listFail(error.message);
   return listOk((data ?? []).map(mapJob));
 }
@@ -139,12 +145,17 @@ export async function getJob(id: string): Promise<ItemResult<JobPost>> {
   return itemOk(data ? mapJob(data) : null);
 }
 
-export async function listGigs(): Promise<ListResult<GigPost>> {
+export async function listGigs(filters: { city?: string; trade?: string } = {}): Promise<ListResult<GigPost>> {
   const supabase = await createServerSupabase();
   if (!supabase) return unconfiguredList();
-  const { data, error } = await supabase.from("gig_posts").select("*").order("created_at", { ascending: false });
+  let q = supabase.from("gig_posts").select("*").order("created_at", { ascending: false });
+  if (filters.trade) q = q.ilike("trade", `%${filters.trade}%`);
+  const { data, error } = await q;
   if (error) return listFail(error.message);
-  return listOk((data ?? []).map(mapGig));
+  const rows = filters.city
+    ? (data ?? []).filter((row) => String(row.site_name ?? "").toLowerCase().includes(filters.city!.toLowerCase()))
+    : (data ?? []);
+  return listOk(rows.map(mapGig));
 }
 
 export async function getGig(id: string): Promise<ItemResult<GigPost>> {

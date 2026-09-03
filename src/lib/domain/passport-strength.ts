@@ -1,9 +1,12 @@
 import type { PublicProfile } from "@/lib/types/identity";
 
+export type PassportItemStatus = "verified" | "present" | "not_provided";
+
 export type PassportComponent = {
   id: string;
   label: string;
   complete: boolean;
+  status: PassportItemStatus;
   detail: string;
 };
 
@@ -20,42 +23,50 @@ export function calculatePassportStrength(input: {
   projectCount: number;
   recommendationCount: number;
 }): PassportStrength {
+  const item = (complete: boolean, verified: boolean): PassportItemStatus =>
+    verified ? "verified" : complete ? "present" : "not_provided";
   const components: PassportComponent[] = [
     {
       id: "identity",
       label: "Identity",
       complete: input.identityVerified,
-      detail: input.identityVerified ? "Verified" : "Not verified yet",
+      status: item(input.identityVerified, input.identityVerified),
+      detail: input.identityVerified ? "Verified" : "Not provided",
     },
     {
       id: "employment",
       label: "Employment",
       complete: input.employmentVerified,
-      detail: input.employmentVerified ? "Verified" : "Not verified yet",
+      status: item(input.employmentVerified, input.employmentVerified),
+      detail: input.employmentVerified ? "Verified" : "Not provided",
     },
     {
       id: "skills",
       label: "Skills",
       complete: input.skillCount > 0,
-      detail: input.skillCount > 0 ? `${input.skillCount} on profile` : "None added",
+      status: item(input.skillCount > 0, false),
+      detail: input.skillCount > 0 ? `${input.skillCount} listed` : "Not provided",
     },
     {
       id: "credentials",
       label: "Credentials",
       complete: input.publicCredentialCount > 0,
-      detail: input.publicCredentialCount > 0 ? `${input.publicCredentialCount} public` : "None public",
+      status: item(input.publicCredentialCount > 0, false),
+      detail: input.publicCredentialCount > 0 ? `${input.publicCredentialCount} public` : "Not provided",
     },
     {
       id: "projects",
-      label: "Project history",
+      label: "Projects",
       complete: input.projectCount > 0,
-      detail: input.projectCount > 0 ? `${input.projectCount} opted-in` : "None yet",
+      status: item(input.projectCount > 0, false),
+      detail: input.projectCount > 0 ? `${input.projectCount} opted-in` : "Not provided",
     },
     {
       id: "references",
       label: "References",
       complete: input.recommendationCount >= 1,
-      detail: input.recommendationCount > 0 ? `${input.recommendationCount}` : "None yet",
+      status: item(input.recommendationCount > 0, false),
+      detail: input.recommendationCount > 0 ? `${input.recommendationCount}` : "Not provided",
     },
   ];
   const completeness = Math.round((components.filter((c) => c.complete).length / components.length) * 100);

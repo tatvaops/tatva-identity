@@ -33,8 +33,11 @@ export function SignInForm() {
   return (
     <Card className="mx-auto mt-16 max-w-md p-6">
       <Wordmark />
-      <h1 className="mt-4 text-xl font-semibold">Sign in</h1>
-      <p className="mt-1 text-sm text-muted-foreground">We email a magic link. A profile row is created on first sign-in.</p>
+      <h1 className="mt-4 text-xl font-semibold">Sign in or create your profile</h1>
+      <p className="mt-1 text-sm text-muted-foreground">
+        There is no separate signup form. Enter your email and we send a magic link. First use creates your account and
+        profile.
+      </p>
       <form
         className="mt-4 space-y-3"
         onSubmit={async (e) => {

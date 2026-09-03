@@ -1,15 +1,14 @@
-import Link from "next/link";
 import { Globe, MapPin } from "lucide-react";
 import { CompanyCard, GigCard, JobCard, PersonCard, ProjectCard, ServiceCard } from "@/components/cards/entity-cards";
-import { FollowButton } from "@/components/identity/network-buttons";
 import { CoverBand, InitialsAvatar } from "@/components/identity/visuals";
 import { EmptyState } from "@/components/states/empty-state";
 import { PostCard } from "@/features/feed/feed-ui";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { QuoteBoundary } from "@/features/company/quote-boundary";
+import { CompanyActionBar } from "@/features/company/company-actions";
+import { BusinessPassport, OrganisationMetricStrip } from "@/features/company/business-passport";
 import { hueFromId, initialsFromName } from "@/lib/domain/passport-strength";
 import { getAuthContext } from "@/lib/data/query";
 import { isFollowing } from "@/lib/data/network";
@@ -52,6 +51,7 @@ export async function CompanyProfileView({
 }) {
   const session = await getAuthContext();
   const following = session.userId ? await isFollowing(session.userId, { organisationId: org.id }) : false;
+  const verifiedCredential = credentials.some((c) => c.verificationState === "verified");
 
   return (
     <div className="space-y-4">
@@ -60,16 +60,20 @@ export async function CompanyProfileView({
         <div className="px-4 pb-5 md:px-6">
           <div className="-mt-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <InitialsAvatar initials={initialsFromName(org.name)} hue={hueFromId(org.id)} size={96} className="rounded-2xl ring-4 ring-white" />
-            <div className="flex flex-wrap gap-2">
-              <FollowButton organisationId={org.id} following={following} />
-              <Button variant="outline" asChild>
-                <Link href={session.userId ? "/messages" : "/auth/sign-in"}>Message</Link>
-              </Button>
-              <QuoteBoundary />
-            </div>
+            <CompanyActionBar
+              organisationId={org.id}
+              following={following}
+              signedIn={Boolean(session.userId)}
+              type={org.type}
+            />
           </div>
           <h1 className="mt-4 text-2xl font-semibold tracking-tight">{org.name}</h1>
-          <p className="mt-2 text-sm text-muted-foreground">{org.tagline}</p>
+          {org.tagline && <p className="mt-2 text-sm text-foreground">{org.tagline}</p>}
+          {verifiedCredential && (
+            <Badge variant="verify" className="mt-2">
+              Business verification on file
+            </Badge>
+          )}
           <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
             <span>{org.type.replaceAll("_", " ")}</span>
             {org.industry && <span>{org.industry}</span>}
@@ -85,22 +89,30 @@ export async function CompanyProfileView({
         </div>
       </Card>
 
+      <OrganisationMetricStrip
+        peopleCount={people.length}
+        projectCount={projects.length}
+        serviceCount={services.length}
+        jobCount={jobs.length + gigs.length}
+      />
+
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
         <Card className="px-2">
           <Tabs defaultValue={tab}>
             <TabsList className="sticky top-14 z-20 bg-white px-2">
               <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="posts">Posts</TabsTrigger>
-              <TabsTrigger value="about">About</TabsTrigger>
               <TabsTrigger value="services">Services</TabsTrigger>
               <TabsTrigger value="projects">Projects</TabsTrigger>
               <TabsTrigger value="people">People</TabsTrigger>
-              <TabsTrigger value="jobs">Jobs</TabsTrigger>
               <TabsTrigger value="credentials">Credentials</TabsTrigger>
               <TabsTrigger value="reviews">Reviews</TabsTrigger>
+              <TabsTrigger value="jobs">Jobs</TabsTrigger>
+              <TabsTrigger value="posts">Posts</TabsTrigger>
+              <TabsTrigger value="about">About</TabsTrigger>
             </TabsList>
             <TabsContent value="overview" className="space-y-4 px-3 pb-5">
               <p className="text-sm leading-6">{org.about ?? "No overview yet."}</p>
+              <BusinessPassport org={org} credentials={credentials} />
               {projects.slice(0, 2).map((p) => (
                 <ProjectCard key={p.id} project={p} />
               ))}
@@ -123,7 +135,12 @@ export async function CompanyProfileView({
                 </div>
               )}
               {services.map((s) => (
-                <ServiceCard key={s.id} service={s} />
+                <div key={s.id} className="flex h-full flex-col">
+                  <ServiceCard service={s} />
+                  <div className="mt-2">
+                    <QuoteBoundary label="Request quote" variant="outline" fullWidth />
+                  </div>
+                </div>
               ))}
             </TabsContent>
             <TabsContent value="projects" className="grid gap-3 px-3 pb-5 sm:grid-cols-2">
@@ -166,14 +183,21 @@ export async function CompanyProfileView({
                   <EmptyState title="No public credentials yet" body="Verification states can be public. Document files stay private." />
                 </div>
               )}
-              {credentials.map((c) => (
-                <div key={c.id} className="rounded-xl border border-border p-3">
-                  <p className="text-sm font-medium">{c.name}</p>
-                  <Badge variant={c.verificationState === "verified" ? "verify" : "warning"} className="mt-2">
-                    {c.verificationState.replaceAll("_", " ")}
-                  </Badge>
-                </div>
-              ))}
+              {credentials.map((c) => {
+                const expired = c.verificationState === "expired";
+                return (
+                  <div
+                    key={c.id}
+                    className={`rounded-xl border p-3 ${expired ? "border-amber-200 bg-amber-50/40" : "border-border"}`}
+                  >
+                    <p className="text-sm font-medium">{c.name}</p>
+                    {c.expiryLabel && <p className="mt-1 text-xs text-muted-foreground">{c.expiryLabel}</p>}
+                    <Badge variant={expired ? "warning" : c.verificationState === "verified" ? "verify" : "outline"} className="mt-2">
+                      {c.verificationState.replaceAll("_", " ")}
+                    </Badge>
+                  </div>
+                );
+              })}
             </TabsContent>
             <TabsContent value="reviews" className="space-y-3 px-3 pb-5">
               {reviews.length === 0 && (
@@ -202,7 +226,7 @@ export async function CompanyProfileView({
               {[org.locality, org.city].filter(Boolean).join(", ")}
             </p>
             <div className="mt-3">
-              <QuoteBoundary />
+              <QuoteBoundary label="Enquire" variant="outline" fullWidth />
             </div>
           </Card>
           <div>

@@ -9,6 +9,8 @@ import {
   Shield,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { AVAILABILITY_COPY } from "@/lib/domain/availability";
+import type { AvailabilityStatus } from "@/lib/types/identity";
 import type { VerificationFlag } from "@/lib/domain/verification";
 import { cn } from "@/lib/utils";
 
@@ -36,6 +38,7 @@ export function VerificationBadge({
         <span
           className={cn(
             "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium",
+            flag.state !== "verified" && "opacity-70",
             flag.kind === "tatva" && "bg-indigo-50 text-indigo-800",
             flag.kind === "identity" && "bg-sky-50 text-sky-800",
             flag.kind === "employment" && "bg-slate-100 text-slate-800",
@@ -68,19 +71,25 @@ export function AvailabilityBadge({
 }: {
   status: string;
 }) {
-  const map: Record<string, { label: string; className: string }> = {
-    not_looking: { label: "Not looking", className: "bg-slate-100 text-slate-700" },
-    open_to_opportunities: { label: "Open to opportunities", className: "bg-indigo-50 text-indigo-800" },
-    open_to_jobs: { label: "Open to jobs", className: "bg-indigo-50 text-indigo-800" },
-    open_to_gigs: { label: "Open to work", className: "bg-emerald-50 text-emerald-800" },
-    available_immediately: { label: "Available immediately", className: "bg-emerald-100 text-emerald-900" },
-    engaged: { label: "Engaged", className: "bg-amber-50 text-amber-900" },
-    on_leave: { label: "On leave", className: "bg-slate-100 text-slate-700" },
+  const copy = AVAILABILITY_COPY[status as AvailabilityStatus] ?? AVAILABILITY_COPY.not_looking;
+  const tone: Record<string, string> = {
+    not_looking: "bg-slate-100 text-slate-700",
+    open_to_opportunities: "bg-indigo-50 text-indigo-800",
+    open_to_jobs: "bg-indigo-50 text-indigo-800",
+    open_to_gigs: "bg-emerald-50 text-emerald-800",
+    available_immediately: "bg-emerald-100 text-emerald-900",
+    engaged: "bg-amber-50 text-amber-900",
+    on_leave: "bg-slate-100 text-slate-700",
   };
-  const item = map[status] ?? map.not_looking;
   return (
-    <span className={cn("inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide", item.className)}>
-      {item.label}
+    <span
+      className={cn(
+        "inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold tracking-wide",
+        tone[status] ?? tone.not_looking,
+      )}
+      title={copy.hint}
+    >
+      Availability: {copy.label}
     </span>
   );
 }
