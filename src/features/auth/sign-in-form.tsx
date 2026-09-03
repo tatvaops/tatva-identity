@@ -1,78 +1,80 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Wordmark } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { AUTH_NEXT_COOKIE, safeNextPath } from "@/lib/auth/next-path";
+import { parseSignInSecret } from "@/lib/auth/sign-in-input";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
-import { supabaseConfigured } from "@/lib/supabase/env";
+import { supabaseConfigured, supabaseUrl } from "@/lib/supabase/env";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
-function otpErrorMessage(message: string) {
-  const lower = message.toLowerCase();
-  if (lower.includes("rate limit") || lower.includes("after")) {
-    return "Too many sign-in emails were requested. Wait a few minutes, then try once.";
-  }
-  if (lower.includes("invalid") && lower.includes("email")) {
-    return "Enter a valid email address.";
-  }
-  if (lower.includes("otp") || lower.includes("token") || lower.includes("expired")) {
-    return "That code or link is invalid or has expired. Request a new one.";
-  }
-  return "Could not complete sign-in. Try again in a moment.";
+function timeout(ms: number) {
+  return new Promise<never>((_, reject) => {
+    window.setTimeout(() => reject(new Error("timeout")), ms);
+  });
 }
 
-function unwrapEmailLink(raw: string) {
-  const trimmed = raw.trim();
-  if (!trimmed) return null;
-  try {
-    const url = new URL(trimmed);
-    const nested = url.searchParams.get("q");
-    if (nested && url.hostname.includes("google.com")) {
-      return nested;
-    }
-    if (url.pathname.includes("/auth/v1/verify") || url.pathname.includes("/auth/callback")) {
-      return trimmed;
-    }
-    return nested;
-  } catch {
+async function finishOnApp(router: ReturnType<typeof useRouter>, next: string) {
+  router.replace(next);
+  router.refresh();
+}
+
+async function completeWithSecret(opts: {
+  supabase: SupabaseClient;
+  projectUrl: string;
+  email: string;
+  secret: string;
+  next: string;
+  router: ReturnType<typeof useRouter>;
+}) {
+  const parsed = parseSignInSecret(opts.secret, {
+    appOrigin: window.location.origin,
+    supabaseUrl: opts.projectUrl,
+  });
+
+  if (parsed.kind === "verifyUrl" || parsed.kind === "callback") {
+    window.location.assign(parsed.href);
+    return "navigating";
+  }
+
+  if (parsed.kind === "tokenHash") {
+    const { error } = await Promise.race([
+      opts.supabase.auth.verifyOtp({ type: parsed.type, token_hash: parsed.tokenHash }),
+      timeout(15000),
+    ]);
+    if (error) return "That sign-in link is invalid or expired. Wait a few minutes and send a new code.";
+    await finishOnApp(opts.router, opts.next);
     return null;
   }
-}
 
-async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  try {
-    return await Promise.race([
-      promise,
-      new Promise<T>((_, reject) => {
-        timer = setTimeout(() => reject(new Error("timeout")), ms);
-      }),
-    ]);
-  } finally {
-    if (timer) clearTimeout(timer);
+  if (parsed.kind !== "otp") {
+    return "Enter the 6-digit code from the email. Do not paste a Google or Gmail URL.";
   }
+
+  const { error } = await Promise.race([
+    opts.supabase.auth.verifyOtp({ email: opts.email, token: parsed.token, type: "email" }),
+    timeout(15000),
+  ]);
+  if (error) return "That code is wrong or expired. Wait a few minutes and send a new one.";
+  await finishOnApp(opts.router, opts.next);
+  return null;
 }
 
 export function SignInForm() {
   const router = useRouter();
   const params = useSearchParams();
   const next = safeNextPath(params.get("next"));
-  const linkFailed = params.get("error") === "link";
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
-  const [pastedLink, setPastedLink] = useState("");
+  const [step, setStep] = useState<"email" | "code">("email");
   const [pending, setPending] = useState(false);
-  const [haveEmail, setHaveEmail] = useState(linkFailed);
-  const [rateLimited, setRateLimited] = useState(false);
-  const [notice, setNotice] = useState<{ kind: "error" | "ok"; text: string } | null>(
-    linkFailed
-      ? { kind: "error", text: "That sign-in link could not be completed. Request a new one, or enter the email code." }
-      : null,
+  const [error, setError] = useState<string | null>(
+    params.get("error") === "link" ? "That sign-in link did not work. Enter the 6-digit code from the email instead." : null,
   );
-  const requestId = useRef(0);
 
   if (!supabaseConfigured()) {
     return (
@@ -80,117 +82,77 @@ export function SignInForm() {
         <Wordmark />
         <h1 className="mt-4 text-xl font-semibold">Sign in</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Authentication needs Supabase. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY, then apply the
-          Identity migration.
+          Authentication needs Supabase. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.
         </p>
       </Card>
     );
   }
 
+  let submitLabel = "Sign in";
+  if (pending) submitLabel = "Working…";
+  else if (step === "email") submitLabel = "Send code";
+
+  let helpText = `Open the email sent to ${email}. Type the 6-digit code — do not click the link.`;
+  if (step === "email") {
+    helpText = "Enter your email. We send a 6-digit code. First use creates your profile.";
+  }
+
   return (
     <Card className="mx-auto mt-16 max-w-md p-6">
       <Wordmark />
-      <h1 className="mt-4 text-xl font-semibold">Sign in or create your profile</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        There is no separate signup form. Enter your email and we send a magic link. First use creates your account and
-        profile.
-      </p>
+      <h1 className="mt-4 text-xl font-semibold">Sign in</h1>
+      <p className="mt-1 text-sm text-muted-foreground">{helpText}</p>
       <form
         className="mt-4 space-y-3"
         onSubmit={async (event) => {
           event.preventDefault();
           if (pending) return;
-          const current = ++requestId.current;
           setPending(true);
-          setNotice(null);
+          setError(null);
           const supabase = createBrowserSupabase();
-          if (!supabase) {
-            setNotice({ kind: "error", text: "Supabase is not configured." });
+          const projectUrl = supabaseUrl();
+          if (!supabase || !projectUrl) {
+            setError("Supabase is not configured.");
             setPending(false);
             return;
           }
-
-          const unwrapped = unwrapEmailLink(pastedLink);
-          if (unwrapped) {
-            window.location.assign(unwrapped);
-            return;
-          }
-          if (code.trim()) {
-            try {
-              const { error: verifyError } = await withTimeout(
-                supabase.auth.verifyOtp({ email, token: code.trim(), type: "email" }),
-                15000,
-              );
-              if (current !== requestId.current) return;
-              if (verifyError) {
-                setNotice({ kind: "error", text: otpErrorMessage(verifyError.message) });
-                setPending(false);
+          try {
+            if (step === "email") {
+              document.cookie = `${AUTH_NEXT_COOKIE}=${encodeURIComponent(next)}; Path=/; Max-Age=600; SameSite=Lax`;
+              const { error: sendError } = await Promise.race([
+                supabase.auth.signInWithOtp({
+                  email,
+                  options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+                }),
+                timeout(15000),
+              ]);
+              if (sendError) {
+                const limited = sendError.message.toLowerCase().includes("rate limit");
+                setError(
+                  limited
+                    ? "Too many emails already. Use the 6-digit code from the last email. Do not click the link."
+                    : "Could not send the code. Try again in a few minutes.",
+                );
+                if (limited) setStep("code");
                 return;
               }
-              router.replace(next);
-              router.refresh();
-            } catch {
-              if (current !== requestId.current) return;
-              setNotice({ kind: "error", text: "Sign-in is taking too long. Try the code again." });
-              setPending(false);
-            }
-            return;
-          }
-
-          if (pastedLink.trim()) {
-            setNotice({
-              kind: "error",
-              text: "That paste is not a sign-in link. In Gmail, copy the link address from the email — do not click it.",
-            });
-            setPending(false);
-            return;
-          }
-
-          if (haveEmail || rateLimited) {
-            setHaveEmail(true);
-            setNotice({
-              kind: "error",
-              text: "Do not request another email yet. Open the last sign-in message, copy the link, and paste it above.",
-            });
-            setPending(false);
-            return;
-          }
-
-          document.cookie = `${AUTH_NEXT_COOKIE}=${encodeURIComponent(next)}; Path=/; Max-Age=600; SameSite=Lax`;
-          try {
-            const { error: signError } = await withTimeout(
-              supabase.auth.signInWithOtp({
-                email,
-                options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-              }),
-              15000,
-            );
-            if (current !== requestId.current) return;
-            setPending(false);
-            if (signError) {
-              const limited =
-                signError.message.toLowerCase().includes("rate limit") ||
-                signError.message.toLowerCase().includes("after");
-              if (limited) setRateLimited(true);
-              setHaveEmail(true);
-              setNotice({
-                kind: "error",
-                text: limited
-                  ? "Supabase blocked another email. Use the last sign-in email you already received: copy the link, do not click it, and paste it below."
-                  : otpErrorMessage(signError.message),
-              });
+              setStep("code");
               return;
             }
-            setHaveEmail(true);
-            setRateLimited(false);
-            setNotice({
-              kind: "ok",
-              text: "Check your email. If Gmail opens a Google page that never finishes, copy the link from the email and paste it below — do not click it.",
+
+            const result = await completeWithSecret({
+              supabase,
+              projectUrl,
+              email,
+              secret: code,
+              next,
+              router,
             });
+            if (result && result !== "navigating") setError(result);
           } catch {
-            if (current !== requestId.current) return;
+            setError("Sign-in timed out. Wait a moment and try again.");
+          } finally {
             setPending(false);
-            setNotice({ kind: "error", text: "Sending the email took too long. Wait a minute and try once." });
           }
         }}
       >
@@ -198,78 +160,44 @@ export function SignInForm() {
           type="email"
           required
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(event) => setEmail(event.target.value)}
           placeholder="you@company.com"
           aria-label="Email"
-          disabled={pending}
+          disabled={pending || step === "code"}
         />
-        {haveEmail ? (
-          <>
-            <Input
-              value={pastedLink}
-              onChange={(e) => setPastedLink(e.target.value)}
-              placeholder="Paste the sign-in link here"
-              aria-label="Sign-in link from email"
-              disabled={pending}
-            />
-            <Input
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder="Or 6-digit code, if the email has one"
-              aria-label="Email code"
-              disabled={pending}
-            />
-          </>
+        {step === "code" ? (
+          <Input
+            autoComplete="one-time-code"
+            required
+            value={code}
+            onChange={(event) => setCode(event.target.value)}
+            placeholder="6-digit code"
+            aria-label="Sign-in code"
+            disabled={pending}
+          />
         ) : null}
         <Button type="submit" className="w-full" disabled={pending}>
-          {pending ? "Working…" : pastedLink.trim() || code.trim() ? "Continue sign-in" : rateLimited ? "I already have the email" : "Send magic link"}
+          {submitLabel}
         </Button>
       </form>
-      {notice ? (
-        <p
-          className={`mt-3 text-sm ${notice.kind === "error" ? "text-rose-700" : "text-emerald-700"}`}
-          role={notice.kind === "error" ? "alert" : "status"}
-        >
-          {notice.text}
+      {error ? (
+        <p className="mt-3 text-sm text-rose-700" role="alert">
+          {error}
         </p>
       ) : null}
-      {!haveEmail ? (
+      {step === "code" ? (
         <button
           type="button"
           className="mt-3 text-sm text-primary hover:underline"
           onClick={() => {
-            setHaveEmail(true);
-            setNotice({
-              kind: "ok",
-              text: "Paste the sign-in link from Gmail. Copy it — clicking it often opens a Google page that never loads.",
-            });
-          }}
-        >
-          I already have a sign-in email
-        </button>
-      ) : (
-        <button
-          type="button"
-          className="mt-3 text-sm text-primary hover:underline"
-          onClick={() => {
-            setHaveEmail(false);
+            setStep("email");
             setCode("");
-            setPastedLink("");
-            setNotice(
-              rateLimited
-                ? {
-                    kind: "error",
-                    text: "New emails are still blocked. Paste a link from the last email instead.",
-                  }
-                : null,
-            );
+            setError(null);
           }}
         >
-          Send a new magic link instead
+          Use a different email
         </button>
-      )}
+      ) : null}
       <Button variant="ghost" className="mt-4" onClick={() => router.push("/")}>
         Back
       </Button>
