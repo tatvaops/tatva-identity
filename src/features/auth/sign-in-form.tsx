@@ -46,20 +46,20 @@ async function completeWithSecret(opts: {
       opts.supabase.auth.verifyOtp({ type: parsed.type, token_hash: parsed.tokenHash }),
       timeout(15000),
     ]);
-    if (error) return "That sign-in link is invalid or expired. Wait a few minutes and send a new code.";
+    if (error) return "That sign-in link is invalid or expired. Wait about an hour and send a new email.";
     await finishOnApp(opts.router, opts.next);
     return null;
   }
 
   if (parsed.kind !== "otp") {
-    return "Enter the 6-digit code from the email. Do not paste a Google or Gmail URL.";
+    return "Paste the sign-in link from the email. Do not paste a google.com address from the browser bar.";
   }
 
   const { error } = await Promise.race([
     opts.supabase.auth.verifyOtp({ email: opts.email, token: parsed.token, type: "email" }),
     timeout(15000),
   ]);
-  if (error) return "That code is wrong or expired. Wait a few minutes and send a new one.";
+  if (error) return "That code is wrong or expired. Wait about an hour and send a new email.";
   await finishOnApp(opts.router, opts.next);
   return null;
 }
@@ -73,7 +73,9 @@ export function SignInForm() {
   const [step, setStep] = useState<"email" | "code">("email");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(
-    params.get("error") === "link" ? "That sign-in link did not work. Enter the 6-digit code from the email instead." : null,
+    params.get("error") === "link"
+      ? "That sign-in link did not work. Copy the link from the email and paste it here — do not click it."
+      : null,
   );
 
   if (!supabaseConfigured()) {
@@ -90,11 +92,11 @@ export function SignInForm() {
 
   let submitLabel = "Sign in";
   if (pending) submitLabel = "Working…";
-  else if (step === "email") submitLabel = "Send code";
+  else if (step === "email") submitLabel = "Send email";
 
-  let helpText = `Open the email sent to ${email}. Type the 6-digit code — do not click the link.`;
+  let helpText = `Check inbox and spam for ${email}. Copy the sign-in link from that email and paste it below. Do not click the link.`;
   if (step === "email") {
-    helpText = "Enter your email. We send a 6-digit code. First use creates your profile.";
+    helpText = "Enter your email. We send a sign-in link. First use creates your profile.";
   }
 
   return (
@@ -130,8 +132,8 @@ export function SignInForm() {
                 const limited = sendError.message.toLowerCase().includes("rate limit");
                 setError(
                   limited
-                    ? "Too many emails already. Use the 6-digit code from the last email. Do not click the link."
-                    : "Could not send the code. Try again in a few minutes.",
+                    ? "No new email was sent. Wait about an hour. If you already have a sign-in email, paste that link below."
+                    : "Could not send the email. Try again in a few minutes.",
                 );
                 if (limited) setStep("code");
                 return;
@@ -171,8 +173,8 @@ export function SignInForm() {
             required
             value={code}
             onChange={(event) => setCode(event.target.value)}
-            placeholder="6-digit code"
-            aria-label="Sign-in code"
+            placeholder="Paste the sign-in link from the email"
+            aria-label="Sign-in link from email"
             disabled={pending}
           />
         ) : null}
