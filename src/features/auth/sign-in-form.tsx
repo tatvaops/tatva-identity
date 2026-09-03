@@ -65,7 +65,8 @@ export function SignInForm() {
   const [code, setCode] = useState("");
   const [pastedLink, setPastedLink] = useState("");
   const [pending, setPending] = useState(false);
-  const [sent, setSent] = useState(false);
+  const [haveEmail, setHaveEmail] = useState(linkFailed);
+  const [rateLimited, setRateLimited] = useState(false);
   const [notice, setNotice] = useState<{ kind: "error" | "ok"; text: string } | null>(
     linkFailed
       ? { kind: "error", text: "That sign-in link could not be completed. Request a new one, or enter the email code." }
@@ -109,20 +110,12 @@ export function SignInForm() {
             return;
           }
 
-          if (sent) {
-            const unwrapped = unwrapEmailLink(pastedLink);
-            if (unwrapped) {
-              window.location.assign(unwrapped);
-              return;
-            }
-            if (!code.trim()) {
-              setNotice({
-                kind: "error",
-                text: "Paste the sign-in link from the email, or enter the code if the email includes one.",
-              });
-              setPending(false);
-              return;
-            }
+          const unwrapped = unwrapEmailLink(pastedLink);
+          if (unwrapped) {
+            window.location.assign(unwrapped);
+            return;
+          }
+          if (code.trim()) {
             try {
               const { error: verifyError } = await withTimeout(
                 supabase.auth.verifyOtp({ email, token: code.trim(), type: "email" }),
@@ -144,6 +137,25 @@ export function SignInForm() {
             return;
           }
 
+          if (pastedLink.trim()) {
+            setNotice({
+              kind: "error",
+              text: "That paste is not a sign-in link. In Gmail, copy the link address from the email — do not click it.",
+            });
+            setPending(false);
+            return;
+          }
+
+          if (haveEmail || rateLimited) {
+            setHaveEmail(true);
+            setNotice({
+              kind: "error",
+              text: "Do not request another email yet. Open the last sign-in message, copy the link, and paste it above.",
+            });
+            setPending(false);
+            return;
+          }
+
           document.cookie = `${AUTH_NEXT_COOKIE}=${encodeURIComponent(next)}; Path=/; Max-Age=600; SameSite=Lax`;
           try {
             const { error: signError } = await withTimeout(
@@ -156,10 +168,21 @@ export function SignInForm() {
             if (current !== requestId.current) return;
             setPending(false);
             if (signError) {
-              setNotice({ kind: "error", text: otpErrorMessage(signError.message) });
+              const limited =
+                signError.message.toLowerCase().includes("rate limit") ||
+                signError.message.toLowerCase().includes("after");
+              if (limited) setRateLimited(true);
+              setHaveEmail(true);
+              setNotice({
+                kind: "error",
+                text: limited
+                  ? "Supabase blocked another email. Use the last sign-in email you already received: copy the link, do not click it, and paste it below."
+                  : otpErrorMessage(signError.message),
+              });
               return;
             }
-            setSent(true);
+            setHaveEmail(true);
+            setRateLimited(false);
             setNotice({
               kind: "ok",
               text: "Check your email. If Gmail opens a Google page that never finishes, copy the link from the email and paste it below — do not click it.",
@@ -178,9 +201,9 @@ export function SignInForm() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@company.com"
           aria-label="Email"
-          disabled={pending || sent}
+          disabled={pending}
         />
-        {sent ? (
+        {haveEmail ? (
           <>
             <Input
               value={pastedLink}
@@ -201,7 +224,7 @@ export function SignInForm() {
           </>
         ) : null}
         <Button type="submit" className="w-full" disabled={pending}>
-          {pending ? "Working…" : sent ? "Continue sign-in" : "Send magic link"}
+          {pending ? "Working…" : pastedLink.trim() || code.trim() ? "Continue sign-in" : rateLimited ? "I already have the email" : "Send magic link"}
         </Button>
       </form>
       {notice ? (
@@ -212,20 +235,41 @@ export function SignInForm() {
           {notice.text}
         </p>
       ) : null}
-      {sent ? (
+      {!haveEmail ? (
         <button
           type="button"
           className="mt-3 text-sm text-primary hover:underline"
           onClick={() => {
-            setSent(false);
-            setCode("");
-            setPastedLink("");
-            setNotice(null);
+            setHaveEmail(true);
+            setNotice({
+              kind: "ok",
+              text: "Paste the sign-in link from Gmail. Copy it — clicking it often opens a Google page that never loads.",
+            });
           }}
         >
-          Use a different email
+          I already have a sign-in email
         </button>
-      ) : null}
+      ) : (
+        <button
+          type="button"
+          className="mt-3 text-sm text-primary hover:underline"
+          onClick={() => {
+            setHaveEmail(false);
+            setCode("");
+            setPastedLink("");
+            setNotice(
+              rateLimited
+                ? {
+                    kind: "error",
+                    text: "New emails are still blocked. Paste a link from the last email instead.",
+                  }
+                : null,
+            );
+          }}
+        >
+          Send a new magic link instead
+        </button>
+      )}
       <Button variant="ghost" className="mt-4" onClick={() => router.push("/")}>
         Back
       </Button>
