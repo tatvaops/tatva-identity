@@ -43,7 +43,12 @@ export function ProfileActionBar({
     return (
       <div className="flex flex-wrap gap-2">
         {layout === "header" ? <ProfileEditors profile={profile} canEdit /> : null}
-        <Button variant={layout === "mobile" ? "default" : "outline"} className={layout === "mobile" ? "flex-1" : undefined} asChild>
+        <Button
+          variant="outline"
+          size={layout === "mobile" ? "default" : "sm"}
+          className={layout === "mobile" ? "flex-1" : undefined}
+          asChild
+        >
           <Link href="/passport">Passport</Link>
         </Button>
         <ProfileShareButton handle={profile.handle} />

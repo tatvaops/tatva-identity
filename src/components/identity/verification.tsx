@@ -68,8 +68,10 @@ export function VerificationTooltip({ flag }: { flag: VerificationFlag }) {
 
 export function AvailabilityBadge({
   status,
+  labeled = true,
 }: {
   status: string;
+  labeled?: boolean;
 }) {
   const copy = AVAILABILITY_COPY[status as AvailabilityStatus] ?? AVAILABILITY_COPY.not_looking;
   const tone: Record<string, string> = {
@@ -89,7 +91,7 @@ export function AvailabilityBadge({
       )}
       title={copy.hint}
     >
-      Availability: {copy.label}
+      {labeled ? `Availability: ${copy.label}` : copy.label}
     </span>
   );
 }

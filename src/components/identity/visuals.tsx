@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 const tones: Record<string, string> = {
-  site: "from-slate-700 via-slate-600 to-amber-800",
+  site: "from-indigo-800 via-slate-700 to-slate-800",
   studio: "from-indigo-900 via-violet-800 to-stone-600",
   office: "from-slate-800 via-indigo-900 to-slate-700",
   workshop: "from-stone-700 via-amber-900 to-slate-800",

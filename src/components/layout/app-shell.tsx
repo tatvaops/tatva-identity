@@ -81,11 +81,7 @@ export function GlobalHeader() {
               profileActive && "text-foreground",
             )}
           >
-            {profile ? (
-              <InitialsAvatar initials={initialsFromName(profile.fullName)} hue={hueFromId(profile.id)} size={22} />
-            ) : (
-              <UserRound className="size-5" aria-hidden />
-            )}
+            <UserRound className="size-5" aria-hidden />
             {copy.profile}
           </Link>
         </nav>

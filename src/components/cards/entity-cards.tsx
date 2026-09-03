@@ -225,12 +225,12 @@ export function PassportStrength({
 }) {
   const verifiedCount = components.filter((c) => c.status === "verified").length;
   return (
-    <div className="overflow-hidden rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/80 to-white p-4">
-      <p className="text-[11px] font-semibold tracking-[0.14em] text-indigo-800 uppercase">Professional passport</p>
-      <p className="mt-2 text-sm text-foreground">
+    <div className="overflow-hidden rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4">
+      <h2 className="text-[15px] font-semibold text-indigo-950">Professional passport</h2>
+      <p className="mt-1 text-sm text-slate-700">
         This profile is backed by verified professional information where a check has completed.
       </p>
-      <p className="mt-2 text-xs text-muted-foreground">
+      <p className="mt-2 text-sm text-slate-700">
         {verifiedCount} verified · {completeness}% of sections present. Not a hidden score.
       </p>
       <ul className="mt-4 grid gap-2 sm:grid-cols-2">

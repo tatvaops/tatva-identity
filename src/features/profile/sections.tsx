@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/states/empty-state";
 import { PostCard } from "@/features/feed/feed-ui";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { AVAILABILITY_COPY } from "@/lib/domain/availability";
 import { ProfileActionBar } from "@/features/profile/profile-actions";
 import { ProfileSectionEdit } from "@/features/profile/profile-edit";
 import { RecommendForm } from "@/features/profile/recommend-form";
@@ -50,21 +51,16 @@ export function ProfileHeader({
   const visibleFlags = headerFlags(flags);
   return (
     <Card className="overflow-hidden">
-      <CoverBand tone="site" className="h-36 md:h-44" />
+      <CoverBand tone="site" className="h-28 md:h-32" />
       <div className="px-4 pb-5 md:px-6">
-        <div className="-mt-12 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div className="flex items-end gap-4">
-            <InitialsAvatar
-              initials={initialsFromName(profile.fullName)}
-              hue={hueFromId(profile.id)}
-              size={112}
-              className="ring-4 ring-white"
-            />
-            <div className="hidden pb-1 md:block">
-              <AvailabilityBadge status={profile.availabilityStatus} />
-            </div>
-          </div>
-          <div className="hidden md:block">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <InitialsAvatar
+            initials={initialsFromName(profile.fullName)}
+            hue={hueFromId(profile.id)}
+            size={96}
+            className="relative z-10 -mt-12 ring-4 ring-white"
+          />
+          <div className="hidden pt-3 md:block">
             <ProfileActionBar
               profile={profile}
               connectionState={connectionState}
@@ -75,14 +71,14 @@ export function ProfileHeader({
             />
           </div>
         </div>
-        <div className="mt-4 md:hidden">
-          <AvailabilityBadge status={profile.availabilityStatus} />
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <h1 className="text-2xl font-semibold tracking-tight">{profile.fullName}</h1>
+          <AvailabilityBadge status={profile.availabilityStatus} labeled={false} />
         </div>
-        <h1 className="mt-3 text-2xl font-semibold tracking-tight">{profile.fullName}</h1>
-        {profile.headline && <p className="mt-2 max-w-2xl text-base text-foreground">{profile.headline}</p>}
+        {profile.headline ? <p className="mt-1 max-w-2xl text-base text-foreground">{profile.headline}</p> : null}
         <div className="mt-2 flex flex-wrap gap-1.5">
           {visibleFlags.length === 0 ? (
-            <p className="text-xs text-muted-foreground">Verification has not been completed yet.</p>
+            <p className="text-sm text-slate-600">Verification has not been completed yet.</p>
           ) : (
             visibleFlags.map((v) => <VerificationBadge key={v.kind} flag={v} />)
           )}
@@ -120,6 +116,7 @@ export function ProfileMetricStrip({ metrics }: { metrics: ProfileMetric[] }) {
 }
 
 export function AboutSection({ profile }: { profile: PublicProfile }) {
+  const arrangement = profile.arrangement.replaceAll("_", " ");
   return (
     <Card>
       <CardHeader>
@@ -131,13 +128,23 @@ export function AboutSection({ profile }: { profile: PublicProfile }) {
         ) : (
           <p className="text-sm text-muted-foreground">No about section yet.</p>
         )}
-        <div className="mt-4 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
-          {profile.languages.length > 0 && <p>Languages: {profile.languages.join(", ")}</p>}
-          {profile.preferredWorkLocations.length > 0 && (
-            <p>Preferred locations: {profile.preferredWorkLocations.join(", ")}</p>
-          )}
-          <p>Arrangement: {profile.arrangement.replaceAll("_", " ")}</p>
-          <p>Relocate: {profile.willingToRelocate ? "Yes" : "No"}</p>
+        <div className="mt-3 flex flex-wrap gap-2 text-sm">
+          {profile.languages.length > 0 ? (
+            <span className="rounded-md bg-muted px-2 py-1 text-muted-foreground">
+              Languages: {profile.languages.join(", ")}
+            </span>
+          ) : null}
+          {profile.preferredWorkLocations.length > 0 ? (
+            <span className="rounded-md bg-muted px-2 py-1 text-muted-foreground">
+              Preferred locations: {profile.preferredWorkLocations.join(", ")}
+            </span>
+          ) : null}
+          <span className="rounded-md bg-muted px-2 py-1 capitalize text-muted-foreground">
+            Arrangement: {arrangement}
+          </span>
+          <span className="rounded-md bg-muted px-2 py-1 text-muted-foreground">
+            Relocate: {profile.willingToRelocate ? "Yes" : "No"}
+          </span>
         </div>
       </CardContent>
     </Card>
@@ -423,6 +430,7 @@ export function ProfileSidebar({
   org: Organisation | null;
   canEdit: boolean;
 }) {
+  const availability = AVAILABILITY_COPY[profile.availabilityStatus] ?? AVAILABILITY_COPY.not_looking;
   return (
     <aside className="hidden space-y-4 lg:block">
       <Card className="p-4">
@@ -430,12 +438,11 @@ export function ProfileSidebar({
           <p className="text-sm font-semibold">Availability</p>
           {canEdit && <ProfileSectionEdit kind="availability" label="Edit" />}
         </div>
-        <div className="mt-2">
-          <AvailabilityBadge status={profile.availabilityStatus} />
-        </div>
-        {profile.preferredRoles.length > 0 && (
+        <p className="mt-2 text-sm font-medium">{availability.label}</p>
+        <p className="mt-1 text-xs leading-5 text-muted-foreground">{availability.hint}</p>
+        {profile.preferredRoles.length > 0 ? (
           <p className="mt-2 text-xs text-muted-foreground">{profile.preferredRoles.join(", ")}</p>
-        )}
+        ) : null}
       </Card>
       {org && (
         <div>
@@ -455,14 +462,11 @@ export function PassportSection({
   handle: string;
 }) {
   return (
-    <section>
-      <h2 className="mb-2 text-[15px] font-semibold">Professional passport</h2>
-      <PassportStrength
-        completeness={strength.completeness}
-        components={strength.components}
-        hrefFor={(id) => `/passport/${handle}#${id}`}
-      />
-    </section>
+    <PassportStrength
+      completeness={strength.completeness}
+      components={strength.components}
+      hrefFor={(id) => `/passport/${handle}#${id}`}
+    />
   );
 }
 
