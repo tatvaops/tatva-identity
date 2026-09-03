@@ -22,7 +22,15 @@ export const certificationSchema = z.object({
   name: z.string().trim().min(2).max(160),
   issuer: z.string().trim().max(160),
   issueDate: z.string().trim().max(10),
+  expiryDate: z.string().trim().max(10),
   credentialIdPublic: z.string().trim().max(80),
+  category: z.enum([
+    "certification",
+    "licence",
+    "training",
+    "safety",
+    "professional_qualification",
+  ]),
 });
 
 export const availabilitySchema = z.object({

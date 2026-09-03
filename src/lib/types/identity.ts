@@ -37,6 +37,7 @@ export type VerificationState =
   | "verified"
   | "pending"
   | "expired"
+  | "revoked"
   | "not_submitted"
   | "self_declared";
 
@@ -199,6 +200,13 @@ export type ProfileSkill = {
   rating: number | null;
 };
 
+export type CredentialCategory =
+  | "certification"
+  | "licence"
+  | "training"
+  | "safety"
+  | "professional_qualification";
+
 export type ProfileCertification = {
   id: string;
   name: string;
@@ -207,6 +215,7 @@ export type ProfileCertification = {
   expiryDate: string | null;
   credentialIdPublic: string | null;
   verificationState: VerificationState;
+  category: CredentialCategory;
 };
 
 export type ServiceLedgerRow = {

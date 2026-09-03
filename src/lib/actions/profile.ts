@@ -14,6 +14,7 @@ import {
 function revalidateProfile(handle: string | undefined) {
   revalidatePath(`/people/${handle ?? ""}`);
   revalidatePath("/passport");
+  revalidatePath(`/passport/${handle ?? ""}`);
   revalidatePath("/feed");
 }
 
@@ -101,7 +102,9 @@ export async function addCertification(input: unknown): Promise<ActionResult> {
     name: parsed.data.name,
     issuer: parsed.data.issuer || null,
     issue_date: parsed.data.issueDate || null,
+    expiry_date: parsed.data.expiryDate || null,
     credential_id_public: parsed.data.credentialIdPublic || null,
+    category: parsed.data.category,
     verification_state: "self_declared",
     public_visible: true,
   });

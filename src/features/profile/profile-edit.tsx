@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import type { z } from "zod";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -25,6 +26,7 @@ import {
   projectSchema,
   skillSchema,
 } from "@/lib/domain/profile-schemas";
+import { CREDENTIAL_CATEGORIES } from "@/lib/domain/credentials";
 import type { PublicProfile } from "@/lib/types/identity";
 
 type Editor = "about" | "experience" | "skill" | "certification" | "project" | "availability" | null;
@@ -231,9 +233,16 @@ function SkillDialog({ open, onClose }: { open: boolean; onClose: () => void }) 
 function CertificationDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
-  const form = useForm({
+  const form = useForm<z.infer<typeof certificationSchema>>({
     resolver: zodResolver(certificationSchema),
-    defaultValues: { name: "", issuer: "", issueDate: "", credentialIdPublic: "" },
+    defaultValues: {
+      name: "",
+      issuer: "",
+      issueDate: "",
+      expiryDate: "",
+      credentialIdPublic: "",
+      category: "certification",
+    },
   });
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
@@ -253,9 +262,23 @@ function CertificationDialog({ open, onClose }: { open: boolean; onClose: () => 
             router.refresh();
           })}
         >
+          <select className="h-10 w-full rounded-lg border border-input px-3 text-sm" {...form.register("category")}>
+            {CREDENTIAL_CATEGORIES.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.label}
+              </option>
+            ))}
+          </select>
           <Input placeholder="Credential name" {...form.register("name")} />
           <Input placeholder="Issuer" {...form.register("issuer")} />
-          <Input type="date" {...form.register("issueDate")} />
+          <label className="block text-xs font-medium text-muted-foreground" htmlFor="issue-date">
+            Issue date
+          </label>
+          <Input id="issue-date" type="date" {...form.register("issueDate")} />
+          <label className="block text-xs font-medium text-muted-foreground" htmlFor="expiry-date">
+            Expiry date
+          </label>
+          <Input id="expiry-date" type="date" {...form.register("expiryDate")} />
           <Input placeholder="Public credential id (optional)" {...form.register("credentialIdPublic")} />
           <FieldError message={form.formState.errors.name?.message} />
           {serverError && <p className="text-sm text-rose-700">{serverError}</p>}

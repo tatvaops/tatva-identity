@@ -21,12 +21,12 @@ import type { PassportComponent } from "@/lib/domain/passport-strength";
 import { cn } from "@/lib/utils";
 
 const PASSPORT_HREF: Record<string, string> = {
-  identity: "/passport",
-  employment: "/passport/experience",
-  skills: "/passport/skills",
-  credentials: "/passport/certifications",
-  projects: "/passport/projects",
-  references: "/passport/reputation",
+  identity: "/passport?section=identity",
+  employment: "/passport?section=employment",
+  skills: "/passport?section=skills",
+  credentials: "/passport?section=credentials",
+  projects: "/passport?section=projects",
+  references: "/passport?section=references",
 };
 
 const PASSPORT_STATUS_LABEL = {
@@ -217,9 +217,11 @@ export function ProfileMiniCard({ profile }: { profile: PublicProfile }) {
 export function PassportStrength({
   completeness,
   components,
+  hrefFor,
 }: {
   completeness: number;
   components: PassportComponent[];
+  hrefFor?: (id: string) => string;
 }) {
   const verifiedCount = components.filter((c) => c.status === "verified").length;
   return (
@@ -235,7 +237,7 @@ export function PassportStrength({
         {components.map((c) => (
           <li key={c.id}>
             <Link
-              href={PASSPORT_HREF[c.id] ?? "/passport"}
+              href={hrefFor?.(c.id) ?? PASSPORT_HREF[c.id] ?? "/passport"}
               className="flex items-center justify-between gap-3 rounded-xl border border-border bg-white px-3 py-2 text-sm hover:border-primary/40"
             >
               <span className="font-medium">{c.label}</span>

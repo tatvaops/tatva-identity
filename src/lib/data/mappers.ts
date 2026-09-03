@@ -278,6 +278,7 @@ export function mapCert(row: {
   expiry_date: string | null;
   credential_id_public: string | null;
   verification_state: string;
+  category?: string | null;
 }): ProfileCertification {
   return {
     id: row.id,
@@ -287,5 +288,6 @@ export function mapCert(row: {
     expiryDate: row.expiry_date,
     credentialIdPublic: row.credential_id_public,
     verificationState: row.verification_state as VerificationState,
+    category: (row.category as ProfileCertification["category"]) || "certification",
   };
 }

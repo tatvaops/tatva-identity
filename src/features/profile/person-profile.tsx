@@ -95,7 +95,7 @@ export async function PersonProfileView({
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div className="space-y-4">
           {hasSection(config, "about") && <AboutSection profile={profile} />}
-          {hasSection(config, "passport") && <PassportSection strength={passport} />}
+          {hasSection(config, "passport") && <PassportSection strength={passport} handle={profile.handle} />}
           {hasSection(config, "experience") && <ExperienceSection experiences={experiences} canEdit={isOwner} />}
           {hasSection(config, "verifiedHistory") && <VerifiedExperienceSection rows={ledger} />}
           {hasSection(config, "projects") && <ProjectPortfolio projects={projects} canEdit={isOwner} />}

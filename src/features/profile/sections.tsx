@@ -3,9 +3,9 @@ import { MapPin } from "lucide-react";
 import { CompanyCard, PassportStrength, ProjectCard, ServiceLedger } from "@/components/cards/entity-cards";
 import { AvailabilityBadge, VerificationBadge } from "@/components/identity/verification";
 import { CoverBand, InitialsAvatar } from "@/components/identity/visuals";
+import { CredentialCard } from "@/components/identity/credential-card";
 import { EmptyState } from "@/components/states/empty-state";
 import { PostCard } from "@/features/feed/feed-ui";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ProfileActionBar } from "@/features/profile/profile-actions";
@@ -309,12 +309,6 @@ export function SkillsSection({ skills, canEdit }: { skills: ProfileSkill[]; can
   );
 }
 
-function credentialExpired(cert: ProfileCertification) {
-  if (cert.verificationState === "expired") return true;
-  if (!cert.expiryDate) return false;
-  return new Date(cert.expiryDate).getTime() < Date.now();
-}
-
 export function CredentialsSection({
   certifications,
   canEdit,
@@ -325,7 +319,10 @@ export function CredentialsSection({
   return (
     <Card>
       <CardHeader className="flex-row items-center justify-between">
-        <CardTitle>Credentials</CardTitle>
+        <div>
+          <CardTitle>Credentials</CardTitle>
+          <p className="text-xs text-muted-foreground">Public wallet only. Documents stay private.</p>
+        </div>
         {canEdit && <ProfileSectionEdit kind="certification" label="Add" />}
       </CardHeader>
       <CardContent className="grid gap-3 sm:grid-cols-2">
@@ -336,29 +333,9 @@ export function CredentialsSection({
             className="sm:col-span-2 border-0 shadow-none py-8"
           />
         )}
-        {certifications.map((c) => {
-          const expired = credentialExpired(c);
-          return (
-            <div
-              key={c.id}
-              className={cn("rounded-xl border p-3", expired ? "border-amber-200 bg-amber-50/40 opacity-80" : "border-border")}
-            >
-              <p className="text-sm font-medium">{c.name}</p>
-              {c.issuer && <p className="text-xs text-muted-foreground">{c.issuer}</p>}
-              <p className="mt-1 text-xs text-muted-foreground">
-                {[c.issueDate ? `Issued ${c.issueDate}` : null, c.expiryDate ? `Expires ${c.expiryDate}` : null]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </p>
-              {c.credentialIdPublic && (
-                <p className="mt-1 font-mono text-[11px] text-muted-foreground">{c.credentialIdPublic}</p>
-              )}
-              <Badge variant={expired ? "warning" : c.verificationState === "verified" ? "verify" : "outline"} className="mt-2">
-                {expired ? "Expired" : c.verificationState.replaceAll("_", " ")}
-              </Badge>
-            </div>
-          );
-        })}
+        {certifications.map((c) => (
+          <CredentialCard key={c.id} credential={c} />
+        ))}
       </CardContent>
     </Card>
   );
@@ -420,13 +397,19 @@ export function ProfileSidebar({
 
 export function PassportSection({
   strength,
+  handle,
 }: {
   strength: PassportStrengthValue;
+  handle: string;
 }) {
   return (
     <section>
       <h2 className="mb-2 text-[15px] font-semibold">Professional passport</h2>
-      <PassportStrength completeness={strength.completeness} components={strength.components} />
+      <PassportStrength
+        completeness={strength.completeness}
+        components={strength.components}
+        hrefFor={(id) => `/passport/${handle}#${id}`}
+      />
     </section>
   );
 }
