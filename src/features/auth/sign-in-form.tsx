@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Wordmark } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
@@ -9,13 +9,25 @@ import { Input } from "@/components/ui/input";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 import { supabaseConfigured } from "@/lib/supabase/env";
 
+function otpErrorMessage(message: string) {
+  const lower = message.toLowerCase();
+  if (lower.includes("rate limit") || lower.includes("after")) {
+    return "Too many sign-in emails were requested. Wait a few minutes, then try once.";
+  }
+  if (lower.includes("invalid") && lower.includes("email")) {
+    return "Enter a valid email address.";
+  }
+  return "Could not send the sign-in link. Try again in a moment.";
+}
+
 export function SignInForm() {
   const router = useRouter();
   const params = useSearchParams();
   const next = params.get("next") ?? "/feed";
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  const [notice, setNotice] = useState<{ kind: "error" | "ok"; text: string } | null>(null);
+  const requestId = useRef(0);
 
   if (!supabaseConfigured()) {
     return (
@@ -40,13 +52,16 @@ export function SignInForm() {
       </p>
       <form
         className="mt-4 space-y-3"
-        onSubmit={async (e) => {
-          e.preventDefault();
-          setError(null);
-          setStatus(null);
+        onSubmit={async (event) => {
+          event.preventDefault();
+          if (pending) return;
+          const current = ++requestId.current;
+          setPending(true);
+          setNotice(null);
           const supabase = createBrowserSupabase();
           if (!supabase) {
-            setError("Supabase is not configured.");
+            setNotice({ kind: "error", text: "Supabase is not configured." });
+            setPending(false);
             return;
           }
           const origin = window.location.origin;
@@ -54,8 +69,13 @@ export function SignInForm() {
             email,
             options: { emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}` },
           });
-          if (signError) setError(signError.message);
-          else setStatus("Check your email for the sign-in link.");
+          if (current !== requestId.current) return;
+          setPending(false);
+          if (signError) {
+            setNotice({ kind: "error", text: otpErrorMessage(signError.message) });
+            return;
+          }
+          setNotice({ kind: "ok", text: "Check your email for the sign-in link." });
         }}
       >
         <Input
@@ -65,13 +85,17 @@ export function SignInForm() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@company.com"
           aria-label="Email"
+          disabled={pending}
         />
-        <Button type="submit" className="w-full">
-          Send magic link
+        <Button type="submit" className="w-full" disabled={pending}>
+          {pending ? "Sending…" : "Send magic link"}
         </Button>
       </form>
-      {error && <p className="mt-3 text-sm text-rose-700">{error}</p>}
-      {status && <p className="mt-3 text-sm text-emerald-700">{status}</p>}
+      {notice ? (
+        <p className={`mt-3 text-sm ${notice.kind === "error" ? "text-rose-700" : "text-emerald-700"}`} role={notice.kind === "error" ? "alert" : "status"}>
+          {notice.text}
+        </p>
+      ) : null}
       <Button variant="ghost" className="mt-4" onClick={() => router.push("/")}>
         Back
       </Button>
