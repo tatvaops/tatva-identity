@@ -2,6 +2,7 @@ import { PersonCard } from "@/components/cards/entity-cards";
 import { FilterDrawer } from "@/components/layout/filter-drawer";
 import { Input } from "@/components/ui/input";
 import { EmptyState, QueryNotice } from "@/components/states/empty-state";
+import { PageNav } from "@/components/layout/page-nav";
 import { listPublicProfiles } from "@/lib/data/network";
 
 function PeopleFilters({
@@ -59,12 +60,15 @@ export async function PeopleDirectory({
   query,
   city,
   availability,
+  page = 1,
 }: {
   query?: string;
   city?: string;
   availability?: string;
+  page?: number;
 }) {
-  const people = await listPublicProfiles({ query, city, availability });
+  const pageSize = 24;
+  const people = await listPublicProfiles({ query, city, availability }, { page, pageSize });
   return (
     <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
       <FilterDrawer title="Filters">
@@ -86,6 +90,7 @@ export async function PeopleDirectory({
             ))}
           </div>
         )}
+        <PageNav path="/people" page={page} hasMore={people.data.length === pageSize} params={{ q: query, city, availability }} />
       </div>
     </div>
   );

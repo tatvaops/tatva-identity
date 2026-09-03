@@ -2,16 +2,20 @@ import { CompanyCard } from "@/components/cards/entity-cards";
 import { FilterDrawer } from "@/components/layout/filter-drawer";
 import { Input } from "@/components/ui/input";
 import { EmptyState, QueryNotice } from "@/components/states/empty-state";
+import { PageNav } from "@/components/layout/page-nav";
 import { listOrganisations } from "@/lib/data/network";
 
 export async function CompanyDirectory({
   query,
   type,
+  page = 1,
 }: {
   query?: string;
   type?: string;
+  page?: number;
 }) {
-  const orgs = await listOrganisations(query, type);
+  const pageSize = 24;
+  const orgs = await listOrganisations(query, type, { page, pageSize });
   return (
     <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
       <FilterDrawer title="Filters">
@@ -60,6 +64,7 @@ export async function CompanyDirectory({
             ))}
           </div>
         )}
+        <PageNav path="/companies" page={page} hasMore={orgs.data.length === pageSize} params={{ q: query, type }} />
       </div>
     </div>
   );

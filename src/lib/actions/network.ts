@@ -31,6 +31,19 @@ export async function acceptConnection(connectionId: string): Promise<ActionResu
   return { ok: true };
 }
 
+export async function declineConnection(connectionId: string): Promise<ActionResult> {
+  const auth = await requireUser();
+  if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
+  const { error } = await auth.supabase
+    .from("connections")
+    .update({ status: "declined" })
+    .eq("id", connectionId)
+    .eq("addressee_id", auth.ctx.userId);
+  if (error) return fail(error.message);
+  revalidatePath("/network");
+  return { ok: true };
+}
+
 export async function toggleFollowPerson(personId: string, following: boolean): Promise<ActionResult> {
   const auth = await requireUser();
   if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");

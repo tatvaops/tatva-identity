@@ -55,7 +55,7 @@ export function MessagesView({
     return (
       <EmptyState
         title="No conversations yet"
-        body="Messages with people, recruiters and organisations will appear here."
+        body="Open Message on a person or organisation to start a thread. Threads are not created automatically."
       />
     );
   }

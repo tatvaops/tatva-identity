@@ -74,6 +74,11 @@ export type QueryMeta = {
   error: string | null;
 };
 
+export type ListOptions = {
+  page?: number;
+  pageSize?: number;
+};
+
 export type PublicProfile = {
   id: string;
   handle: string;
@@ -119,6 +124,7 @@ export type Organisation = {
   foundedYear: number | null;
   teamSizeLabel: string | null;
   website: string | null;
+  createdBy: string | null;
 };
 
 export type NetworkProject = {
@@ -301,4 +307,32 @@ export type AuthContext = {
   userId: string | null;
   profile: PublicProfile | null;
   configured: boolean;
+};
+
+export type PendingConnection = {
+  id: string;
+  profile: PublicProfile;
+};
+
+export type OpportunityApplication = {
+  id: string;
+  entityId: string;
+  profileId: string;
+  status: string;
+  createdAt: string;
+  profile?: PublicProfile | null;
+};
+
+export type SavedItem = {
+  id: string;
+  entityKind: string;
+  entityId: string;
+  createdAt: string;
+};
+
+export type WorkGraphEdge = {
+  kind: "worked_with" | "shared_organisation" | "shared_project";
+  fromId: string;
+  toId: string;
+  label: string;
 };

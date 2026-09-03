@@ -15,18 +15,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SearchBox } from "@/features/search/search-box";
 import { useSession } from "@/components/providers/session-provider";
+import { useDictionary } from "@/components/providers/locale-provider";
+import { SkipLink } from "@/components/layout/page-nav";
 import { product } from "@/lib/config";
 import { hueFromId, initialsFromName } from "@/lib/domain/passport-strength";
 import { signOut } from "@/lib/actions/network";
 import { cn } from "@/lib/utils";
-
-const nav = [
-  { href: "/feed", label: "Home", icon: Home },
-  { href: "/network", label: "Network", icon: Users },
-  { href: "/jobs", label: "Jobs", icon: Briefcase },
-  { href: "/messages", label: "Messages", icon: MessageSquare },
-  { href: "/notifications", label: "Notifications", icon: Bell },
-];
 
 export function Wordmark({ compact = false }: { compact?: boolean }) {
   return (
@@ -41,8 +35,16 @@ export function GlobalHeader() {
   const pathname = usePathname();
   const router = useRouter();
   const { profile, userId } = useSession();
+  const copy = useDictionary();
   const profileHref = profile ? `/people/${profile.handle}` : "/auth/sign-in";
   const profileActive = profile ? pathname === `/people/${profile.handle}` : pathname.startsWith("/auth");
+  const items = [
+    { href: "/feed", label: copy.home, icon: Home },
+    { href: "/network", label: copy.network, icon: Users },
+    { href: "/jobs", label: copy.jobs, icon: Briefcase },
+    { href: "/messages", label: copy.messages, icon: MessageSquare },
+    { href: "/notifications", label: copy.notifications, icon: Bell },
+  ];
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur">
@@ -54,7 +56,7 @@ export function GlobalHeader() {
           </div>
         </div>
         <nav className="ml-auto hidden items-stretch lg:flex" aria-label="Primary">
-          {nav.map((item) => {
+          {items.map((item) => {
             const active = pathname.startsWith(item.href);
             return (
               <Link
@@ -84,7 +86,7 @@ export function GlobalHeader() {
             ) : (
               <UserRound className="size-5" aria-hidden />
             )}
-            Profile
+            {copy.profile}
           </Link>
         </nav>
         <Link href="/search" className="ml-auto md:hidden" aria-label="Search">
@@ -110,6 +112,15 @@ export function GlobalHeader() {
             <DropdownMenuItem asChild>
               <Link href="/services">Services</Link>
             </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/companies/new">Create organisation</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/jobs/create">Post a job</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/gigs/create">Post a gig</Link>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
         {userId && profile ? (
@@ -126,6 +137,15 @@ export function GlobalHeader() {
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/passport">Professional passport</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/insights">Insights</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/saved">Saved</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/graph">Work graph</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/settings">Settings</Link>
@@ -155,13 +175,14 @@ export function GlobalHeader() {
 export function MobileBottomNav() {
   const pathname = usePathname();
   const { profile } = useSession();
+  const copy = useDictionary();
   const profileHref = profile ? `/people/${profile.handle}` : "/auth/sign-in";
   const items = [
-    { href: "/feed", label: "Home", icon: Home },
-    { href: "/network", label: "Network", icon: Users },
-    { href: "/feed?compose=1", label: "Post", icon: Plus },
-    { href: "/jobs", label: "Jobs", icon: Briefcase },
-    { href: profileHref, label: "Profile", icon: UserRound },
+    { href: "/feed", label: copy.home, icon: Home },
+    { href: "/network", label: copy.network, icon: Users },
+    { href: "/feed?compose=1", label: copy.post, icon: Plus },
+    { href: "/jobs", label: copy.jobs, icon: Briefcase },
+    { href: profileHref, label: copy.profile, icon: UserRound },
   ];
   return (
     <nav
@@ -172,9 +193,9 @@ export function MobileBottomNav() {
         {items.map((item) => {
           const path = item.href.split("?")[0]!;
           const active =
-            item.label === "Profile"
+            item.label === copy.profile
               ? pathname === path
-              : item.label !== "Post" && pathname.startsWith(path);
+              : item.label !== copy.post && pathname.startsWith(path);
           return (
             <li key={item.label}>
               <Link
@@ -201,10 +222,14 @@ export function DesktopSidebar({ children }: { children: React.ReactNode }) {
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const copy = useDictionary();
   return (
     <div className="min-h-screen pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0">
+      <SkipLink label={copy.skip} />
       <GlobalHeader />
-      <main className="page-wrap px-3 py-4 md:px-6 md:py-6">{children}</main>
+      <main id="main-content" className="page-wrap px-3 py-4 md:px-6 md:py-6">
+        {children}
+      </main>
       <MobileBottomNav />
     </div>
   );

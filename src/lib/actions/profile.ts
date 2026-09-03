@@ -10,21 +10,13 @@ import {
   projectSchema,
   skillSchema,
 } from "@/lib/domain/profile-schemas";
+import { slugify } from "@/lib/domain/slug";
 
 function revalidateProfile(handle: string | undefined) {
   revalidatePath(`/people/${handle ?? ""}`);
   revalidatePath("/passport");
   revalidatePath(`/passport/${handle ?? ""}`);
   revalidatePath("/feed");
-}
-
-function slugify(value: string) {
-  const base = value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "")
-    .slice(0, 40);
-  return `${base || "project"}-${crypto.randomUUID().slice(0, 8)}`;
 }
 
 export async function updateProfileAbout(input: unknown): Promise<ActionResult> {

@@ -1,9 +1,13 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { Card } from "@/components/ui/card";
 import { getAuthContext } from "@/lib/data/query";
+import { LanguageForm } from "@/features/settings/language-form";
+import { LOCALE_COOKIE, parseLocale } from "@/lib/i18n";
 
 export default async function SettingsPage() {
   const session = await getAuthContext();
+  const locale = parseLocale((await cookies()).get(LOCALE_COOKIE)?.value);
   return (
     <div className="mx-auto max-w-xl space-y-4">
       <h1 className="text-xl font-semibold">Settings</h1>
@@ -28,6 +32,13 @@ export default async function SettingsPage() {
             Open public passport
           </Link>
         )}
+      </Card>
+      <Card className="p-5 text-sm">
+        <p className="font-medium">Language</p>
+        <p className="mt-1 text-muted-foreground">
+          Shell labels can follow English or Hindi. Other locales are reserved until copy is complete.
+        </p>
+        <LanguageForm current={locale} />
       </Card>
       <Card className="p-5 text-sm">
         <p className="font-medium">Never public</p>

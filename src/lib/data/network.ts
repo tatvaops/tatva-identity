@@ -15,16 +15,19 @@ import {
   itemOk,
   listFail,
   listOk,
+  pageRange,
   unconfiguredItem,
   unconfiguredList,
   type ItemResult,
   type ListResult,
 } from "@/lib/data/query";
+import { rankGigs, rankJobs, rankOrganisations, rankPeople, sortGigsNearby } from "@/lib/domain/search-rank";
 import type {
   ConversationSummary,
   Experience,
   GigPost,
   JobPost,
+  ListOptions,
   MessageRow,
   NetworkProject,
   NotificationRow,
@@ -47,7 +50,10 @@ export type PeopleFilters = {
   organisationId?: string;
 };
 
-export async function listPublicProfiles(filters: PeopleFilters = {}): Promise<ListResult<PublicProfile>> {
+export async function listPublicProfiles(
+  filters: PeopleFilters = {},
+  options: ListOptions = {},
+): Promise<ListResult<PublicProfile>> {
   const supabase = await createServerSupabase();
   if (!supabase) return unconfiguredList();
   let q = supabase.from("public_profiles").select("*").order("full_name");
@@ -59,6 +65,8 @@ export async function listPublicProfiles(filters: PeopleFilters = {}): Promise<L
       `full_name.ilike.%${filters.query}%,headline.ilike.%${filters.query}%,about.ilike.%${filters.query}%`,
     );
   }
+  const range = pageRange(options);
+  if (range) q = q.range(range.from, range.to);
   const { data, error } = await q;
   if (error) return listFail(error.message);
   return listOk((data ?? []).map(mapPublicProfile));
@@ -80,12 +88,18 @@ export async function getProfileById(id: string): Promise<ItemResult<PublicProfi
   return itemOk(data ? mapPublicProfile(data) : null);
 }
 
-export async function listOrganisations(query?: string, type?: string): Promise<ListResult<Organisation>> {
+export async function listOrganisations(
+  query?: string,
+  type?: string,
+  options: ListOptions = {},
+): Promise<ListResult<Organisation>> {
   const supabase = await createServerSupabase();
   if (!supabase) return unconfiguredList();
   let q = supabase.from("organisations").select("*").order("name");
   if (query) q = q.or(`name.ilike.%${query}%,tagline.ilike.%${query}%,industry.ilike.%${query}%`);
   if (type) q = q.eq("organisation_type", type);
+  const range = pageRange(options);
+  if (range) q = q.range(range.from, range.to);
   const { data, error } = await q;
   if (error) return listFail(error.message);
   return listOk((data ?? []).map(mapOrganisation));
@@ -126,12 +140,17 @@ export async function getProjectBySlug(slug: string): Promise<ItemResult<Network
   return itemOk(byId.data ? mapProject(byId.data) : null);
 }
 
-export async function listJobs(filters: { city?: string; employmentType?: string } = {}): Promise<ListResult<JobPost>> {
+export async function listJobs(
+  filters: { city?: string; employmentType?: string } = {},
+  options: ListOptions = {},
+): Promise<ListResult<JobPost>> {
   const supabase = await createServerSupabase();
   if (!supabase) return unconfiguredList();
   let q = supabase.from("job_posts").select("*").order("created_at", { ascending: false });
   if (filters.city) q = q.ilike("city", `%${filters.city}%`);
   if (filters.employmentType) q = q.eq("employment_type", filters.employmentType);
+  const range = pageRange(options);
+  if (range) q = q.range(range.from, range.to);
   const { data, error } = await q;
   if (error) return listFail(error.message);
   return listOk((data ?? []).map(mapJob));
@@ -145,17 +164,22 @@ export async function getJob(id: string): Promise<ItemResult<JobPost>> {
   return itemOk(data ? mapJob(data) : null);
 }
 
-export async function listGigs(filters: { city?: string; trade?: string } = {}): Promise<ListResult<GigPost>> {
+export async function listGigs(
+  filters: { city?: string; trade?: string } = {},
+  options: ListOptions = {},
+): Promise<ListResult<GigPost>> {
   const supabase = await createServerSupabase();
   if (!supabase) return unconfiguredList();
   let q = supabase.from("gig_posts").select("*").order("created_at", { ascending: false });
   if (filters.trade) q = q.ilike("trade", `%${filters.trade}%`);
+  const range = pageRange(options);
+  if (range) q = q.range(range.from, range.to);
   const { data, error } = await q;
   if (error) return listFail(error.message);
   const rows = filters.city
     ? (data ?? []).filter((row) => String(row.site_name ?? "").toLowerCase().includes(filters.city!.toLowerCase()))
     : (data ?? []);
-  return listOk(rows.map(mapGig));
+  return listOk(sortGigsNearby(rows.map(mapGig)));
 }
 
 export async function getGig(id: string): Promise<ItemResult<GigPost>> {
@@ -401,11 +425,15 @@ export async function searchNetwork(query: string) {
     listAllServices(),
   ]);
   const ql = q.toLowerCase();
+  const matchedJobs = q
+    ? jobs.data.filter((j) => j.title.toLowerCase().includes(ql) || j.skills.some((s) => s.toLowerCase().includes(ql)))
+    : jobs.data;
+  const matchedGigs = q ? gigs.data.filter((g) => `${g.title} ${g.trade ?? ""}`.toLowerCase().includes(ql)) : gigs.data;
   return {
-    people: people.data,
-    companies: companies.data,
-    jobs: q ? jobs.data.filter((j) => j.title.toLowerCase().includes(ql) || j.skills.some((s) => s.toLowerCase().includes(ql))) : jobs.data,
-    gigs: q ? gigs.data.filter((g) => `${g.title} ${g.trade ?? ""}`.toLowerCase().includes(ql)) : gigs.data,
+    people: rankPeople(people.data, q),
+    companies: rankOrganisations(companies.data, q),
+    jobs: rankJobs(matchedJobs, q),
+    gigs: rankGigs(matchedGigs, q),
     projects: q ? projects.data.filter((p) => `${p.name} ${p.summary ?? ""}`.toLowerCase().includes(ql)) : projects.data,
     posts: q ? posts.data.filter((p) => p.body.toLowerCase().includes(ql)) : posts.data.slice(0, 8),
     skills: q ? skills.data.filter((s) => s.name.toLowerCase().includes(ql)) : skills.data,

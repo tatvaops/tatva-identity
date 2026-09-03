@@ -33,7 +33,9 @@ export function ProfileActionBar({
   signedIn: boolean;
   layout?: "header" | "mobile";
 }) {
-  const messageHref = signedIn ? "/messages" : `/auth/sign-in?next=/people/${profile.handle}`;
+  const messageHref = signedIn
+    ? `/messages?person=${profile.id}`
+    : `/auth/sign-in?next=/people/${profile.handle}`;
   const showHire = !isOwner && isOpenToWork(profile.availabilityStatus);
   const primary = connectionState === "connected" ? "message" : "connect";
 

@@ -28,10 +28,22 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const protectedPrefixes = ["/messages", "/notifications", "/settings"];
+  const protectedPrefixes = [
+    "/messages",
+    "/notifications",
+    "/settings",
+    "/insights",
+    "/saved",
+    "/jobs/create",
+    "/gigs/create",
+    "/companies/new",
+    "/graph",
+  ];
   const needsAuth =
     protectedPrefixes.some((p) => request.nextUrl.pathname.startsWith(p)) ||
-    request.nextUrl.pathname === "/passport";
+    request.nextUrl.pathname === "/passport" ||
+    request.nextUrl.pathname.endsWith("/applications") ||
+    request.nextUrl.pathname.endsWith("/edit");
   if (needsAuth && !user) {
     const redirect = request.nextUrl.clone();
     redirect.pathname = "/auth/sign-in";

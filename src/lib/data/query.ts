@@ -2,7 +2,7 @@ import { createServerSupabase } from "@/lib/supabase/server";
 import { supabaseConfigured } from "@/lib/supabase/env";
 import { mapPublicProfile } from "@/lib/data/mappers";
 import { publicErrorMessage } from "@/lib/public-error";
-import type { AuthContext, PublicProfile, QueryMeta } from "@/lib/types/identity";
+import type { AuthContext, ListOptions, PublicProfile, QueryMeta } from "@/lib/types/identity";
 
 export function emptyMeta(error: string | null = null): QueryMeta {
   return { configured: supabaseConfigured(), error };
@@ -52,6 +52,14 @@ export function unconfiguredList<T>(): ListResult<T> {
 
 export function unconfiguredItem<T>(): ItemResult<T> {
   return { data: null, meta: emptyMeta() };
+}
+
+export function pageRange(options: ListOptions = {}, fallbackSize?: number) {
+  const pageSize = options.pageSize ?? fallbackSize;
+  if (!pageSize) return null;
+  const page = Math.max(1, options.page ?? 1);
+  const from = (page - 1) * pageSize;
+  return { from, to: from + pageSize - 1, page, pageSize };
 }
 
 export type { PublicProfile };

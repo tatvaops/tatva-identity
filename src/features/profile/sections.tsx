@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ProfileActionBar } from "@/features/profile/profile-actions";
 import { ProfileSectionEdit } from "@/features/profile/profile-edit";
+import { RecommendForm } from "@/features/profile/recommend-form";
 import type { ProfileMetric } from "@/lib/domain/profile-metrics";
 import { headerFlags, SKILL_LEVEL_HELP, SKILL_LEVEL_LABEL, type VerificationFlag } from "@/lib/domain/verification";
 import { hueFromId, initialsFromName } from "@/lib/domain/passport-strength";
@@ -341,7 +342,15 @@ export function CredentialsSection({
   );
 }
 
-export function RecommendationsSection({ recommendations }: { recommendations: RecommendationRow[] }) {
+export function RecommendationsSection({
+  recommendations,
+  toProfileId,
+  canWrite,
+}: {
+  recommendations: RecommendationRow[];
+  toProfileId?: string;
+  canWrite?: boolean;
+}) {
   return (
     <Card>
       <CardHeader>
@@ -357,6 +366,49 @@ export function RecommendationsSection({ recommendations }: { recommendations: R
             <footer className="mt-1 text-xs text-muted-foreground">{r.relationship}</footer>
           </blockquote>
         ))}
+        {canWrite && toProfileId ? <RecommendForm toProfileId={toProfileId} /> : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+export function ReputationSection({ signals }: { signals: { id: string; label: string; source: string }[] }) {
+  if (signals.length === 0) return null;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Trust signals</CardTitle>
+        <p className="text-sm text-muted-foreground">Only evidence that already exists. There is no hidden score.</p>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {signals.map((signal) => (
+          <div key={signal.id} className="rounded-xl border border-border px-3 py-2">
+            <p className="text-sm font-medium">{signal.label}</p>
+            <p className="text-xs text-muted-foreground">{signal.source}</p>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+export function IndependentServicesSection() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Services</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <EmptyState
+          title="Independent services"
+          body="Offer work through a business passport. This product does not invent a personal service catalogue."
+          action={
+            <Link className="text-sm font-medium text-primary hover:underline" href="/companies/new">
+              Create organisation
+            </Link>
+          }
+          className="border-0 shadow-none py-8"
+        />
       </CardContent>
     </Card>
   );

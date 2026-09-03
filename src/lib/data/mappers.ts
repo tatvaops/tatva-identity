@@ -92,6 +92,7 @@ export function mapOrganisation(row: {
   founded_year: number | null;
   team_size_label: string | null;
   website: string | null;
+  created_by?: string | null;
 }): Organisation {
   return {
     id: row.id,
@@ -108,6 +109,7 @@ export function mapOrganisation(row: {
     foundedYear: row.founded_year,
     teamSizeLabel: row.team_size_label,
     website: row.website,
+    createdBy: row.created_by ?? null,
   };
 }
 

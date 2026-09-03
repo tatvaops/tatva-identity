@@ -1,17 +1,22 @@
 import { GigCard, JobCard } from "@/components/cards/entity-cards";
 import { FilterDrawer } from "@/components/layout/filter-drawer";
+import { PageNav } from "@/components/layout/page-nav";
 import { Input } from "@/components/ui/input";
 import { EmptyState, QueryNotice } from "@/components/states/empty-state";
 import { getOrganisationById, listGigs, listJobs } from "@/lib/data/network";
 
+const PAGE_SIZE = 24;
+
 export async function JobsView({
   city,
   employmentType,
+  page = 1,
 }: {
   city?: string;
   employmentType?: string;
+  page?: number;
 }) {
-  const jobs = await listJobs({ city, employmentType });
+  const jobs = await listJobs({ city, employmentType }, { page, pageSize: PAGE_SIZE });
   const names = await Promise.all(jobs.data.map((j) => getOrganisationById(j.organisationId)));
   return (
     <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
@@ -57,13 +62,14 @@ export async function JobsView({
         ) : (
           jobs.data.map((j, i) => <JobCard key={j.id} job={j} organisationName={names[i]?.data?.name} />)
         )}
+        <PageNav path="/jobs" page={page} hasMore={jobs.data.length === PAGE_SIZE} params={{ city, type: employmentType }} />
       </div>
     </div>
   );
 }
 
-export async function GigsView({ city, trade }: { city?: string; trade?: string }) {
-  const gigs = await listGigs({ city, trade });
+export async function GigsView({ city, trade, page = 1 }: { city?: string; trade?: string; page?: number }) {
+  const gigs = await listGigs({ city, trade }, { page, pageSize: PAGE_SIZE });
   const names = await Promise.all(gigs.data.map((g) => getOrganisationById(g.organisationId)));
   return (
     <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
@@ -71,6 +77,7 @@ export async function GigsView({ city, trade }: { city?: string; trade?: string 
         <form method="get" className="h-fit space-y-5 rounded-2xl border border-border bg-white p-4 text-sm">
           <p className="font-semibold text-foreground">Gigs</p>
           <p className="text-muted-foreground">Immediate work. Date, shift and pay first — not a job listing.</p>
+          <p className="text-muted-foreground">Nearest first when distance is known.</p>
           <fieldset className="space-y-2">
             <legend className="font-semibold text-foreground">Location</legend>
             <label className="sr-only" htmlFor="gig-city">
@@ -85,7 +92,7 @@ export async function GigsView({ city, trade }: { city?: string; trade?: string 
             </label>
             <Input id="gig-trade" name="trade" defaultValue={trade} placeholder="Trade" />
           </fieldset>
-          <button type="submit" className="h-10 w-full rounded-lg bg-primary text-sm font-medium text-white">
+          <button type="submit" className="h-10 w-full min-h-12 rounded-lg bg-primary text-sm font-medium text-white">
             Apply filters
           </button>
         </form>
@@ -97,6 +104,7 @@ export async function GigsView({ city, trade }: { city?: string; trade?: string 
         ) : (
           gigs.data.map((g, i) => <GigCard key={g.id} gig={g} organisationName={names[i]?.data?.name} />)
         )}
+        <PageNav path="/gigs" page={page} hasMore={gigs.data.length === PAGE_SIZE} params={{ city, trade }} />
       </div>
     </div>
   );

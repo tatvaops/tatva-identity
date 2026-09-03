@@ -23,17 +23,26 @@ const QUOTE_TYPES = new Set([
 
 export function CompanyActionBar({
   organisationId,
+  slug,
+  createdBy,
   following,
   signedIn,
   type,
 }: {
   organisationId: string;
+  slug: string;
+  createdBy: string | null;
   following: boolean;
   signedIn: boolean;
   type: string;
 }) {
   const showQuote = QUOTE_TYPES.has(type);
-  const messageHref = signedIn ? "/messages" : "/auth/sign-in";
+  const next = `/companies/${slug}`;
+  const messageHref = signedIn
+    ? createdBy
+      ? `/messages?org=${slug}`
+      : "/messages"
+    : `/auth/sign-in?next=${encodeURIComponent(next)}`;
   return (
     <div className="flex flex-wrap gap-2">
       <FollowButton organisationId={organisationId} following={following} />

@@ -9,16 +9,21 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useSession } from "@/components/providers/session-provider";
 import { applyToGig, applyToJob } from "@/lib/actions/network";
+import { SaveButton } from "@/components/identity/save-button";
 import type { GigPost, JobPost, Organisation } from "@/lib/types/identity";
 
 export function JobDetail({
   job,
   organisation,
   similar,
+  saved = false,
+  canManage = false,
 }: {
   job: JobPost;
   organisation: Organisation | null;
   similar: JobPost[];
+  saved?: boolean;
+  canManage?: boolean;
 }) {
   const { userId } = useSession();
   const router = useRouter();
@@ -33,7 +38,7 @@ export function JobDetail({
         <p className="mt-2 text-sm text-muted-foreground">
           {[job.city, job.employmentType.replace("_", " ")].filter(Boolean).join(" · ")}
         </p>
-        <div className="mt-4 flex gap-2">
+        <div className="mt-4 flex flex-wrap gap-2">
           {userId ? (
             <Button
               disabled={pending}
@@ -52,6 +57,12 @@ export function JobDetail({
               <Link href={`/auth/sign-in?next=/jobs/${job.id}`}>Sign in to apply</Link>
             </Button>
           )}
+          {userId ? <SaveButton kind="job" id={job.id} saved={saved} /> : null}
+          {canManage ? (
+            <Button variant="outline" asChild>
+              <Link href={`/jobs/${job.id}/applications`}>Applications</Link>
+            </Button>
+          ) : null}
         </div>
         {error && (
           <p className="mt-2 text-sm text-rose-700" role="alert">
@@ -119,7 +130,17 @@ export function JobDetail({
   );
 }
 
-export function GigDetail({ gig, organisation }: { gig: GigPost; organisation: Organisation | null }) {
+export function GigDetail({
+  gig,
+  organisation,
+  saved = false,
+  canManage = false,
+}: {
+  gig: GigPost;
+  organisation: Organisation | null;
+  saved?: boolean;
+  canManage?: boolean;
+}) {
   const { userId } = useSession();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -155,7 +176,7 @@ export function GigDetail({ gig, organisation }: { gig: GigPost; organisation: O
         </dl>
       )}
       <p className="mt-4 text-sm leading-6">{gig.description}</p>
-      <div className="mt-4">
+      <div className="mt-4 flex flex-wrap gap-2">
         {userId ? (
           <Button
             className="w-full sm:w-auto"
@@ -175,6 +196,12 @@ export function GigDetail({ gig, organisation }: { gig: GigPost; organisation: O
             <Link href={`/auth/sign-in?next=/gigs/${gig.id}`}>Sign in to accept</Link>
           </Button>
         )}
+        {userId ? <SaveButton kind="gig" id={gig.id} saved={saved} /> : null}
+        {canManage ? (
+          <Button variant="outline" asChild>
+            <Link href={`/gigs/${gig.id}/applications`}>Applications</Link>
+          </Button>
+        ) : null}
       </div>
       {error && (
         <p className="mt-2 text-sm text-rose-700" role="alert">

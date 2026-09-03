@@ -2,7 +2,7 @@ import { createServerSupabase } from "@/lib/supabase/server";
 import { getAuthContext } from "@/lib/data/query";
 import { publicActionError } from "@/lib/public-error";
 
-export type ActionResult = { ok: true } | { ok: false; error: string };
+export type ActionResult = { ok: true; id?: string } | { ok: false; error: string };
 
 export function fail(error: string): ActionResult {
   return { ok: false, error: publicActionError(error) };

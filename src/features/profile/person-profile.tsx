@@ -2,6 +2,7 @@ import {
   AboutSection,
   CredentialsSection,
   ExperienceSection,
+  IndependentServicesSection,
   PassportSection,
   ProfileHeader,
   ProfileMetricStrip,
@@ -9,6 +10,7 @@ import {
   ProfileSidebar,
   ProjectPortfolio,
   RecommendationsSection,
+  ReputationSection,
   SkillsSection,
   VerifiedExperienceSection,
 } from "@/features/profile/sections";
@@ -16,6 +18,7 @@ import { ProfileActionBar } from "@/features/profile/profile-actions";
 import { calculatePassportStrength } from "@/lib/domain/passport-strength";
 import { profileConfigFor, hasSection } from "@/lib/domain/profile-config";
 import { profileMetrics } from "@/lib/domain/profile-metrics";
+import { reputationSignals } from "@/lib/domain/reputation";
 import { flagsFromEvidence } from "@/lib/domain/verification";
 import { getVerifiedWorkHistory } from "@/lib/integrations/vertex";
 import { getOrganisationById } from "@/lib/data/organisation";
@@ -77,6 +80,7 @@ export async function PersonProfileView({
       ? await isFollowing(session.userId, { personId: profile.id })
       : false;
   const isOwner = session.userId === profile.id;
+  const signals = reputationSignals({ profile, recommendations, certifications, projects });
 
   return (
     <div className="space-y-4 pb-24 lg:pb-0">
@@ -95,7 +99,9 @@ export async function PersonProfileView({
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div className="space-y-4">
           {hasSection(config, "about") && <AboutSection profile={profile} />}
+          <ReputationSection signals={signals} />
           {hasSection(config, "passport") && <PassportSection strength={passport} handle={profile.handle} />}
+          {hasSection(config, "services") && <IndependentServicesSection />}
           {hasSection(config, "experience") && <ExperienceSection experiences={experiences} canEdit={isOwner} />}
           {hasSection(config, "verifiedHistory") && <VerifiedExperienceSection rows={ledger} />}
           {hasSection(config, "projects") && <ProjectPortfolio projects={projects} canEdit={isOwner} />}
@@ -104,7 +110,11 @@ export async function PersonProfileView({
             <CredentialsSection certifications={certifications} canEdit={isOwner} />
           )}
           {hasSection(config, "recommendations") && (
-            <RecommendationsSection recommendations={recommendations} />
+            <RecommendationsSection
+              recommendations={recommendations}
+              toProfileId={profile.id}
+              canWrite={Boolean(session.userId && !isOwner)}
+            />
           )}
           {hasSection(config, "posts") && <ProfilePosts posts={posts} author={profile} />}
         </div>

@@ -7,26 +7,10 @@ import {
 } from "@/lib/domain/org-config";
 import type { OrgCredential, Organisation, VerificationState } from "@/lib/types/identity";
 
-export function OrganisationMetricStrip({
-  peopleCount,
-  projectCount,
-  serviceCount,
-  jobCount,
-}: {
-  peopleCount: number;
-  projectCount: number;
-  serviceCount: number;
-  jobCount: number;
-}) {
-  const metrics = [
-    peopleCount > 0 ? { id: "people", label: "People", value: String(peopleCount) } : null,
-    projectCount > 0 ? { id: "projects", label: "Projects", value: String(projectCount) } : null,
-    serviceCount > 0 ? { id: "services", label: "Services", value: String(serviceCount) } : null,
-    jobCount > 0 ? { id: "jobs", label: "Jobs", value: String(jobCount) } : null,
-  ].filter((row): row is { id: string; label: string; value: string } => row !== null);
+export function OrganisationMetricStrip({ metrics }: { metrics: { id: string; label: string; value: string }[] }) {
   if (metrics.length === 0) return null;
   return (
-    <Card className="grid grid-cols-2 gap-px overflow-hidden bg-border sm:grid-cols-4">
+    <Card className="grid grid-cols-2 gap-px overflow-hidden bg-border sm:grid-cols-3 lg:grid-cols-6">
       {metrics.map((metric) => (
         <div key={metric.id} className="bg-white px-4 py-3">
           <p className="text-lg font-semibold tabular-nums">{metric.value}</p>

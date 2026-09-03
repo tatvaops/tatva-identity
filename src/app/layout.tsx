@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import { cookies } from "next/headers";
 import { AppProviders } from "@/components/providers/app-providers";
 import { product } from "@/lib/config";
+import { LOCALE_COOKIE, parseLocale } from "@/lib/i18n";
 import "./globals.css";
 
 const inter = Inter({
@@ -24,11 +26,12 @@ export const viewport: Viewport = {
   themeColor: "#ffffff",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = parseLocale((await cookies()).get(LOCALE_COOKIE)?.value);
   return (
-    <html lang="en">
+    <html lang={locale}>
       <body className={`${inter.variable} font-sans`}>
-        <AppProviders>{children}</AppProviders>
+        <AppProviders locale={locale}>{children}</AppProviders>
       </body>
     </html>
   );

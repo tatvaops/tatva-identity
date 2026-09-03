@@ -4,7 +4,7 @@ export default function ConnectionsPage() {
   return (
     <div>
       <h1 className="mb-4 text-xl font-semibold">Connections</h1>
-      <NetworkView />
+      <NetworkView focus="connections" />
     </div>
   );
 }
