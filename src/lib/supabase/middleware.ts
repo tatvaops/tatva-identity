@@ -9,6 +9,10 @@ export async function updateSession(request: NextRequest) {
 
   if (!url || !key) return response;
 
+  if (request.nextUrl.pathname.startsWith("/auth/")) {
+    return response;
+  }
+
   const supabase = createServerClient(url, key, {
     cookies: {
       getAll() {
