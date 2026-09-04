@@ -3,11 +3,14 @@
 -- Show:  update public.platform_settings set seed_data_enabled = true;
 -- Delete: select public.unseed_platform();
 
-create or replace function public.seed_auth_user(uid uuid, email text, full_name text)
+drop function if exists public.seed_auth_user(uuid, text, text);
+drop function if exists public.seed_auth_user(uuid, text, text, text);
+
+create or replace function public.seed_auth_user(uid uuid, email text, full_name text, profile_handle text)
 returns void
 language plpgsql
 security definer
-set search_path = public, auth
+set search_path = public, auth, extensions
 as $$
 begin
   insert into auth.users (
@@ -20,7 +23,7 @@ begin
     'authenticated',
     'authenticated',
     email,
-    crypt('SeedLogin-demo-only', gen_salt('bf')),
+    extensions.crypt('SeedLogin-demo-only', extensions.gen_salt('bf')),
     now(),
     '{"provider":"email","providers":["email"]}'::jsonb,
     jsonb_build_object('full_name', full_name, 'auth_provider', 'seed'),
@@ -28,6 +31,13 @@ begin
     now(),
     '', '', '', ''
   ) on conflict (id) do nothing;
+
+  -- Signup trigger uses the first 12 hex chars of the uuid as the handle.
+  -- These seed ids share that prefix, so rename before the next insert.
+  delete from public.profile_handles where profile_id = uid;
+  update public.profiles
+  set handle = profile_handle, full_name = seed_auth_user.full_name
+  where id = uid;
 
   if not exists (select 1 from auth.identities where user_id = uid and provider = 'email') then
     insert into auth.identities (
@@ -48,7 +58,7 @@ create or replace function public.seed_demo_data()
 returns void
 language plpgsql
 security definer
-set search_path = public, auth
+set search_path = public, auth, extensions
 as $$
 declare
   p1 uuid := 'a0000000-0000-4000-8000-000000000001';
@@ -105,16 +115,16 @@ begin
   perform public.unseed_platform();
   update public.platform_settings set seed_data_enabled = true, updated_at = now() where id = 1;
 
-  perform public.seed_auth_user(p1, 'seed-ananya@tatva.example', 'Ananya Iyer');
-  perform public.seed_auth_user(p2, 'seed-rohan@tatva.example', 'Rohan Mehta');
-  perform public.seed_auth_user(p3, 'seed-fatima@tatva.example', 'Fatima Sheikh');
-  perform public.seed_auth_user(p4, 'seed-vikram@tatva.example', 'Vikram Rao');
-  perform public.seed_auth_user(p5, 'seed-meera@tatva.example', 'Meera Nair');
-  perform public.seed_auth_user(p6, 'seed-arjun@tatva.example', 'Arjun Patel');
-  perform public.seed_auth_user(p7, 'seed-sana@tatva.example', 'Sana Qureshi');
-  perform public.seed_auth_user(p8, 'seed-kabir@tatva.example', 'Kabir Singh');
-  perform public.seed_auth_user(p9, 'seed-lakshmi@tatva.example', 'Lakshmi Reddy');
-  perform public.seed_auth_user(p10, 'seed-priya@tatva.example', 'Priya Sharma');
+  perform public.seed_auth_user(p1, 'seed-ananya@tatva.example', 'Ananya Iyer', 'seed-ananya');
+  perform public.seed_auth_user(p2, 'seed-rohan@tatva.example', 'Rohan Mehta', 'seed-rohan');
+  perform public.seed_auth_user(p3, 'seed-fatima@tatva.example', 'Fatima Sheikh', 'seed-fatima');
+  perform public.seed_auth_user(p4, 'seed-vikram@tatva.example', 'Vikram Rao', 'seed-vikram');
+  perform public.seed_auth_user(p5, 'seed-meera@tatva.example', 'Meera Nair', 'seed-meera');
+  perform public.seed_auth_user(p6, 'seed-arjun@tatva.example', 'Arjun Patel', 'seed-arjun');
+  perform public.seed_auth_user(p7, 'seed-sana@tatva.example', 'Sana Qureshi', 'seed-sana');
+  perform public.seed_auth_user(p8, 'seed-kabir@tatva.example', 'Kabir Singh', 'seed-kabir');
+  perform public.seed_auth_user(p9, 'seed-lakshmi@tatva.example', 'Lakshmi Reddy', 'seed-lakshmi');
+  perform public.seed_auth_user(p10, 'seed-priya@tatva.example', 'Priya Sharma', 'seed-priya');
 
   perform public.mark_seed('profile', p1);
   perform public.mark_seed('profile', p2);

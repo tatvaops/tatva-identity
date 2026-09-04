@@ -218,3 +218,12 @@ drop policy if exists "recommendations_read" on public.recommendations;
 create policy "recommendations_read"
   on public.recommendations for select
   using (public.seed_visible('recommendation', id));
+
+-- Allow handle changes; profile_handles rows otherwise block updates to profiles.handle.
+alter table public.profile_handles
+  drop constraint if exists profile_handles_handle_fkey;
+alter table public.profile_handles
+  add constraint profile_handles_handle_fkey
+  foreign key (handle) references public.profiles (handle)
+  on update cascade
+  on delete cascade;
