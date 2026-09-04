@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useSession } from "@/components/providers/session-provider";
-import { addComment, createPost, togglePostReaction } from "@/lib/actions/network";
+import { addComment, createPost, reportPost, togglePostReaction } from "@/lib/actions/network";
 import { uploadPublicImage } from "@/lib/actions/media";
 import { hueFromId, initialsFromName } from "@/lib/domain/passport-strength";
 import type { Post, PostComment, PublicProfile } from "@/lib/types/identity";
@@ -266,6 +266,28 @@ export function PostCard({
             >
               {liked ? "Liked" : "Like"}
             </Button>
+            {userId ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                disabled={pending}
+                onClick={() => {
+                  if (!window.confirm("Report this post to platform operators?")) return;
+                  start(async () => {
+                    const result = await reportPost(post.id, "inappropriate");
+                    if (!result.ok) {
+                      setError(result.error);
+                      return;
+                    }
+                    setError(null);
+                    router.refresh();
+                  });
+                }}
+              >
+                Report
+              </Button>
+            ) : null}
           </div>
           {userId ? (
             <form

@@ -52,11 +52,16 @@ Demo rows are labelled demonstration data. They are not fabricated work history 
 
 ---
 
-## Still empty until Vertex or a real verifier
+## Still empty until Vertex
 
-- Identity / employment / trade booleans remain flags. Submitting a verification request does not mint a badge.
 - Verified work history, reliability, nearby GPS, Hire, Quote
-- Organisation credential “verified” still needs a reviewer; adding a credential starts at `not_submitted`
+- Organisation credential “verified” still needs an operator in `/admin` unless a reviewer has set the state
+
+---
+
+## Platform operations (`/admin`)
+
+Signed-in platform operators only. Bootstrap the first operator with `PLATFORM_ADMIN_HANDLES` or `PLATFORM_ADMIN_USER_IDS`, then grant others from Settings. All writes go through the service role after `requirePlatformAdmin()`. Hidden profiles/orgs/posts stay off public discovery. Identity / employment / trade flags can be set by a reviewer here. Hire, Quote and Vertex tables are not in this console.
 
 ---
 
@@ -68,3 +73,4 @@ Demo rows are labelled demonstration data. They are not fabricated work history 
 4. Second account: apply, comment, connect, follow, endorse, message, write a review if you share a project.
 5. First account: accept, applications, close job, `/insights`, `/graph`, `/applications`.
 6. Expect Hire, Quote, and verified work history to stay empty on purpose.
+7. Set `PLATFORM_ADMIN_HANDLES` to your handle, apply `20260904180000_platform_admin.sql`, open `/admin`.

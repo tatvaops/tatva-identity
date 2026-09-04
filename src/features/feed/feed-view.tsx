@@ -54,6 +54,11 @@ export async function FeedView({ compose = false }: { compose?: boolean }) {
           <Link href="/jobs" className="flex items-center gap-2 rounded-lg px-2 py-2 hover:bg-muted">
             <Bookmark className="size-4" /> Jobs & gigs
           </Link>
+          {session.isPlatformAdmin ? (
+            <Link href="/admin" className="flex items-center gap-2 rounded-lg px-2 py-2 hover:bg-muted">
+              Operations console
+            </Link>
+          ) : null}
         </Card>
       </DesktopSidebar>
       <section className="space-y-3">

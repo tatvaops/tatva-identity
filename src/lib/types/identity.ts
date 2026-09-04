@@ -373,6 +373,7 @@ export type AuthContext = {
   userId: string | null;
   profile: PublicProfile | null;
   configured: boolean;
+  isPlatformAdmin: boolean;
 };
 
 export type PendingConnection = {

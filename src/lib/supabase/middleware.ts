@@ -33,6 +33,7 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const protectedPrefixes = [
+    "/admin",
     "/messages",
     "/notifications",
     "/settings",

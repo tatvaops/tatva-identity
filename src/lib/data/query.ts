@@ -2,6 +2,7 @@ import { createServerSupabase } from "@/lib/supabase/server";
 import { supabaseConfigured } from "@/lib/supabase/env";
 import { mapPublicProfile } from "@/lib/data/mappers";
 import { publicErrorMessage } from "@/lib/public-error";
+import { isBootstrapAdmin } from "@/lib/admin/bootstrap";
 import type { AuthContext, ListOptions, PublicProfile, QueryMeta } from "@/lib/types/identity";
 
 export function emptyMeta(error: string | null = null): QueryMeta {
@@ -11,18 +12,32 @@ export function emptyMeta(error: string | null = null): QueryMeta {
 export async function getAuthContext(): Promise<AuthContext> {
   const configured = supabaseConfigured();
   const supabase = await createServerSupabase();
-  if (!supabase) return { userId: null, profile: null, configured };
+  if (!supabase) return { userId: null, profile: null, configured, isPlatformAdmin: false };
 
   const {
     data: { user },
     error: authError,
   } = await supabase.auth.getUser();
-  if (authError || !user) return { userId: null, profile: null, configured };
+  if (authError || !user) return { userId: null, profile: null, configured, isPlatformAdmin: false };
 
   const { data, error } = await supabase.from("public_profiles").select("*").eq("id", user.id).maybeSingle();
-  if (error || !data) return { userId: user.id, profile: null, configured };
+  if (error || !data) {
+    return {
+      userId: user.id,
+      profile: null,
+      configured,
+      isPlatformAdmin: isBootstrapAdmin({ userId: user.id }),
+    };
+  }
 
-  return { userId: user.id, profile: mapPublicProfile(data), configured };
+  const profile = mapPublicProfile(data);
+  const adminRow = await supabase.from("platform_admins").select("profile_id").eq("profile_id", user.id).maybeSingle();
+  return {
+    userId: user.id,
+    profile,
+    configured,
+    isPlatformAdmin: Boolean(adminRow.data?.profile_id) || isBootstrapAdmin({ userId: user.id, handle: profile.handle }),
+  };
 }
 
 export type ListResult<T> = { data: T[]; meta: QueryMeta; total?: number };

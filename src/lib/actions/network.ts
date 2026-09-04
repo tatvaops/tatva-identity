@@ -187,6 +187,28 @@ export async function addComment(postId: string, body: string): Promise<ActionRe
   return { ok: true };
 }
 
+export async function reportPost(postId: string, reason: string): Promise<ActionResult> {
+  const auth = await requireUser();
+  if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
+  const trimmed = reason.trim().slice(0, 280);
+  if (!trimmed) return fail("Choose a reason.");
+  const limited = await limitAction(`report:${auth.ctx.userId}`, 10, 60_000);
+  if (limited) return limited;
+  const { error } = await auth.supabase.from("content_reports").insert({
+    reporter_id: auth.ctx.userId,
+    entity_kind: "post",
+    entity_id: postId,
+    reason: trimmed,
+    status: "open",
+  });
+  if (error) {
+    if (error.code === "23505") return fail("You already reported this post.");
+    return fail(error.message);
+  }
+  revalidatePath("/feed");
+  return { ok: true };
+}
+
 export async function togglePostReaction(postId: string, reacting: boolean): Promise<ActionResult> {
   const auth = await requireUser();
   if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");

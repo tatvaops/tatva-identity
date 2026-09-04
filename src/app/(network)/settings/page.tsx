@@ -47,6 +47,17 @@ export default async function SettingsPage() {
           This product does not store those fields on profiles.
         </p>
       </Card>
+      {session.isPlatformAdmin ? (
+        <Card className="p-5 text-sm">
+          <p className="font-medium">Platform operations</p>
+          <p className="mt-1 text-muted-foreground">
+            Verification review, hide from discovery, moderation and operator roster. Not a public directory.
+          </p>
+          <Link className="mt-2 inline-block text-primary hover:underline" href="/admin">
+            Open operations console
+          </Link>
+        </Card>
+      ) : null}
     </div>
   );
 }

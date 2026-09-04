@@ -34,7 +34,7 @@ export function Wordmark({ compact = false }: { compact?: boolean }) {
 export function GlobalHeader() {
   const pathname = usePathname();
   const router = useRouter();
-  const { profile, userId } = useSession();
+  const { profile, userId, isPlatformAdmin } = useSession();
   const copy = useDictionary();
   const profileHref = profile ? `/people/${profile.handle}` : "/auth/sign-in";
   const profileActive = profile ? pathname === `/people/${profile.handle}` : pathname.startsWith("/auth");
@@ -152,6 +152,11 @@ export function GlobalHeader() {
               <DropdownMenuItem asChild>
                 <Link href="/settings">Settings</Link>
               </DropdownMenuItem>
+              {isPlatformAdmin ? (
+                <DropdownMenuItem asChild>
+                  <Link href="/admin">Operations</Link>
+                </DropdownMenuItem>
+              ) : null}
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onSelect={() => {
