@@ -6,15 +6,18 @@ import { PersonCard } from "@/components/cards/entity-cards";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/states/empty-state";
+import { startJobConversation } from "@/lib/actions/messaging";
 import { updateGigApplicationStatus, updateJobApplicationStatus } from "@/lib/actions/opportunity";
 import type { OpportunityApplication } from "@/lib/types/identity";
 
 export function ApplicationsView({
   kind,
   applications,
+  jobId,
 }: {
   kind: "job" | "gig";
   applications: OpportunityApplication[];
+  jobId?: string;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -49,6 +52,22 @@ export function ApplicationsView({
                 {status}
               </Button>
             ))}
+            {kind === "job" && jobId && application.profileId ? (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={pending}
+                onClick={() =>
+                  start(async () => {
+                    const result = await startJobConversation(jobId, application.profileId);
+                    if (!result.ok) setError(result.error);
+                    else if (result.id) router.push(`/messages?c=${result.id}`);
+                  })
+                }
+              >
+                Message applicant
+              </Button>
+            ) : null}
           </div>
         </Card>
       ))}

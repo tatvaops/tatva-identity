@@ -14,22 +14,39 @@ import {
   addCertification,
   addExperience,
   addOptedInProject,
+  addProfileService,
   addSkill,
+  endorseSkill,
+  requestVerification,
   updateAvailability,
   updateProfileAbout,
 } from "@/lib/actions/profile";
+import { uploadPublicImage } from "@/lib/actions/media";
 import {
   aboutSchema,
   availabilitySchema,
   certificationSchema,
   experienceSchema,
+  profileServiceSchema,
   projectSchema,
   skillSchema,
+  verificationRequestSchema,
 } from "@/lib/domain/profile-schemas";
 import { CREDENTIAL_CATEGORIES } from "@/lib/domain/credentials";
+import { PROFESSIONAL_TITLES } from "@/lib/domain/professional-titles";
 import type { PublicProfile } from "@/lib/types/identity";
 
-type Editor = "about" | "experience" | "skill" | "certification" | "project" | "availability" | null;
+type Editor =
+  | "about"
+  | "experience"
+  | "skill"
+  | "certification"
+  | "project"
+  | "availability"
+  | "service"
+  | "verification"
+  | "photo"
+  | null;
 
 export function ProfileEditors({
   profile,
@@ -52,7 +69,39 @@ export function ProfileEditors({
       <CertificationDialog open={open === "certification"} onClose={() => setOpen(null)} />
       <ProjectDialog open={open === "project"} onClose={() => setOpen(null)} />
       <AvailabilityDialog profile={profile} open={open === "availability"} onClose={() => setOpen(null)} />
+      <ServiceDialog open={open === "service"} onClose={() => setOpen(null)} />
+      <VerificationDialog open={open === "verification"} onClose={() => setOpen(null)} />
+      <PhotoDialog open={open === "photo"} onClose={() => setOpen(null)} />
     </>
+  );
+}
+
+export function EndorseSkillButton({ profileSkillId }: { profileSkillId: string }) {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  return (
+    <span className="mt-1 block">
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        disabled={pending}
+        onClick={async () => {
+          setPending(true);
+          const result = await endorseSkill({ profileSkillId });
+          setPending(false);
+          if (!result.ok) {
+            setError(result.error);
+            return;
+          }
+          router.refresh();
+        }}
+      >
+        Endorse
+      </Button>
+      {error ? <span className="mt-1 block text-[11px] text-rose-700">{error}</span> : null}
+    </span>
   );
 }
 
@@ -72,6 +121,9 @@ export function ProfileSectionEdit({ kind, label }: { kind: Exclude<Editor, "abo
       {kind === "availability" && (
         <AvailabilityDialog profile={profile} open={open} onClose={() => setOpen(false)} />
       )}
+      {kind === "service" && <ServiceDialog open={open} onClose={() => setOpen(false)} />}
+      {kind === "verification" && <VerificationDialog open={open} onClose={() => setOpen(false)} />}
+      {kind === "photo" && <PhotoDialog open={open} onClose={() => setOpen(false)} />}
     </>
   );
 }
@@ -96,17 +148,36 @@ function AboutDialog({
   const [serverError, setServerError] = useState<string | null>(null);
   const form = useForm({
     resolver: zodResolver(aboutSchema),
-    defaultValues: { headline: profile.headline ?? "", about: profile.about ?? "" },
+    defaultValues: {
+      headline: profile.headline ?? "",
+      about: profile.about ?? "",
+      fullName: profile.fullName,
+      website: profile.website ?? "",
+      languages: profile.languages.join(", "),
+      preferredWorkLocations: profile.preferredWorkLocations.join(", "),
+      locality: profile.locality ?? "",
+      state: profile.state ?? "",
+      arrangement: profile.arrangement,
+      willingToRelocate: profile.willingToRelocate,
+      willingToTravel: profile.willingToTravel,
+      professionalTitle: profile.professionalTitle ?? undefined,
+      emailVisibleTo: profile.emailVisibleTo,
+      aboutVisibleTo: profile.aboutVisibleTo,
+      locationVisibleTo: profile.locationVisibleTo,
+    },
   });
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogTitle>Edit about</DialogTitle>
         <DialogDescription>Only fields you save are stored.</DialogDescription>
         <form
           className="mt-4 space-y-3"
           onSubmit={form.handleSubmit(async (values) => {
-            const result = await updateProfileAbout(values);
+            const result = await updateProfileAbout({
+              ...values,
+              professionalTitle: values.professionalTitle || undefined,
+            });
             if (!result.ok) {
               setServerError(result.error);
               return;
@@ -115,15 +186,83 @@ function AboutDialog({
             router.refresh();
           })}
         >
+          <Input placeholder="Full name" {...form.register("fullName")} />
           <Input placeholder="Headline" {...form.register("headline")} />
           <Textarea placeholder="About" {...form.register("about")} />
-          <FieldError message={form.formState.errors.headline?.message} />
+          <Input placeholder="Website" {...form.register("website")} />
+          <Input placeholder="Languages, comma separated" {...form.register("languages")} />
+          <Input placeholder="Preferred work locations, comma separated" {...form.register("preferredWorkLocations")} />
+          <div className="grid grid-cols-2 gap-2">
+            <Input placeholder="Locality" {...form.register("locality")} />
+            <Input placeholder="State" {...form.register("state")} />
+          </div>
+          <label className="block text-xs font-medium text-muted-foreground" htmlFor="professional-title">
+            Professional title
+          </label>
+          <select
+            id="professional-title"
+            className="h-10 w-full rounded-lg border border-input px-3 text-sm"
+            {...form.register("professionalTitle")}
+          >
+            <option value="">Not specified</option>
+            {PROFESSIONAL_TITLES.map((title) => (
+              <option key={title.id} value={title.id}>
+                {title.label}
+              </option>
+            ))}
+          </select>
+          <label className="block text-xs font-medium text-muted-foreground" htmlFor="arrangement">
+            Arrangement
+          </label>
+          <select id="arrangement" className="h-10 w-full rounded-lg border border-input px-3 text-sm" {...form.register("arrangement")}>
+            <option value="on_site">On site</option>
+            <option value="hybrid">Hybrid</option>
+            <option value="remote">Remote</option>
+          </select>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" {...form.register("willingToRelocate")} />
+            Willing to relocate
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" {...form.register("willingToTravel")} />
+            Willing to travel
+          </label>
+          <label className="block text-xs font-medium text-muted-foreground" htmlFor="about-visible">
+            About visibility
+          </label>
+          <select id="about-visible" className="h-10 w-full rounded-lg border border-input px-3 text-sm" {...form.register("aboutVisibleTo")}>
+            <option value="public">Public</option>
+            <option value="connections">Connections</option>
+            <option value="recruiters">Recruiters</option>
+            <option value="private">Private</option>
+          </select>
+          <label className="block text-xs font-medium text-muted-foreground" htmlFor="location-visible">
+            Location visibility
+          </label>
+          <select id="location-visible" className="h-10 w-full rounded-lg border border-input px-3 text-sm" {...form.register("locationVisibleTo")}>
+            <option value="public">Public</option>
+            <option value="connections">Connections</option>
+            <option value="recruiters">Recruiters</option>
+            <option value="private">Private</option>
+          </select>
+          <label className="block text-xs font-medium text-muted-foreground" htmlFor="email-visible">
+            Email visibility
+          </label>
+          <select id="email-visible" className="h-10 w-full rounded-lg border border-input px-3 text-sm" {...form.register("emailVisibleTo")}>
+            <option value="none">Hidden</option>
+            <option value="connections">Connections</option>
+            <option value="recruiters">Recruiters</option>
+          </select>
+          <FieldError message={form.formState.errors.headline?.message ?? form.formState.errors.fullName?.message} />
           {serverError && <p className="text-sm text-rose-700">{serverError}</p>}
           <Button type="submit" disabled={form.formState.isSubmitting}>
             Save
           </Button>
         </form>
         <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-3">
+          <Button size="sm" variant="outline" onClick={() => onMore("photo")}>
+            Photos
+          </Button>
           <Button size="sm" variant="outline" onClick={() => onMore("experience")}>
             Add experience
           </Button>
@@ -135,6 +274,12 @@ function AboutDialog({
           </Button>
           <Button size="sm" variant="outline" onClick={() => onMore("project")}>
             Add project
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => onMore("service")}>
+            Add service
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => onMore("verification")}>
+            Request verification
           </Button>
           <Button size="sm" variant="outline" onClick={() => onMore("availability")}>
             Availability
@@ -349,6 +494,9 @@ function AvailabilityDialog({
       occupationMode: profile.occupationMode,
       city: profile.city ?? "",
       preferredRoles: profile.preferredRoles.join(", "),
+      dailyRateInr: "",
+      monthlySalaryInr: "",
+      noticePeriod: "",
     },
   });
   return (
@@ -385,11 +533,155 @@ function AvailabilityDialog({
           </select>
           <Input placeholder="City" {...form.register("city")} />
           <Input placeholder="Preferred roles, comma separated" {...form.register("preferredRoles")} />
+          <label className="block text-xs font-medium text-muted-foreground" htmlFor="daily-rate">
+            Daily rate (private to you)
+          </label>
+          <Input id="daily-rate" inputMode="numeric" placeholder="INR" {...form.register("dailyRateInr")} />
+          <label className="block text-xs font-medium text-muted-foreground" htmlFor="monthly-rate">
+            Monthly rate (private to you)
+          </label>
+          <Input id="monthly-rate" inputMode="numeric" placeholder="INR" {...form.register("monthlySalaryInr")} />
+          <Input placeholder="Notice period" {...form.register("noticePeriod")} />
           {serverError && <p className="text-sm text-rose-700">{serverError}</p>}
           <Button type="submit" disabled={form.formState.isSubmitting}>
             Save
           </Button>
         </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ServiceDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const router = useRouter();
+  const [serverError, setServerError] = useState<string | null>(null);
+  const form = useForm({
+    resolver: zodResolver(profileServiceSchema),
+    defaultValues: { name: "", description: "", locations: "", availabilityLabel: "" },
+  });
+  return (
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent>
+        <DialogTitle>Add a service</DialogTitle>
+        <DialogDescription>Listed on your profile. This is not a quote or payment flow.</DialogDescription>
+        <form
+          className="mt-4 space-y-3"
+          onSubmit={form.handleSubmit(async (values) => {
+            const result = await addProfileService(values);
+            if (!result.ok) {
+              setServerError(result.error);
+              return;
+            }
+            form.reset();
+            onClose();
+            router.refresh();
+          })}
+        >
+          <Input placeholder="Service name" {...form.register("name")} />
+          <Textarea placeholder="Description" {...form.register("description")} />
+          <Input placeholder="Locations, comma separated" {...form.register("locations")} />
+          <Input placeholder="Availability label" {...form.register("availabilityLabel")} />
+          <FieldError message={form.formState.errors.name?.message} />
+          {serverError && <p className="text-sm text-rose-700">{serverError}</p>}
+          <Button type="submit" disabled={form.formState.isSubmitting}>
+            Save
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function VerificationDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const router = useRouter();
+  const [serverError, setServerError] = useState<string | null>(null);
+  const form = useForm({
+    resolver: zodResolver(verificationRequestSchema),
+    defaultValues: { kind: "identity" as const },
+  });
+  return (
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent>
+        <DialogTitle>Request verification</DialogTitle>
+        <DialogDescription>Creates a pending request. It is not verified until reviewed.</DialogDescription>
+        <form
+          className="mt-4 space-y-3"
+          onSubmit={form.handleSubmit(async (values) => {
+            const result = await requestVerification(values);
+            if (!result.ok) {
+              setServerError(result.error);
+              return;
+            }
+            onClose();
+            router.refresh();
+          })}
+        >
+          <select className="h-10 w-full rounded-lg border border-input px-3 text-sm" {...form.register("kind")}>
+            <option value="identity">Identity</option>
+            <option value="employment">Employment</option>
+            <option value="trade">Trade</option>
+            <option value="skill">Skill</option>
+            <option value="credential">Credential</option>
+            <option value="project">Project</option>
+            <option value="tatva">Tatva</option>
+          </select>
+          {serverError && <p className="text-sm text-rose-700">{serverError}</p>}
+          <Button type="submit" disabled={form.formState.isSubmitting}>
+            Submit request
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function PhotoDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const router = useRouter();
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  async function upload(kind: "avatar" | "cover", file: File | undefined) {
+    if (!file) return;
+    setPending(true);
+    const data = new FormData();
+    data.set("file", file);
+    data.set("kind", kind);
+    const result = await uploadPublicImage(data);
+    setPending(false);
+    if (!result.ok) {
+      setServerError(result.error);
+      return;
+    }
+    onClose();
+    router.refresh();
+  }
+  return (
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent>
+        <DialogTitle>Profile photos</DialogTitle>
+        <DialogDescription>JPEG, PNG or WebP, under 5 MB.</DialogDescription>
+        <div className="mt-4 space-y-3">
+          <label className="block text-sm font-medium">
+            Profile photo
+            <Input
+              className="mt-1"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              disabled={pending}
+              onChange={(event) => void upload("avatar", event.target.files?.[0])}
+            />
+          </label>
+          <label className="block text-sm font-medium">
+            Cover photo
+            <Input
+              className="mt-1"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              disabled={pending}
+              onChange={(event) => void upload("cover", event.target.files?.[0])}
+            />
+          </label>
+          {serverError && <p className="text-sm text-rose-700">{serverError}</p>}
+        </div>
       </DialogContent>
     </Dialog>
   );

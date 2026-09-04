@@ -4,6 +4,7 @@ import { EmptyState, QueryNotice } from "@/components/states/empty-state";
 import { PostCard } from "@/features/feed/feed-ui";
 import { SearchBox } from "@/features/search/search-box";
 import { searchNetwork } from "@/lib/data/discovery";
+import { createServerSupabase } from "@/lib/supabase/server";
 
 const ENTITY_FILTERS = [
   ["all", "All"],
@@ -47,6 +48,17 @@ export async function SearchView({
   entity?: SearchEntity;
 }) {
   const results = await searchNetwork(initialQuery);
+  if (initialQuery.trim() && results.people.length > 0) {
+    const supabase = await createServerSupabase();
+    if (supabase) {
+      await supabase.from("search_appearances").insert(
+        results.people.slice(0, 12).map((person) => ({
+          profile_id: person.id,
+          query: initialQuery.trim(),
+        })),
+      );
+    }
+  }
   const show = (kind: SearchEntity) => entity === "all" || entity === kind;
   const empty =
     (show("people") ? results.people.length : 0) +

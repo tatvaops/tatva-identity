@@ -10,8 +10,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { AVAILABILITY_COPY } from "@/lib/domain/availability";
 import { ProfileActionBar } from "@/features/profile/profile-actions";
-import { ProfileSectionEdit } from "@/features/profile/profile-edit";
+import { ProfileSectionEdit, EndorseSkillButton } from "@/features/profile/profile-edit";
 import { RecommendForm } from "@/features/profile/recommend-form";
+import { RequestRecommendationButton } from "@/features/profile/recommend-request";
+import { professionalTitleLabel } from "@/lib/domain/professional-titles";
 import type { ProfileMetric } from "@/lib/domain/profile-metrics";
 import { headerFlags, SKILL_LEVEL_HELP, SKILL_LEVEL_LABEL, type VerificationFlag } from "@/lib/domain/verification";
 import { hueFromId, initialsFromName } from "@/lib/domain/passport-strength";
@@ -26,6 +28,7 @@ import type {
   ProfileSkill,
   PublicProfile,
   RecommendationRow,
+  ProfileService,
   ServiceLedgerRow,
 } from "@/lib/types/identity";
 
@@ -51,13 +54,14 @@ export function ProfileHeader({
   const visibleFlags = headerFlags(flags);
   return (
     <Card className="overflow-hidden">
-      <CoverBand tone="site" className="h-28 md:h-32" />
+      <CoverBand tone="site" className="h-28 md:h-32" src={profile.coverPath} />
       <div className="px-4 pb-5 md:px-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <InitialsAvatar
             initials={initialsFromName(profile.fullName)}
             hue={hueFromId(profile.id)}
             size={96}
+            src={profile.avatarPath}
             className="relative z-10 -mt-12 ring-4 ring-white"
           />
           <div className="hidden pt-3 md:block">
@@ -76,6 +80,9 @@ export function ProfileHeader({
           <AvailabilityBadge status={profile.availabilityStatus} labeled={false} />
         </div>
         {profile.headline ? <p className="mt-1 max-w-2xl text-base text-foreground">{profile.headline}</p> : null}
+        {professionalTitleLabel(profile.professionalTitle) ? (
+          <p className="mt-1 text-sm text-muted-foreground">{professionalTitleLabel(profile.professionalTitle)}</p>
+        ) : null}
         <div className="mt-2 flex flex-wrap gap-1.5">
           {visibleFlags.length === 0 ? (
             <p className="text-sm text-slate-600">Verification has not been completed yet.</p>
@@ -144,6 +151,9 @@ export function AboutSection({ profile }: { profile: PublicProfile }) {
           </span>
           <span className="rounded-md bg-muted px-2 py-1 text-muted-foreground">
             Relocate: {profile.willingToRelocate ? "Yes" : "No"}
+          </span>
+          <span className="rounded-md bg-muted px-2 py-1 text-muted-foreground">
+            Travel: {profile.willingToTravel ? "Yes" : "No"}
           </span>
         </div>
       </CardContent>
@@ -275,7 +285,15 @@ export function ProjectPortfolio({
   );
 }
 
-export function SkillsSection({ skills, canEdit }: { skills: ProfileSkill[]; canEdit: boolean }) {
+export function SkillsSection({
+  skills,
+  canEdit,
+  canEndorse,
+}: {
+  skills: ProfileSkill[];
+  canEdit: boolean;
+  canEndorse?: boolean;
+}) {
   return (
     <Card>
       <CardHeader className="flex-row items-center justify-between">
@@ -304,6 +322,7 @@ export function SkillsSection({ skills, canEdit }: { skills: ProfileSkill[]; can
               >
                 <p className="text-sm font-medium">{s.skillName}</p>
                 <p className="text-[11px] text-muted-foreground">{SKILL_LEVEL_LABEL[s.verificationLevel]}</p>
+                {canEndorse ? <EndorseSkillButton profileSkillId={s.id} /> : null}
               </div>
             </TooltipTrigger>
             <TooltipContent>
@@ -353,10 +372,12 @@ export function RecommendationsSection({
   recommendations,
   toProfileId,
   canWrite,
+  canRequest,
 }: {
   recommendations: RecommendationRow[];
   toProfileId?: string;
   canWrite?: boolean;
+  canRequest?: boolean;
 }) {
   return (
     <Card>
@@ -374,6 +395,7 @@ export function RecommendationsSection({
           </blockquote>
         ))}
         {canWrite && toProfileId ? <RecommendForm toProfileId={toProfileId} /> : null}
+        {canRequest && toProfileId ? <RequestRecommendationButton toProfileId={toProfileId} /> : null}
       </CardContent>
     </Card>
   );
@@ -399,23 +421,49 @@ export function ReputationSection({ signals }: { signals: { id: string; label: s
   );
 }
 
-export function IndependentServicesSection() {
+export function IndependentServicesSection({
+  services = [],
+  canEdit,
+}: {
+  services?: ProfileService[];
+  canEdit?: boolean;
+}) {
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex-row items-center justify-between">
         <CardTitle>Services</CardTitle>
+        {canEdit ? <ProfileSectionEdit kind="service" label="Add" /> : null}
       </CardHeader>
       <CardContent>
-        <EmptyState
-          title="Independent services"
-          body="Offer work through a business passport. This product does not invent a personal service catalogue."
-          action={
-            <Link className="text-sm font-medium text-primary hover:underline" href="/companies/new">
-              Create organisation
-            </Link>
-          }
-          className="border-0 shadow-none py-8"
-        />
+        {services.length === 0 ? (
+          <EmptyState
+            title="No services listed"
+            body="Services you add here are public. This is not a quote or payment flow."
+            action={
+              canEdit ? (
+                <Link className="text-sm font-medium text-primary hover:underline" href="/companies/new">
+                  Or create an organisation
+                </Link>
+              ) : undefined
+            }
+            className="border-0 shadow-none py-8"
+          />
+        ) : (
+          <ul className="space-y-3">
+            {services.map((service) => (
+              <li key={service.id} className="rounded-xl border border-border px-3 py-2">
+                <p className="text-sm font-medium">{service.name}</p>
+                {service.description ? <p className="mt-1 text-sm text-muted-foreground">{service.description}</p> : null}
+                {service.locations.length > 0 ? (
+                  <p className="mt-1 text-xs text-muted-foreground">{service.locations.join(", ")}</p>
+                ) : null}
+                {service.availabilityLabel ? (
+                  <p className="mt-1 text-xs text-muted-foreground">{service.availabilityLabel}</p>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
       </CardContent>
     </Card>
   );
@@ -442,6 +490,11 @@ export function ProfileSidebar({
         <p className="mt-1 text-xs leading-5 text-muted-foreground">{availability.hint}</p>
         {profile.preferredRoles.length > 0 ? (
           <p className="mt-2 text-xs text-muted-foreground">{profile.preferredRoles.join(", ")}</p>
+        ) : null}
+        {canEdit ? (
+          <Link className="mt-3 inline-block text-sm text-primary hover:underline" href="/passport/documents">
+            Document vault
+          </Link>
         ) : null}
       </Card>
       {org && (

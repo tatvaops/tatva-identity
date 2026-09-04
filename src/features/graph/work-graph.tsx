@@ -2,14 +2,17 @@ import Link from "next/link";
 import { PersonCard, ProjectCard, CompanyCard } from "@/components/cards/entity-cards";
 import { EmptyState } from "@/components/states/empty-state";
 import { Card } from "@/components/ui/card";
+import { WorkGraphCanvas } from "@/features/graph/work-graph-canvas";
 import type { NetworkProject, Organisation, PublicProfile } from "@/lib/types/identity";
 
 export function WorkGraphView({
+  self,
   workedWith,
   colleagues,
   organisations,
   projects,
 }: {
+  self?: PublicProfile | null;
   workedWith: PublicProfile[];
   colleagues: PublicProfile[];
   organisations: Organisation[];
@@ -24,11 +27,23 @@ export function WorkGraphView({
       />
     );
   }
+  const canvasPeople = [...workedWith];
+  for (const person of colleagues) {
+    if (!canvasPeople.some((row) => row.id === person.id)) canvasPeople.push(person);
+  }
   return (
     <div className="space-y-6">
       <p className="text-sm text-muted-foreground">
         This graph is built from opted-in project contributors and public organisation membership. It is not a popularity score.
       </p>
+      {self ? (
+        <WorkGraphCanvas
+          self={self}
+          workedWith={canvasPeople}
+          organisations={organisations}
+          projects={projects}
+        />
+      ) : null}
       {workedWith.length > 0 && (
         <section>
           <h2 className="mb-3 text-[15px] font-semibold">Worked with</h2>

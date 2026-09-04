@@ -9,7 +9,7 @@ import {
   listOptedInProjects,
 } from "@/lib/data/profile";
 import { listPostsByAuthor } from "@/lib/data/discovery";
-import { recordProfileView } from "@/lib/data/workspace";
+import { listProfileServices, recordProfileView } from "@/lib/data/workspace";
 import { getAuthContext } from "@/lib/data/query";
 import { QueryNotice } from "@/components/states/empty-state";
 
@@ -27,13 +27,14 @@ export default async function PersonPage({ params }: { params: Promise<{ usernam
   }
   const session = await getAuthContext();
   await recordProfileView(profile.data.id, session.userId);
-  const [experiences, skills, certs, recs, projects, posts] = await Promise.all([
+  const [experiences, skills, certs, recs, projects, posts, services] = await Promise.all([
     listExperiences(profile.data.id),
     listProfileSkills(profile.data.id),
     listPublicCertifications(profile.data.id),
     listRecommendations(profile.data.id),
     listOptedInProjects(profile.data.id),
     listPostsByAuthor(profile.data.id),
+    listProfileServices(profile.data.id),
   ]);
   return (
     <PersonProfileView
@@ -44,6 +45,7 @@ export default async function PersonPage({ params }: { params: Promise<{ usernam
       recommendations={recs.data}
       projects={projects.data}
       posts={posts.data}
+      services={services.data}
     />
   );
 }

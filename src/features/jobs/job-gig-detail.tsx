@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useSession } from "@/components/providers/session-provider";
 import { applyToGig, applyToJob } from "@/lib/actions/network";
+import { closeGigPost, closeJobPost } from "@/lib/actions/opportunity";
 import { SaveButton } from "@/components/identity/save-button";
 import type { GigPost, JobPost, Organisation } from "@/lib/types/identity";
 
@@ -35,11 +36,15 @@ export function JobDetail({
         <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Job</p>
         <p className="mt-1 text-xs text-muted-foreground">{organisation?.name}</p>
         <h1 className="mt-1 text-2xl font-semibold">{job.title}</h1>
+        {job.closedAt ? <Badge variant="outline">Closed</Badge> : null}
+        {job.easyApply && !job.closedAt ? <Badge variant="outline">Easy apply</Badge> : null}
         <p className="mt-2 text-sm text-muted-foreground">
           {[job.city, job.employmentType.replace("_", " ")].filter(Boolean).join(" · ")}
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
-          {userId ? (
+          {job.closedAt ? (
+            <p className="text-sm text-muted-foreground">This job is closed.</p>
+          ) : userId ? (
             <Button
               disabled={pending}
               onClick={() =>
@@ -50,7 +55,7 @@ export function JobDetail({
                 })
               }
             >
-              Apply
+              {job.easyApply ? "Easy apply" : "Apply"}
             </Button>
           ) : (
             <Button asChild>
@@ -61,6 +66,21 @@ export function JobDetail({
           {canManage ? (
             <Button variant="outline" asChild>
               <Link href={`/jobs/${job.id}/applications`}>Applications</Link>
+            </Button>
+          ) : null}
+          {canManage && !job.closedAt ? (
+            <Button
+              variant="outline"
+              disabled={pending}
+              onClick={() =>
+                start(async () => {
+                  const result = await closeJobPost(job.id);
+                  if (!result.ok) setError(result.error);
+                  else router.refresh();
+                })
+              }
+            >
+              Close job
             </Button>
           ) : null}
         </div>
@@ -160,6 +180,7 @@ export function GigDetail({
     <Card className="mx-auto max-w-2xl border-l-4 border-l-emerald-600 p-6">
       <p className="text-[11px] font-medium tracking-wide text-emerald-800 uppercase">Gig</p>
       <h1 className="mt-1 text-2xl font-semibold">{gig.title}</h1>
+      {gig.closedAt ? <Badge variant="outline">Closed</Badge> : null}
       {organisation && (
         <Link href={`/org/${organisation.slug}`} className="mt-2 inline-block text-sm text-primary hover:underline">
           {organisation.name}
@@ -177,7 +198,9 @@ export function GigDetail({
       )}
       <p className="mt-4 text-sm leading-6">{gig.description}</p>
       <div className="mt-4 flex flex-wrap gap-2">
-        {userId ? (
+        {gig.closedAt ? (
+          <p className="text-sm text-muted-foreground">This gig is closed.</p>
+        ) : userId ? (
           <Button
             className="w-full sm:w-auto"
             disabled={pending}
@@ -200,6 +223,21 @@ export function GigDetail({
         {canManage ? (
           <Button variant="outline" asChild>
             <Link href={`/gigs/${gig.id}/applications`}>Applications</Link>
+          </Button>
+        ) : null}
+        {canManage && !gig.closedAt ? (
+          <Button
+            variant="outline"
+            disabled={pending}
+            onClick={() =>
+              start(async () => {
+                const result = await closeGigPost(gig.id);
+                if (!result.ok) setError(result.error);
+                else router.refresh();
+              })
+            }
+          >
+            Close gig
           </Button>
         ) : null}
       </div>

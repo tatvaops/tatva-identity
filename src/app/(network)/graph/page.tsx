@@ -11,6 +11,7 @@ export default async function GraphPage() {
     <div className="space-y-4">
       <h1 className="text-xl font-semibold">Work graph</h1>
       <WorkGraphView
+        self={session.profile}
         workedWith={graph.workedWith}
         colleagues={graph.colleagues}
         organisations={graph.organisations}

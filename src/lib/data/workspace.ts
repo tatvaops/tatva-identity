@@ -8,6 +8,9 @@ import type {
   OpportunityApplication,
   Organisation,
   PendingConnection,
+  ProfileService,
+  ProjectMedia,
+  ProjectMilestone,
   PublicProfile,
   SavedItem,
 } from "@/lib/types/identity";
@@ -90,7 +93,7 @@ export async function listOwnedOrganisations(profileId: string): Promise<ListRes
   if (!supabase) return unconfiguredList();
   const { data, error } = await supabase.from("organisations").select("*").eq("created_by", profileId).order("name");
   if (error) return listFail(error.message);
-  return listOk((data ?? []).map(mapOrganisation));
+  return listOk((data ?? []).map((row) => mapOrganisation(row)));
 }
 
 export async function listMemberOrganisations(profileId: string): Promise<ListResult<Organisation>> {
@@ -202,7 +205,11 @@ export async function listGigApplications(gigId: string): Promise<ListResult<Opp
 export async function listMyJobApplications(profileId: string): Promise<ListResult<OpportunityApplication>> {
   const supabase = await createServerSupabase();
   if (!supabase) return unconfiguredList();
-  const { data, error } = await supabase.from("job_applications").select("*").eq("profile_id", profileId);
+  const { data, error } = await supabase
+    .from("job_applications")
+    .select("*")
+    .eq("profile_id", profileId)
+    .order("created_at", { ascending: false });
   if (error) return listFail(error.message);
   return listOk(
     (data ?? []).map((row) => ({
@@ -210,6 +217,187 @@ export async function listMyJobApplications(profileId: string): Promise<ListResu
       entityId: row.job_id,
       profileId: row.profile_id,
       status: row.status,
+      createdAt: row.created_at,
+    })),
+  );
+}
+
+export async function listMyGigApplications(profileId: string): Promise<ListResult<OpportunityApplication>> {
+  const supabase = await createServerSupabase();
+  if (!supabase) return unconfiguredList();
+  const { data, error } = await supabase
+    .from("gig_applications")
+    .select("*")
+    .eq("profile_id", profileId)
+    .order("created_at", { ascending: false });
+  if (error) return listFail(error.message);
+  return listOk(
+    (data ?? []).map((row) => ({
+      id: row.id,
+      entityId: row.gig_id,
+      profileId: row.profile_id,
+      status: row.status,
+      createdAt: row.created_at,
+    })),
+  );
+}
+
+export async function listOutgoingPendingConnections(profileId: string): Promise<ListResult<PendingConnection>> {
+  const supabase = await createServerSupabase();
+  if (!supabase) return unconfiguredList();
+  const { data, error } = await supabase
+    .from("connections")
+    .select("id, addressee_id")
+    .eq("requester_id", profileId)
+    .eq("status", "pending");
+  if (error) return listFail(error.message);
+  const people = await profilesByIds((data ?? []).map((row) => row.addressee_id));
+  const byId = new Map(people.data.map((profile) => [profile.id, profile]));
+  return listOk(
+    (data ?? [])
+      .map((row) => {
+        const profile = byId.get(row.addressee_id);
+        return profile ? { id: row.id, profile } : null;
+      })
+      .filter((row): row is PendingConnection => row !== null),
+  );
+}
+
+export async function listFollowingOrganisations(profileId: string): Promise<ListResult<Organisation>> {
+  const supabase = await createServerSupabase();
+  if (!supabase) return unconfiguredList();
+  const { data, error } = await supabase
+    .from("follows")
+    .select("organisations(*)")
+    .eq("follower_id", profileId)
+    .not("organisation_id", "is", null);
+  if (error) return listFail(error.message);
+  const orgs = (data ?? [])
+    .map((row) => {
+      const org = row.organisations as unknown;
+      return org && typeof org === "object" ? mapOrganisation(org as Parameters<typeof mapOrganisation>[0]) : null;
+    })
+    .filter((org): org is Organisation => org !== null);
+  return listOk(orgs);
+}
+
+export async function listOrgFollowers(organisationId: string): Promise<ListResult<PublicProfile>> {
+  const supabase = await createServerSupabase();
+  if (!supabase) return unconfiguredList();
+  const { data, error } = await supabase.from("follows").select("follower_id").eq("organisation_id", organisationId);
+  if (error) return listFail(error.message);
+  return profilesByIds((data ?? []).map((row) => row.follower_id));
+}
+
+export async function listProfileServices(profileId: string): Promise<ListResult<ProfileService>> {
+  const supabase = await createServerSupabase();
+  if (!supabase) return unconfiguredList();
+  const { data, error } = await supabase
+    .from("profile_services")
+    .select("*")
+    .eq("profile_id", profileId)
+    .order("created_at", { ascending: false });
+  if (error) return listFail(error.message);
+  return listOk(
+    (data ?? []).map((row) => ({
+      id: row.id,
+      profileId: row.profile_id,
+      name: row.name,
+      description: row.description,
+      locations: row.locations ?? [],
+      availabilityLabel: row.availability_label,
+    })),
+  );
+}
+
+export async function listProjectMilestones(projectId: string): Promise<ListResult<ProjectMilestone>> {
+  const supabase = await createServerSupabase();
+  if (!supabase) return unconfiguredList();
+  const { data, error } = await supabase
+    .from("project_milestones")
+    .select("*")
+    .eq("project_id", projectId)
+    .order("occurred_on", { ascending: false });
+  if (error) return listFail(error.message);
+  return listOk(
+    (data ?? []).map((row) => ({
+      id: row.id,
+      projectId: row.project_id,
+      title: row.title,
+      body: row.body,
+      occurredOn: row.occurred_on,
+    })),
+  );
+}
+
+export async function listProjectMedia(projectId: string): Promise<ListResult<ProjectMedia>> {
+  const supabase = await createServerSupabase();
+  if (!supabase) return unconfiguredList();
+  const { data, error } = await supabase.from("project_media").select("*").eq("project_id", projectId);
+  if (error) return listFail(error.message);
+  return listOk(
+    (data ?? []).map((row) => ({
+      id: row.id,
+      projectId: row.project_id,
+      storagePath: row.storage_path,
+      caption: row.caption,
+      kind: row.kind as ProjectMedia["kind"],
+    })),
+  );
+}
+
+export async function countUniqueProfileViews(profileId: string): Promise<ItemResult<number>> {
+  const supabase = await createServerSupabase();
+  if (!supabase) return unconfiguredItem();
+  const { data, error } = await supabase.from("profile_views").select("viewer_profile_id").eq("viewed_profile_id", profileId);
+  if (error) return itemFail(error.message);
+  const unique = new Set((data ?? []).map((row) => row.viewer_profile_id).filter(Boolean));
+  return itemOk(unique.size);
+}
+
+export async function countOrganisationViews(organisationId: string): Promise<ItemResult<number>> {
+  const supabase = await createServerSupabase();
+  if (!supabase) return unconfiguredItem();
+  const { count, error } = await supabase
+    .from("organisation_views")
+    .select("id", { count: "exact", head: true })
+    .eq("organisation_id", organisationId);
+  if (error) return itemFail(error.message);
+  return itemOk(count ?? 0);
+}
+
+export async function listSearchAppearances(profileId: string): Promise<ListResult<{ id: string; query: string | null; createdAt: string }>> {
+  const supabase = await createServerSupabase();
+  if (!supabase) return unconfiguredList();
+  const { data, error } = await supabase
+    .from("search_appearances")
+    .select("*")
+    .eq("profile_id", profileId)
+    .order("created_at", { ascending: false })
+    .limit(50);
+  if (error) return listFail(error.message);
+  return listOk(
+    (data ?? []).map((row) => ({
+      id: row.id,
+      query: row.query,
+      createdAt: row.created_at,
+    })),
+  );
+}
+
+export async function listProfileDocuments(profileId: string): Promise<ListResult<{ id: string; label: string; createdAt: string }>> {
+  const supabase = await createServerSupabase();
+  if (!supabase) return unconfiguredList();
+  const { data, error } = await supabase
+    .from("profile_documents")
+    .select("id, label, created_at")
+    .eq("profile_id", profileId)
+    .order("created_at", { ascending: false });
+  if (error) return listFail(error.message);
+  return listOk(
+    (data ?? []).map((row) => ({
+      id: row.id,
+      label: row.label,
       createdAt: row.created_at,
     })),
   );

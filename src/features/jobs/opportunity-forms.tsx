@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createGigPost, createJobPost } from "@/lib/actions/opportunity";
-import type { Organisation } from "@/lib/types/identity";
+import type { NetworkProject, Organisation } from "@/lib/types/identity";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -17,7 +17,13 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-export function JobCreateForm({ organisations }: { organisations: Organisation[] }) {
+export function JobCreateForm({
+  organisations,
+  defaultOrganisationId,
+}: {
+  organisations: Organisation[];
+  defaultOrganisationId?: string;
+}) {
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   if (organisations.length === 0) {
@@ -44,13 +50,20 @@ export function JobCreateForm({ organisations }: { organisations: Organisation[]
               salaryLabel: String(form.get("salaryLabel") ?? ""),
               skills: String(form.get("skills") ?? ""),
               description: String(form.get("description") ?? ""),
+              responsibilities: String(form.get("responsibilities") ?? ""),
+              requirements: String(form.get("requirements") ?? ""),
+              easyApply: form.get("easyApply") === "on",
             });
             if (!result.ok) setError(result.error);
           });
         }}
       >
         <Field label="Organisation">
-          <select name="organisationId" className="h-10 w-full rounded-lg border border-input bg-white px-3 text-sm">
+          <select
+            name="organisationId"
+            defaultValue={defaultOrganisationId ?? organisations[0]?.id}
+            className="h-10 w-full rounded-lg border border-input bg-white px-3 text-sm"
+          >
             {organisations.map((org) => (
               <option key={org.id} value={org.id}>
                 {org.name}
@@ -85,6 +98,16 @@ export function JobCreateForm({ organisations }: { organisations: Organisation[]
         <Field label="Overview">
           <Textarea name="description" rows={6} />
         </Field>
+        <Field label="Responsibilities">
+          <Textarea name="responsibilities" rows={4} placeholder="One per line or comma separated" />
+        </Field>
+        <Field label="Requirements">
+          <Textarea name="requirements" rows={4} placeholder="One per line or comma separated" />
+        </Field>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" name="easyApply" />
+          Easy apply
+        </label>
         {error ? (
           <p className="text-sm text-rose-700" role="alert">
             {error}
@@ -98,7 +121,15 @@ export function JobCreateForm({ organisations }: { organisations: Organisation[]
   );
 }
 
-export function GigCreateForm({ organisations }: { organisations: Organisation[] }) {
+export function GigCreateForm({
+  organisations,
+  defaultOrganisationId,
+  projects = [],
+}: {
+  organisations: Organisation[];
+  defaultOrganisationId?: string;
+  projects?: NetworkProject[];
+}) {
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   if (organisations.length === 0) {
@@ -127,13 +158,19 @@ export function GigCreateForm({ organisations }: { organisations: Organisation[]
               seats: String(form.get("seats") ?? ""),
               duration: String(form.get("duration") ?? "1_shift"),
               description: String(form.get("description") ?? ""),
+              projectId: String(form.get("projectId") ?? ""),
+              distanceKm: String(form.get("distanceKm") ?? ""),
             });
             if (!result.ok) setError(result.error);
           });
         }}
       >
         <Field label="Organisation">
-          <select name="organisationId" className="h-10 w-full rounded-lg border border-input bg-white px-3 text-sm">
+          <select
+            name="organisationId"
+            defaultValue={defaultOrganisationId ?? organisations[0]?.id}
+            className="h-10 w-full rounded-lg border border-input bg-white px-3 text-sm"
+          >
             {organisations.map((org) => (
               <option key={org.id} value={org.id}>
                 {org.name}
@@ -146,6 +183,21 @@ export function GigCreateForm({ organisations }: { organisations: Organisation[]
         </Field>
         <Field label="Site or city">
           <Input name="siteName" />
+        </Field>
+        {projects.length > 0 ? (
+          <Field label="Linked project (optional)">
+            <select name="projectId" className="h-10 w-full rounded-lg border border-input bg-white px-3 text-sm">
+              <option value="">None</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+        ) : null}
+        <Field label="Distance (km)">
+          <Input name="distanceKm" inputMode="decimal" />
         </Field>
         <Field label="Trade">
           <Input name="trade" />

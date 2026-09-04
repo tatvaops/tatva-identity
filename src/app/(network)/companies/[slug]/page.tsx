@@ -13,6 +13,7 @@ import {
   listOrganisations,
 } from "@/lib/data/network";
 import { QueryNotice } from "@/components/states/empty-state";
+import { RecordOrgView } from "@/features/company/record-org-view";
 
 export default async function CompanyPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -34,7 +35,9 @@ export default async function CompanyPage({ params }: { params: Promise<{ slug: 
     listOrganisations(),
   ]);
   return (
-    <CompanyProfileView
+    <>
+      <RecordOrgView organisationId={org.data.id} />
+      <CompanyProfileView
       org={org.data}
       people={people.data}
       services={services.data}
@@ -46,5 +49,6 @@ export default async function CompanyPage({ params }: { params: Promise<{ slug: 
       posts={posts.data}
       similar={allOrgs.data.filter((o) => o.id !== org.data!.id && o.type === org.data!.type)}
     />
+    </>
   );
 }

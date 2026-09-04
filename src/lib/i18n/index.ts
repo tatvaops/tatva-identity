@@ -21,6 +21,10 @@ const en = {
   gigsLead: "Immediate work — date, shift, location and pay first. Not a job listing.",
   nearbyGigs: "Nearest first when distance is known.",
   language: "Language",
+  applications: "Applications",
+  documents: "Documents",
+  endorse: "Endorse",
+  nearby: "Nearby",
 };
 
 const hi: typeof en = {
@@ -42,6 +46,10 @@ const hi: typeof en = {
   gigsLead: "तुरंत काम — तारीख, शिफ्ट, जगह और भुगतान पहले। नौकरी सूची नहीं।",
   nearbyGigs: "दूरी पता हो तो पास वाले पहले।",
   language: "भाषा",
+  applications: "आवेदन",
+  documents: "दस्तावेज़",
+  endorse: "समर्थन",
+  nearby: "पास",
 };
 
 const dictionaries: Record<AppLocale, typeof en> = {

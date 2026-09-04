@@ -30,6 +30,7 @@ import type {
   Post,
   ProfileCertification,
   ProfileSkill,
+  ProfileService,
   PublicProfile,
   RecommendationRow,
 } from "@/lib/types/identity";
@@ -42,6 +43,7 @@ export async function PersonProfileView({
   recommendations,
   projects,
   posts,
+  services = [],
 }: {
   profile: PublicProfile;
   experiences: Experience[];
@@ -50,6 +52,7 @@ export async function PersonProfileView({
   recommendations: RecommendationRow[];
   projects: NetworkProject[];
   posts: Post[];
+  services?: ProfileService[];
 }) {
   const session = await getAuthContext();
   const org = profile.currentOrganisationId ? (await getOrganisationById(profile.currentOrganisationId)).data : null;
@@ -101,11 +104,15 @@ export async function PersonProfileView({
           {hasSection(config, "about") && <AboutSection profile={profile} />}
           <ReputationSection signals={signals} />
           {hasSection(config, "passport") && <PassportSection strength={passport} handle={profile.handle} />}
-          {hasSection(config, "services") && <IndependentServicesSection />}
+          {hasSection(config, "services") && (
+            <IndependentServicesSection services={services} canEdit={isOwner} />
+          )}
           {hasSection(config, "experience") && <ExperienceSection experiences={experiences} canEdit={isOwner} />}
           {hasSection(config, "verifiedHistory") && <VerifiedExperienceSection rows={ledger} />}
           {hasSection(config, "projects") && <ProjectPortfolio projects={projects} canEdit={isOwner} />}
-          {hasSection(config, "skills") && <SkillsSection skills={skills} canEdit={isOwner} />}
+          {hasSection(config, "skills") && (
+            <SkillsSection skills={skills} canEdit={isOwner} canEndorse={Boolean(session.userId && !isOwner)} />
+          )}
           {hasSection(config, "credentials") && (
             <CredentialsSection certifications={certifications} canEdit={isOwner} />
           )}
@@ -114,6 +121,7 @@ export async function PersonProfileView({
               recommendations={recommendations}
               toProfileId={profile.id}
               canWrite={Boolean(session.userId && !isOwner)}
+              canRequest={Boolean(session.userId && !isOwner)}
             />
           )}
           {hasSection(config, "posts") && <ProfilePosts posts={posts} author={profile} />}

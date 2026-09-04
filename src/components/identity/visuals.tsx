@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { publicMediaUrl } from "@/lib/media/public-url";
 
 const tones: Record<string, string> = {
   site: "from-indigo-800 via-slate-700 to-slate-800",
@@ -17,14 +18,22 @@ export function CoverBand({
   tone,
   className,
   children,
+  src,
 }: {
   tone: string;
   className?: string;
   children?: ReactNode;
+  src?: string | null;
 }) {
+  const image = publicMediaUrl(src);
   return (
     <div className={cn("relative overflow-hidden bg-gradient-to-r", tones[tone] ?? tones.office, className)}>
-      <div className="absolute inset-0 opacity-30" style={{ backgroundImage: "radial-gradient(circle at 20% 20%, white, transparent 40%)" }} />
+      {image ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" />
+      ) : (
+        <div className="absolute inset-0 opacity-30" style={{ backgroundImage: "radial-gradient(circle at 20% 20%, white, transparent 40%)" }} />
+      )}
       {children}
     </div>
   );
@@ -35,16 +44,19 @@ export function InitialsAvatar({
   hue,
   size = 48,
   className,
+  src,
 }: {
   initials: string;
   hue: number;
   size?: number;
   className?: string;
+  src?: string | null;
 }) {
+  const image = publicMediaUrl(src);
   return (
     <div
       className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-full font-semibold text-white ring-2 ring-white",
+        "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold text-white ring-2 ring-white",
         className,
       )}
       style={{
@@ -55,7 +67,12 @@ export function InitialsAvatar({
       }}
       aria-hidden
     >
-      {initials}
+      {image ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={image} alt="" className="h-full w-full object-cover" />
+      ) : (
+        initials
+      )}
     </div>
   );
 }

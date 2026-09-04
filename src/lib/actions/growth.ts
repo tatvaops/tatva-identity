@@ -4,12 +4,15 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { fail, requireUser, type ActionResult } from "@/lib/actions/shared";
 import { LOCALE_COOKIE, parseLocale } from "@/lib/i18n";
-import { recommendationSchema } from "@/lib/domain/workspace-schemas";
+import { recommendationRequestSchema, recommendationSchema } from "@/lib/domain/workspace-schemas";
+import { notify, limitAction } from "@/lib/actions/notify";
 
 export async function recordProfileViewAction(viewedProfileId: string): Promise<ActionResult> {
   const auth = await requireUser();
   if (auth.error || !auth.supabase || !auth.ctx.userId) return { ok: true };
   if (auth.ctx.userId === viewedProfileId) return { ok: true };
+  const limited = await limitAction(`view:${auth.ctx.userId}`, 60, 60_000);
+  if (limited) return { ok: true };
   const { error } = await auth.supabase.from("profile_views").insert({
     viewed_profile_id: viewedProfileId,
     viewer_profile_id: auth.ctx.userId,
@@ -55,7 +58,53 @@ export async function writeRecommendation(input: unknown): Promise<ActionResult>
     body: parsed.data.body,
   });
   if (error) return fail(error.message);
+  await notify(auth.supabase, parsed.data.toProfileId, "recommendation", "New recommendation", undefined, "/people");
   revalidatePath("/people");
+  return { ok: true };
+}
+
+export async function requestRecommendation(input: unknown): Promise<ActionResult> {
+  const parsed = recommendationRequestSchema.safeParse(input);
+  if (!parsed.success) return fail("Choose who you are asking.");
+  const auth = await requireUser();
+  if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
+  const { error } = await auth.supabase.from("recommendation_requests").insert({
+    from_profile_id: auth.ctx.userId,
+    to_profile_id: parsed.data.toProfileId,
+  });
+  if (error) return fail(error.message);
+  await notify(
+    auth.supabase,
+    parsed.data.toProfileId,
+    "recommendation_request",
+    "Recommendation requested",
+    `${auth.ctx.profile?.fullName ?? "Someone"} asked you to write a recommendation.`,
+    `/people/${auth.ctx.profile?.handle ?? ""}`,
+  );
+  revalidatePath("/people");
+  return { ok: true };
+}
+
+export async function recordOrganisationView(organisationId: string): Promise<ActionResult> {
+  const auth = await requireUser();
+  if (!auth.supabase) return { ok: true };
+  await auth.supabase.from("organisation_views").insert({
+    organisation_id: organisationId,
+    viewer_profile_id: auth.ctx.userId,
+  });
+  return { ok: true };
+}
+
+export async function markNotificationRead(id: string): Promise<ActionResult> {
+  const auth = await requireUser();
+  if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
+  const { error } = await auth.supabase
+    .from("notifications")
+    .update({ read_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("profile_id", auth.ctx.userId);
+  if (error) return fail(error.message);
+  revalidatePath("/notifications");
   return { ok: true };
 }
 

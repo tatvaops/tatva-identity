@@ -121,7 +121,7 @@ export async function CompanyProfileView({
               <OrganisationCredentials credentials={credentials} />
             </TabsContent>
             <TabsContent value="reviews" className="px-3 pb-5">
-              <OrganisationReviews reviews={reviews} />
+              <OrganisationReviews reviews={reviews} organisationId={org.id} canReview={Boolean(session.userId && !canEdit)} />
             </TabsContent>
           </Tabs>
         </Card>

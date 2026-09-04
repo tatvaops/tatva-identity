@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, Briefcase, Home, MessageSquare, Plus, Search, UserRound, Users } from "lucide-react";
+import { Bell, Briefcase, Home, MessageSquare, Search, UserRound, Users } from "lucide-react";
 import { InitialsAvatar } from "@/components/identity/visuals";
 import { Button } from "@/components/ui/button";
 import {
@@ -85,8 +85,11 @@ export function GlobalHeader() {
             {copy.profile}
           </Link>
         </nav>
-        <Link href="/search" className="ml-auto md:hidden" aria-label="Search">
+        <Link href="/search" className="ml-auto md:hidden" aria-label={copy.search}>
           <Search className="size-5" />
+        </Link>
+        <Link href="/notifications" className="md:hidden" aria-label={copy.notifications}>
+          <Bell className="size-5" />
         </Link>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -138,7 +141,10 @@ export function GlobalHeader() {
                 <Link href="/insights">Insights</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/saved">Saved</Link>
+                <Link href="/applications">{copy.applications}</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/passport/documents">{copy.documents}</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/graph">Work graph</Link>
@@ -176,7 +182,7 @@ export function MobileBottomNav() {
   const items = [
     { href: "/feed", label: copy.home, icon: Home },
     { href: "/network", label: copy.network, icon: Users },
-    { href: "/feed?compose=1", label: copy.post, icon: Plus },
+    { href: "/messages", label: copy.messages, icon: MessageSquare },
     { href: "/jobs", label: copy.jobs, icon: Briefcase },
     { href: profileHref, label: copy.profile, icon: UserRound },
   ];
@@ -191,7 +197,7 @@ export function MobileBottomNav() {
           const active =
             item.label === copy.profile
               ? pathname === path
-              : item.label !== copy.post && pathname.startsWith(path);
+              : pathname.startsWith(path);
           return (
             <li key={item.label}>
               <Link

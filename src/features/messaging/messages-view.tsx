@@ -1,15 +1,16 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { InitialsAvatar } from "@/components/identity/visuals";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/states/empty-state";
 import { sendMessage } from "@/lib/actions/network";
+import { markMessagesRead, startOrGetPersonConversation } from "@/lib/actions/messaging";
 import { hueFromId, initialsFromName } from "@/lib/domain/passport-strength";
 import { cn } from "@/lib/utils";
-import type { ConversationSummary, MessageRow } from "@/lib/types/identity";
+import type { ConversationSummary, MessageRow, PublicProfile } from "@/lib/types/identity";
 
 const KIND_COPY: Record<string, { label: string; body: string }> = {
   person: {
@@ -39,35 +40,49 @@ export function MessagesView({
   activeId,
   messages,
   selfId,
+  people = [],
+  peopleQuery = "",
 }: {
   conversations: ConversationSummary[];
   activeId: string | null;
   messages: MessageRow[];
   selfId: string;
+  people?: PublicProfile[];
+  peopleQuery?: string;
 }) {
   const router = useRouter();
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const active = conversations.find((c) => c.id === activeId) ?? conversations[0] ?? null;
-
-  if (conversations.length === 0) {
-    return (
-      <EmptyState
-        title="No conversations yet"
-        body="Open Message on a person or organisation to start a thread. Threads are not created automatically."
-      />
-    );
-  }
-
   const currentId = active?.id ?? null;
+
+  useEffect(() => {
+    if (!currentId) return;
+    void markMessagesRead(currentId);
+  }, [currentId]);
+
   const kind = KIND_COPY[active?.kind ?? ""] ?? {
     label: active?.kind ? active.kind.replaceAll("_", " ") : "Conversation",
     body: "Context for this thread appears here when it is linked to a person, organisation, job, gig or project.",
   };
 
   return (
-    <div className="grid h-[calc(100vh-8rem)] overflow-hidden rounded-2xl border border-border bg-white lg:grid-cols-[280px_minmax(0,1fr)_260px]">
+    <div className="space-y-4">
+      <CardPicker
+        people={people}
+        peopleQuery={peopleQuery}
+        pending={pending}
+        start={start}
+        setError={setError}
+      />
+      {conversations.length === 0 ? (
+        <EmptyState
+          title="No conversations yet"
+          body="Search for a professional above to start a thread. Threads are not created automatically."
+        />
+      ) : (
+        <div className="grid h-[calc(100vh-12rem)] overflow-hidden rounded-2xl border border-border bg-white lg:grid-cols-[280px_minmax(0,1fr)_260px]">
       <aside className="overflow-y-auto border-r border-border">
         <ul>
           {conversations.map((c) => (
@@ -142,6 +157,62 @@ export function MessagesView({
         <p className="mt-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">{kind.label}</p>
         <p className="mt-2 text-xs leading-5 text-muted-foreground">{kind.body}</p>
       </aside>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CardPicker({
+  people,
+  peopleQuery,
+  pending,
+  start,
+  setError,
+}: {
+  people: PublicProfile[];
+  peopleQuery: string;
+  pending: boolean;
+  start: ReturnType<typeof useTransition>[1];
+  setError: (value: string | null) => void;
+}) {
+  const router = useRouter();
+  return (
+    <div className="rounded-2xl border border-border bg-white p-4">
+      <form className="flex flex-wrap gap-2" action="/messages" method="get">
+        <label className="sr-only" htmlFor="people-search">
+          Find a professional
+        </label>
+        <Input id="people-search" name="q" defaultValue={peopleQuery} placeholder="Search people to message" />
+        <Button type="submit" variant="outline">
+          Search
+        </Button>
+      </form>
+      {people.length > 0 ? (
+        <ul className="mt-3 space-y-2">
+          {people.map((person) => (
+            <li key={person.id} className="flex items-center justify-between gap-3">
+              <span className="text-sm">{person.fullName}</span>
+              <Button
+                type="button"
+                size="sm"
+                disabled={pending}
+                onClick={() =>
+                  start(async () => {
+                    const result = await startOrGetPersonConversation(person.id);
+                    if (!result.ok) setError(result.error);
+                    else if (result.id) router.push(`/messages?c=${result.id}`);
+                  })
+                }
+              >
+                Message
+              </Button>
+            </li>
+          ))}
+        </ul>
+      ) : peopleQuery ? (
+        <p className="mt-2 text-sm text-muted-foreground">No public profiles match that search.</p>
+      ) : null}
     </div>
   );
 }

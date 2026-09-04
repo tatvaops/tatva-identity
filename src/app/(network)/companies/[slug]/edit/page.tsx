@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { OrganisationCatalogueForms, OrganisationForm } from "@/features/company/org-forms";
+import { OrganisationCatalogueForms, OrganisationForm, OrganisationInviteForm, OrganisationReviewForm } from "@/features/company/org-forms";
 import { getOrganisationBySlug } from "@/lib/data/organisation";
 import { getAuthContext } from "@/lib/data/query";
 import { QueryNotice } from "@/components/states/empty-state";
@@ -16,6 +16,8 @@ export default async function EditCompanyPage({ params }: { params: Promise<{ sl
     <div className="space-y-6">
       <h1 className="text-xl font-semibold">Edit {org.data.name}</h1>
       <OrganisationForm org={org.data} />
+      <OrganisationInviteForm organisationId={org.data.id} />
+      <OrganisationReviewForm organisationId={org.data.id} />
       <OrganisationCatalogueForms organisationId={org.data.id} />
     </div>
   );

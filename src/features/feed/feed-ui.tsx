@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { Award, Briefcase, FolderKanban, ImageIcon, Video } from "lucide-react";
 import { InitialsAvatar } from "@/components/identity/visuals";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,8 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useSession } from "@/components/providers/session-provider";
-import { createPost } from "@/lib/actions/network";
+import { addComment, createPost, togglePostReaction } from "@/lib/actions/network";
+import { uploadPublicImage } from "@/lib/actions/media";
 import { hueFromId, initialsFromName } from "@/lib/domain/passport-strength";
 import type { Post, PostComment, PublicProfile } from "@/lib/types/identity";
 import Link from "next/link";
@@ -57,6 +58,8 @@ export function PostComposer({ openOnMount = false }: { openOnMount?: boolean })
   const [postType, setPostType] = useState("update");
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const photoInput = useRef<HTMLInputElement>(null);
+  const [photoPath, setPhotoPath] = useState<string | null>(null);
 
   if (!profile) {
     return (
@@ -73,7 +76,7 @@ export function PostComposer({ openOnMount = false }: { openOnMount?: boolean })
     <>
       <Card className="p-4">
         <div className="flex gap-3">
-          <InitialsAvatar initials={initialsFromName(profile.fullName)} hue={hueFromId(profile.id)} size={44} />
+          <InitialsAvatar initials={initialsFromName(profile.fullName)} hue={hueFromId(profile.id)} size={44} src={profile.avatarPath} />
           <button
             className="h-11 flex-1 rounded-full border border-border bg-muted/50 px-4 text-left text-sm text-muted-foreground hover:bg-muted"
             onClick={() => setOpen(true)}
@@ -89,11 +92,41 @@ export function PostComposer({ openOnMount = false }: { openOnMount?: boolean })
             ["Job", Briefcase],
             ["Credential", Award],
           ].map(([label, Icon]) => (
-            <Button key={label as string} variant="ghost" size="sm" onClick={() => setOpen(true)}>
+            <Button
+              key={label as string}
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                if (label === "Photo") photoInput.current?.click();
+                else setOpen(true);
+              }}
+            >
               <Icon />
               {label as string}
             </Button>
           ))}
+          <input
+            ref={photoInput}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            className="hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (!file) return;
+              start(async () => {
+                const data = new FormData();
+                data.set("file", file);
+                data.set("kind", "post");
+                const result = await uploadPublicImage(data);
+                if (!result.ok) {
+                  setError(result.error);
+                  return;
+                }
+                setPhotoPath(result.id ?? null);
+                setOpen(true);
+              });
+            }}
+          />
         </div>
       </Card>
       <Dialog open={open} onOpenChange={setOpen}>
@@ -120,6 +153,7 @@ export function PostComposer({ openOnMount = false }: { openOnMount?: boolean })
             placeholder="What did you complete, hire for, or verify?"
             className="mt-3 min-h-32"
           />
+          {photoPath ? <p className="mt-2 text-xs text-muted-foreground">Photo attached.</p> : null}
           {error && <p className="mt-2 text-sm text-rose-700">{error}</p>}
           <div className="mt-4 flex justify-end">
             <Button
@@ -132,6 +166,7 @@ export function PostComposer({ openOnMount = false }: { openOnMount?: boolean })
                     return;
                   }
                   setBody("");
+                  setPhotoPath(null);
                   setOpen(false);
                   router.refresh();
                 })
@@ -161,6 +196,12 @@ export function PostCard({
 }) {
   const name = author?.fullName ?? organisationName ?? "Member";
   const href = author ? `/people/${author.handle}` : "#";
+  const router = useRouter();
+  const { userId } = useSession();
+  const [comment, setComment] = useState("");
+  const [liked, setLiked] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, start] = useTransition();
   return (
     <Card className="p-4">
       <div className="flex gap-3">
@@ -168,6 +209,7 @@ export function PostCard({
           initials={initialsFromName(name)}
           hue={author ? hueFromId(author.id) : 250}
           size={44}
+          src={author?.avatarPath}
           className={!author ? "rounded-xl" : undefined}
         />
         <div className="min-w-0 flex-1">
@@ -203,6 +245,63 @@ export function PostCard({
                 );
               })}
             </ul>
+          ) : null}
+          <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-3">
+            <Button
+              type="button"
+              size="sm"
+              variant={liked ? "secondary" : "outline"}
+              disabled={!userId || pending}
+              onClick={() =>
+                start(async () => {
+                  const result = await togglePostReaction(post.id, liked);
+                  if (!result.ok) {
+                    setError(result.error);
+                    return;
+                  }
+                  setLiked(!liked);
+                  router.refresh();
+                })
+              }
+            >
+              {liked ? "Liked" : "Like"}
+            </Button>
+          </div>
+          {userId ? (
+            <form
+              className="mt-3 space-y-2"
+              onSubmit={(event) => {
+                event.preventDefault();
+                start(async () => {
+                  const result = await addComment(post.id, comment);
+                  if (!result.ok) {
+                    setError(result.error);
+                    return;
+                  }
+                  setComment("");
+                  router.refresh();
+                });
+              }}
+            >
+              <label className="sr-only" htmlFor={`comment-${post.id}`}>
+                Comment
+              </label>
+              <Textarea
+                id={`comment-${post.id}`}
+                value={comment}
+                onChange={(event) => setComment(event.target.value)}
+                placeholder="Write a comment"
+                className="min-h-16"
+              />
+              <Button type="submit" size="sm" disabled={pending}>
+                Comment
+              </Button>
+            </form>
+          ) : null}
+          {error ? (
+            <p className="mt-2 text-sm text-rose-700" role="alert">
+              {error}
+            </p>
           ) : null}
         </div>
       </div>

@@ -155,23 +155,19 @@ Verification UI explains who / what / state. Stored as structured flags, not a g
 
 ## 14. Search architecture (NEW)
 
-`searchNetwork(query)` in `src/lib/data/search.ts` runs parallel Postgres `ilike` filters on public tables.
-
-UI is grouped (people, companies, jobs, gigs, posts, projects, skills, services). Ranking/vector search can replace the function body without changing the page.
+`searchNetwork(query)` in `src/lib/data/network.ts` uses `ilike` plus generated `tsvector` columns (`search_document`) with GIN indexes. Weighted ranking lives in `src/lib/domain/search-rank.ts`. Vector search is still later.
 
 ---
 
 ## 15. Messaging architecture (NEW)
 
-`conversations`, `conversation_members`, `messages`. Context enum: person, recruiter, organisation, job, gig, quote.
-
-No fake transcripts. Empty inbox until rows exist.
+`conversations` may be `person`, `job`, `organisation`, or `enquiry`. Optional FKs: `job_id`, `gig_id`, `organisation_id`, `service_id`. `messages.read_at` is a receipt. Org message looks up `created_by` on the server so the public mapper does not leak owner ids.
 
 ---
 
 ## 16. Notification architecture (NEW)
 
-`notifications` with typed `kind`. Inserted by future triggers/actions. Phase 1 reads real rows or shows empty.
+`notify_profile(target, kind, title, body, href)` is `security definer` so connect, follow, apply, comment, and message can notify the other person. Direct insert for another `profile_id` remains denied.
 
 ---
 
@@ -191,20 +187,16 @@ This app does **not** add columns for Aadhaar or payroll. Vertex must never proj
 ## 18. RLS strategy (NEW)
 
 - `anon` / `authenticated`: `SELECT` on public-safe tables/columns
-- Writes: `authenticated` and `auth.uid() = profile_id` (or org admin membership)
-- Storage: public avatars/covers; private `profile-documents` bucket
+- Writes: `authenticated` and `auth.uid() = profile_id`, or `is_org_staff`
+- Storage: `identity-public` / `identity-private` (folder = caller uuid)
 - Service role is not used in the browser
 
 ---
 
 ## 19. Storage strategy (NEW)
 
-Buckets (declared in migration comments / to be created in Supabase):
-
-- `avatars` (public)
-- `covers` (public)
-- `post-media` (public)
-- `profile-documents` (private)
+- `identity-public` — avatars, covers, logos, gallery
+- `identity-private` — owner documents
 
 ---
 
@@ -225,7 +217,7 @@ Ports live in `src/lib/integrations/vertex.ts`. Implementations currently return
 
 ## 21. Migration strategy
 
-1. Apply `supabase/migrations/20260902120000_identity_foundation.sql` to the Identity Supabase project.
+1. Apply Identity migrations in timestamp order, including `20260904160000_identity_gap_fill.sql`.
 2. Do not run Vertex migrations from this repo (they are not here).
 3. When Vertex shares a database or FDW, add a follow-up migration that **adds FKs** only after those tables exist.
 

@@ -6,27 +6,36 @@ import type { Organisation } from "@/lib/types/identity";
 
 export function InsightsView({
   viewCount,
+  uniqueViewers = 0,
   connectionCount,
   followerCount,
   applicationCount,
   receivedCount,
+  orgViewCount = 0,
+  searchAppearanceCount = 0,
   passport,
   organisations,
 }: {
   viewCount: number;
+  uniqueViewers?: number;
   connectionCount: number;
   followerCount: number;
   applicationCount: number;
   receivedCount: number;
+  orgViewCount?: number;
+  searchAppearanceCount?: number;
   passport: PassportStrength;
   organisations: Organisation[];
 }) {
   const metrics = [
     viewCount > 0 ? { label: "Profile views", value: viewCount } : null,
+    uniqueViewers > 0 ? { label: "Unique viewers", value: uniqueViewers } : null,
     connectionCount > 0 ? { label: "Connections", value: connectionCount } : null,
     followerCount > 0 ? { label: "Followers", value: followerCount } : null,
     applicationCount > 0 ? { label: "Applications you sent", value: applicationCount } : null,
     receivedCount > 0 ? { label: "Applications received", value: receivedCount } : null,
+    orgViewCount > 0 ? { label: "Organisation views", value: orgViewCount } : null,
+    searchAppearanceCount > 0 ? { label: "Search appearances", value: searchAppearanceCount } : null,
   ].filter((row): row is { label: string; value: number } => row !== null);
   const missing = passport.components.filter((item) => !item.complete);
 

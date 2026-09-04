@@ -16,11 +16,13 @@ export function PageNav({
   page,
   hasMore,
   params,
+  total,
 }: {
   path: string;
   page: number;
   hasMore: boolean;
   params?: Record<string, string | undefined>;
+  total?: number;
 }) {
   if (page <= 1 && !hasMore) return null;
   const query = new URLSearchParams();
@@ -40,7 +42,10 @@ export function PageNav({
       ) : (
         <span />
       )}
-      <span className="text-muted-foreground">Page {page}</span>
+      <span className="text-muted-foreground">
+        Page {page}
+        {typeof total === "number" ? ` · ${total}` : ""}
+      </span>
       {hasMore ? (
         <Link className="text-primary hover:underline" href={hrefFor(page + 1)}>
           Next

@@ -6,10 +6,14 @@ import {
   aboutSchema,
   availabilitySchema,
   certificationSchema,
+  endorsementSchema,
   experienceSchema,
+  profileServiceSchema,
   projectSchema,
   skillSchema,
+  verificationRequestSchema,
 } from "@/lib/domain/profile-schemas";
+import { notify } from "@/lib/actions/notify";
 import { slugify } from "@/lib/domain/slug";
 
 function revalidateProfile(handle: string | undefined) {
@@ -29,6 +33,23 @@ export async function updateProfileAbout(input: unknown): Promise<ActionResult> 
     .update({
       headline: parsed.data.headline || null,
       about: parsed.data.about || null,
+      full_name: parsed.data.fullName || undefined,
+      website: parsed.data.website || null,
+      languages: parsed.data.languages
+        ? parsed.data.languages.split(/[,;\n]/).map((item) => item.trim()).filter(Boolean)
+        : undefined,
+      preferred_work_locations: parsed.data.preferredWorkLocations
+        ? parsed.data.preferredWorkLocations.split(/[,;\n]/).map((item) => item.trim()).filter(Boolean)
+        : undefined,
+      locality: parsed.data.locality || undefined,
+      state: parsed.data.state || undefined,
+      willing_to_relocate: parsed.data.willingToRelocate ?? undefined,
+      willing_to_travel: parsed.data.willingToTravel ?? undefined,
+      arrangement: parsed.data.arrangement || undefined,
+      email_visible_to: parsed.data.emailVisibleTo || undefined,
+      about_visible_to: parsed.data.aboutVisibleTo || undefined,
+      location_visible_to: parsed.data.locationVisibleTo || undefined,
+      professional_title: parsed.data.professionalTitle || undefined,
     })
     .eq("id", auth.ctx.userId);
   if (error) return fail(error.message);
@@ -114,6 +135,8 @@ export async function updateAvailability(input: unknown): Promise<ActionResult> 
     .split(",")
     .map((role) => role.trim())
     .filter(Boolean);
+  const daily = parsed.data.dailyRateInr ? Number.parseInt(parsed.data.dailyRateInr, 10) : null;
+  const monthly = parsed.data.monthlySalaryInr ? Number.parseInt(parsed.data.monthlySalaryInr, 10) : null;
   const { error } = await auth.supabase
     .from("profiles")
     .update({
@@ -121,6 +144,9 @@ export async function updateAvailability(input: unknown): Promise<ActionResult> 
       occupation_mode: parsed.data.occupationMode,
       city: parsed.data.city || null,
       preferred_roles: preferredRoles,
+      daily_rate_inr: Number.isFinite(daily) ? daily : null,
+      monthly_salary_inr: Number.isFinite(monthly) ? monthly : null,
+      notice_period: parsed.data.noticePeriod || null,
     })
     .eq("id", auth.ctx.userId);
   if (error) return fail(error.message);
@@ -155,5 +181,71 @@ export async function addOptedInProject(input: unknown): Promise<ActionResult> {
   if (link.error) return fail(link.error.message);
   revalidateProfile(auth.ctx.profile?.handle);
   revalidatePath("/projects");
+  return { ok: true };
+}
+
+export async function addProfileService(input: unknown): Promise<ActionResult> {
+  const parsed = profileServiceSchema.safeParse(input);
+  if (!parsed.success) return fail("Add a service name before saving.");
+  const auth = await requireUser();
+  if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
+  const { error } = await auth.supabase.from("profile_services").insert({
+    profile_id: auth.ctx.userId,
+    name: parsed.data.name,
+    description: parsed.data.description || null,
+    locations: parsed.data.locations.split(/[,;\n]/).map((item) => item.trim()).filter(Boolean),
+    availability_label: parsed.data.availabilityLabel || null,
+  });
+  if (error) return fail(error.message);
+  revalidateProfile(auth.ctx.profile?.handle);
+  return { ok: true };
+}
+
+export async function requestVerification(input: unknown): Promise<ActionResult> {
+  const parsed = verificationRequestSchema.safeParse(input);
+  if (!parsed.success) return fail("Choose what you want verified.");
+  const auth = await requireUser();
+  if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
+  const { error } = await auth.supabase.from("verification_requests").insert({
+    profile_id: auth.ctx.userId,
+    kind: parsed.data.kind,
+    status: "pending",
+  });
+  if (error) return fail(error.message);
+  revalidateProfile(auth.ctx.profile?.handle);
+  return { ok: true };
+}
+
+export async function endorseSkill(input: unknown): Promise<ActionResult> {
+  const parsed = endorsementSchema.safeParse(input);
+  if (!parsed.success) return fail("Choose a skill to endorse.");
+  const auth = await requireUser();
+  if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
+  const skill = await auth.supabase
+    .from("profile_skills")
+    .select("id, profile_id, verification_level")
+    .eq("id", parsed.data.profileSkillId)
+    .maybeSingle();
+  if (!skill.data || skill.data.profile_id === auth.ctx.userId) return fail("You can only endorse someone else's skill.");
+  const { error } = await auth.supabase.from("endorsements").insert({
+    profile_skill_id: parsed.data.profileSkillId,
+    endorser_id: auth.ctx.userId,
+  });
+  if (error) return fail(error.message);
+  await auth.supabase.from("skill_verifications").insert({
+    profile_skill_id: parsed.data.profileSkillId,
+    kind: "community",
+    verifier_profile_id: auth.ctx.userId,
+    explanation: "Community endorsement.",
+  });
+  if (skill.data.verification_level === "self_declared") {
+    await auth.supabase
+      .from("profile_skills")
+      .update({ verification_level: "community_endorsed" })
+      .eq("id", parsed.data.profileSkillId);
+  }
+  const person = await auth.supabase.from("public_profiles").select("handle").eq("id", skill.data.profile_id).maybeSingle();
+  await notify(auth.supabase, skill.data.profile_id, "endorsement", "A skill was endorsed", undefined, `/people/${person.data?.handle ?? ""}`);
+  revalidatePath("/people");
   return { ok: true };
 }

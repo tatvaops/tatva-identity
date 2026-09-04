@@ -18,6 +18,7 @@ import {
   pageRange,
   unconfiguredItem,
   unconfiguredList,
+  getAuthContext,
   type ItemResult,
   type ListResult,
 } from "@/lib/data/query";
@@ -49,6 +50,8 @@ export type PeopleFilters = {
   city?: string;
   availability?: string;
   organisationId?: string;
+  skill?: string;
+  trade?: string;
 };
 
 export async function listPublicProfiles(
@@ -57,7 +60,7 @@ export async function listPublicProfiles(
 ): Promise<ListResult<PublicProfile>> {
   const supabase = await createServerSupabase();
   if (!supabase) return unconfiguredList();
-  let q = supabase.from("public_profiles").select("*").order("full_name");
+  let q = supabase.from("public_profiles").select("*", { count: "exact" }).order("full_name");
   if (filters.city) q = q.ilike("city", `%${filters.city}%`);
   if (filters.availability) q = q.eq("availability_status", filters.availability);
   if (filters.organisationId) q = q.eq("current_organisation_id", filters.organisationId);
@@ -68,9 +71,31 @@ export async function listPublicProfiles(
   }
   const range = pageRange(options);
   if (range) q = q.range(range.from, range.to);
-  const { data, error } = await q;
+  const { data, error, count } = await q;
   if (error) return listFail(error.message);
-  return listOk((data ?? []).map(mapPublicProfile));
+  let rows = (data ?? []).map(mapPublicProfile);
+  if (filters.skill || filters.trade) {
+    const needle = (filters.skill || filters.trade || "").toLowerCase();
+    const skills = await supabase
+      .from("profile_skills")
+      .select("profile_id, skills(name, category)")
+      .in(
+        "profile_id",
+        rows.map((row) => row.id),
+      );
+    const matched = new Set(
+      (skills.data ?? [])
+        .filter((row) => {
+          const skill = Array.isArray(row.skills) ? row.skills[0] : row.skills;
+          const name = String(skill?.name ?? "").toLowerCase();
+          const category = String(skill?.category ?? "").toLowerCase();
+          return name.includes(needle) || category.includes(needle);
+        })
+        .map((row) => row.profile_id),
+    );
+    rows = rows.filter((row) => matched.has(row.id));
+  }
+  return listOk(rows, count ?? rows.length);
 }
 
 export async function getProfileByHandle(handle: string): Promise<ItemResult<PublicProfile>> {
@@ -96,14 +121,15 @@ export async function listOrganisations(
 ): Promise<ListResult<Organisation>> {
   const supabase = await createServerSupabase();
   if (!supabase) return unconfiguredList();
-  let q = supabase.from("organisations").select("*").order("name");
+  let q = supabase.from("organisations").select("*", { count: "exact" }).order("name");
   if (query) q = q.or(`name.ilike.%${query}%,tagline.ilike.%${query}%,industry.ilike.%${query}%`);
   if (type) q = q.eq("organisation_type", type);
   const range = pageRange(options);
   if (range) q = q.range(range.from, range.to);
-  const { data, error } = await q;
+  const { data, error, count } = await q;
   if (error) return listFail(error.message);
-  return listOk((data ?? []).map(mapOrganisation));
+  const ctx = await getAuthContext();
+  return listOk((data ?? []).map((row) => mapOrganisation(row, ctx.userId)), count ?? undefined);
 }
 
 export async function getOrganisationBySlug(slug: string): Promise<ItemResult<Organisation>> {
@@ -111,7 +137,8 @@ export async function getOrganisationBySlug(slug: string): Promise<ItemResult<Or
   if (!supabase) return unconfiguredItem();
   const { data, error } = await supabase.from("organisations").select("*").eq("slug", slug).maybeSingle();
   if (error) return itemFail(error.message);
-  return itemOk(data ? mapOrganisation(data) : null);
+  const ctx = await getAuthContext();
+  return itemOk(data ? mapOrganisation(data, ctx.userId) : null);
 }
 
 export async function getOrganisationById(id: string): Promise<ItemResult<Organisation>> {
@@ -119,7 +146,8 @@ export async function getOrganisationById(id: string): Promise<ItemResult<Organi
   if (!supabase) return unconfiguredItem();
   const { data, error } = await supabase.from("organisations").select("*").eq("id", id).maybeSingle();
   if (error) return itemFail(error.message);
-  return itemOk(data ? mapOrganisation(data) : null);
+  const ctx = await getAuthContext();
+  return itemOk(data ? mapOrganisation(data, ctx.userId) : null);
 }
 
 export async function listProjects(): Promise<ListResult<NetworkProject>> {
@@ -147,14 +175,14 @@ export async function listJobs(
 ): Promise<ListResult<JobPost>> {
   const supabase = await createServerSupabase();
   if (!supabase) return unconfiguredList();
-  let q = supabase.from("job_posts").select("*").order("created_at", { ascending: false });
+  let q = supabase.from("job_posts").select("*", { count: "exact" }).is("closed_at", null).order("created_at", { ascending: false });
   if (filters.city) q = q.ilike("city", `%${filters.city}%`);
   if (filters.employmentType) q = q.eq("employment_type", filters.employmentType);
   const range = pageRange(options);
   if (range) q = q.range(range.from, range.to);
-  const { data, error } = await q;
+  const { data, error, count } = await q;
   if (error) return listFail(error.message);
-  return listOk((data ?? []).map(mapJob));
+  return listOk((data ?? []).map(mapJob), count ?? undefined);
 }
 
 export async function getJob(id: string): Promise<ItemResult<JobPost>> {
@@ -171,7 +199,7 @@ export async function listGigs(
 ): Promise<ListResult<GigPost>> {
   const supabase = await createServerSupabase();
   if (!supabase) return unconfiguredList();
-  let q = supabase.from("gig_posts").select("*").order("created_at", { ascending: false });
+  let q = supabase.from("gig_posts").select("*", { count: "exact" }).is("closed_at", null).order("created_at", { ascending: false });
   if (filters.trade) q = q.ilike("trade", `%${filters.trade}%`);
   const range = pageRange(options);
   if (range) q = q.range(range.from, range.to);
@@ -516,6 +544,7 @@ export async function listMessages(conversationId: string): Promise<ListResult<M
       conversationId: m.conversation_id,
       senderId: m.sender_id,
       body: m.body,
+      readAt: m.read_at ?? null,
       createdAt: m.created_at,
     })),
   );

@@ -9,10 +9,12 @@ function PeopleFilters({
   query,
   city,
   availability,
+  skill,
 }: {
   query?: string;
   city?: string;
   availability?: string;
+  skill?: string;
 }) {
   return (
     <form className="space-y-5" method="get">
@@ -22,6 +24,13 @@ function PeopleFilters({
           Name, trade or skill
         </label>
         <Input id="people-q" name="q" defaultValue={query} placeholder="Name, trade, skill" />
+      </fieldset>
+      <fieldset className="space-y-2">
+        <legend className="text-sm font-semibold">Skill or trade</legend>
+        <label className="sr-only" htmlFor="people-skill">
+          Skill or trade
+        </label>
+        <Input id="people-skill" name="skill" defaultValue={skill} placeholder="Skill or trade" />
       </fieldset>
       <fieldset className="space-y-2">
         <legend className="text-sm font-semibold">Location</legend>
@@ -60,20 +69,22 @@ export async function PeopleDirectory({
   query,
   city,
   availability,
+  skill,
   page = 1,
 }: {
   query?: string;
   city?: string;
   availability?: string;
+  skill?: string;
   page?: number;
 }) {
   const pageSize = 24;
-  const people = await listPublicProfiles({ query, city, availability }, { page, pageSize });
+  const people = await listPublicProfiles({ query, city, availability, skill }, { page, pageSize });
   return (
     <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
       <FilterDrawer title="Filters">
         <div className="h-fit rounded-2xl border border-border bg-white p-4">
-          <PeopleFilters query={query} city={city} availability={availability} />
+          <PeopleFilters query={query} city={city} availability={availability} skill={skill} />
         </div>
       </FilterDrawer>
       <div>
@@ -90,7 +101,13 @@ export async function PeopleDirectory({
             ))}
           </div>
         )}
-        <PageNav path="/people" page={page} hasMore={people.data.length === pageSize} params={{ q: query, city, availability }} />
+        <PageNav
+          path="/people"
+          page={page}
+          hasMore={people.data.length === pageSize}
+          total={people.total}
+          params={{ q: query, city, availability, skill }}
+        />
       </div>
     </div>
   );

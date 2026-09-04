@@ -7,6 +7,7 @@ import { PostCard } from "@/features/feed/feed-ui";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { OrganisationReviewForm } from "@/features/company/org-forms";
 import { QuoteBoundary } from "@/features/company/quote-boundary";
 import { CompanyActionBar } from "@/features/company/company-actions";
 import { hueFromId, initialsFromName } from "@/lib/domain/passport-strength";
@@ -37,15 +38,23 @@ export function CompanyHeader({
 }) {
   return (
     <Card className="overflow-hidden">
-      <CoverBand tone="office" className="h-36 md:h-44" />
+          <CoverBand tone="office" className="h-36 md:h-44" src={org.coverPath} />
       <div className="px-4 pb-5 md:px-6">
         <div className="-mt-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <InitialsAvatar initials={initialsFromName(org.name)} hue={hueFromId(org.id)} size={96} className="rounded-2xl ring-4 ring-white" />
+          <InitialsAvatar initials={initialsFromName(org.name)} hue={hueFromId(org.id)} size={96} src={org.logoPath} className="rounded-2xl ring-4 ring-white" />
           <div className="flex flex-wrap gap-2">
             {canEdit ? (
-              <Button variant="outline" asChild>
-                <Link href={`/companies/${org.slug}/edit`}>Edit business passport</Link>
-              </Button>
+              <>
+                <Button variant="outline" asChild>
+                  <Link href={`/companies/${org.slug}/edit`}>Edit business passport</Link>
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link href={`/jobs/create?organisationId=${org.id}`}>Post job</Link>
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link href={`/gigs/create?organisationId=${org.id}`}>Post gig</Link>
+                </Button>
+              </>
             ) : null}
             <CompanyActionBar
               organisationId={org.id}
@@ -78,6 +87,9 @@ export function CompanyHeader({
         </p>
         <Link className="mt-2 inline-block text-sm text-primary hover:underline" href={`/org/${org.slug}/passport`}>
           Public business passport
+        </Link>
+        <Link className="mt-2 ml-3 inline-block text-sm text-primary hover:underline" href={`/companies/${org.slug}/followers`}>
+          Followers
         </Link>
       </div>
     </Card>
@@ -165,20 +177,31 @@ export function OrganisationCredentials({ credentials }: { credentials: OrgCrede
   );
 }
 
-export function OrganisationReviews({ reviews }: { reviews: ReviewRow[] }) {
-  if (reviews.length === 0) {
-    return <EmptyState title="No verified reviews yet" body="Only project-linked client or employer reviews appear here." />;
-  }
+export function OrganisationReviews({
+  reviews,
+  organisationId,
+  canReview,
+}: {
+  reviews: ReviewRow[];
+  organisationId?: string;
+  canReview?: boolean;
+}) {
   return (
     <div className="space-y-3">
-      {reviews.map((r) => (
-        <Card key={r.id} className="p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {r.relationship === "verified_client" ? "Verified client review" : "Verified employer review"}
-          </p>
-          <p className="mt-2 text-sm">{r.body}</p>
-        </Card>
-      ))}
+      {reviews.length === 0 ? (
+        <EmptyState title="No verified reviews yet" body="Only project-linked client or employer reviews appear here." />
+      ) : (
+        reviews.map((r) => (
+          <Card key={r.id} className="p-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {r.relationship === "verified_client" ? "Verified client review" : "Verified employer review"}
+            </p>
+            {r.rating ? <p className="mt-1 text-sm font-medium">{r.rating} / 5</p> : null}
+            <p className="mt-2 text-sm">{r.body}</p>
+          </Card>
+        ))
+      )}
+      {canReview && organisationId ? <OrganisationReviewForm organisationId={organisationId} /> : null}
     </div>
   );
 }

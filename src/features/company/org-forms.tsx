@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { addOrganisationCredential, addOrganisationService, createOrganisation, updateOrganisation } from "@/lib/actions/organisation";
+import { addOrganisationCredential, addOrganisationService, createOrganisation, inviteOrganisationMember, updateOrganisation, writeOrganisationReview } from "@/lib/actions/organisation";
+import { uploadPublicImage } from "@/lib/actions/media";
 import { organisationTypes } from "@/lib/domain/workspace-schemas";
 import type { Organisation } from "@/lib/types/identity";
 
@@ -38,6 +39,12 @@ export function OrganisationForm({ org }: { org?: Organisation }) {
             locality: String(form.get("locality") ?? ""),
             foundedYear: String(form.get("foundedYear") ?? ""),
             website: String(form.get("website") ?? ""),
+            publicPhone: String(form.get("publicPhone") ?? ""),
+            publicEmail: String(form.get("publicEmail") ?? ""),
+            officeLocality: String(form.get("officeLocality") ?? ""),
+            serviceAreas: String(form.get("serviceAreas") ?? ""),
+            teamSizeLabel: String(form.get("teamSizeLabel") ?? ""),
+            state: String(form.get("state") ?? ""),
           };
           start(async () => {
             const result = org ? await updateOrganisation(org.slug, input) : await createOrganisation(input);
@@ -80,6 +87,27 @@ export function OrganisationForm({ org }: { org?: Organisation }) {
         <Field label="Website">
           <Input name="website" defaultValue={org?.website ?? ""} />
         </Field>
+        <Field label="Public phone">
+          <Input name="publicPhone" defaultValue={org?.publicPhone ?? ""} />
+        </Field>
+        <Field label="Public email">
+          <Input name="publicEmail" type="email" defaultValue={org?.publicEmail ?? ""} />
+        </Field>
+        <Field label="Workplace locality (never home)">
+          <Input name="officeLocality" defaultValue={org?.officeLocality ?? ""} />
+        </Field>
+        <Field label="Service areas">
+          <Input name="serviceAreas" defaultValue={org?.serviceAreas.join(", ") ?? ""} placeholder="Comma separated" />
+        </Field>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Team size">
+            <Input name="teamSizeLabel" defaultValue={org?.teamSizeLabel ?? ""} />
+          </Field>
+          <Field label="State">
+            <Input name="state" defaultValue={org?.state ?? ""} />
+          </Field>
+        </div>
+        {org ? <OrganisationLogoUpload slug={org.slug} /> : null}
         {error ? (
           <p className="text-sm text-rose-700" role="alert">
             {error}
@@ -158,5 +186,138 @@ export function OrganisationCatalogueForms({ organisationId }: { organisationId:
         </p>
       ) : null}
     </div>
+  );
+}
+
+export function OrganisationLogoUpload({ slug }: { slug: string }) {
+  const [error, setError] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  return (
+    <Field label="Logo">
+      <Input
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        disabled={pending}
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (!file) return;
+          const data = new FormData();
+          data.set("file", file);
+          data.set("kind", "org-logo");
+          data.set("slug", slug);
+          start(async () => {
+            const result = await uploadPublicImage(data);
+            if (!result.ok) setError(result.error);
+          });
+        }}
+      />
+      {error ? (
+        <p className="text-sm text-rose-700" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </Field>
+  );
+}
+
+export function OrganisationInviteForm({ organisationId }: { organisationId: string }) {
+  const [error, setError] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  return (
+    <Card className="space-y-3 p-4">
+      <p className="text-sm font-semibold">Invite a member</p>
+      <form
+        className="space-y-3"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const form = new FormData(event.currentTarget);
+          start(async () => {
+            const result = await inviteOrganisationMember({
+              organisationId,
+              handle: String(form.get("handle") ?? ""),
+              roleTitle: String(form.get("roleTitle") ?? ""),
+              department: String(form.get("department") ?? ""),
+              orgRole: String(form.get("orgRole") ?? "member"),
+              visibility: String(form.get("visibility") ?? "public"),
+            });
+            if (!result.ok) setError(result.error);
+            else event.currentTarget.reset();
+          });
+        }}
+      >
+        <Input name="handle" placeholder="Profile handle" required />
+        <Input name="roleTitle" placeholder="Role title" />
+        <Input name="department" placeholder="Department" />
+        <select name="orgRole" className="h-10 w-full rounded-lg border border-input bg-white px-3 text-sm">
+          <option value="member">Member</option>
+          <option value="recruiter">Recruiter</option>
+          <option value="admin">Admin</option>
+        </select>
+        <select name="visibility" className="h-10 w-full rounded-lg border border-input bg-white px-3 text-sm">
+          <option value="public">Public</option>
+          <option value="private">Private</option>
+        </select>
+        {error ? (
+          <p className="text-sm text-rose-700" role="alert">
+            {error}
+          </p>
+        ) : null}
+        <Button type="submit" disabled={pending} size="sm">
+          Send invite
+        </Button>
+      </form>
+    </Card>
+  );
+}
+
+export function OrganisationReviewForm({ organisationId }: { organisationId: string }) {
+  const [error, setError] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  return (
+    <Card className="space-y-3 p-4">
+      <p className="text-sm font-semibold">Write a review</p>
+      <p className="text-xs text-muted-foreground">Only for work you actually shared with this organisation.</p>
+      <form
+        className="space-y-3"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const form = new FormData(event.currentTarget);
+          start(async () => {
+            const result = await writeOrganisationReview({
+              organisationId,
+              rating: Number.parseInt(String(form.get("rating") ?? "5"), 10),
+              body: String(form.get("body") ?? ""),
+              relationship: String(form.get("relationship") ?? "verified_client"),
+            });
+            if (!result.ok) setError(result.error);
+            else event.currentTarget.reset();
+          });
+        }}
+      >
+        <label className="block text-sm">
+          Rating
+          <select name="rating" className="mt-1 h-10 w-full rounded-lg border border-input bg-white px-3 text-sm">
+            <option value="5">5</option>
+            <option value="4">4</option>
+            <option value="3">3</option>
+            <option value="2">2</option>
+            <option value="1">1</option>
+          </select>
+        </label>
+        <select name="relationship" className="h-10 w-full rounded-lg border border-input bg-white px-3 text-sm">
+          <option value="verified_client">Verified client</option>
+          <option value="verified_employer">Verified employer</option>
+        </select>
+        <Textarea name="body" rows={4} placeholder="What happened on the work" required />
+        {error ? (
+          <p className="text-sm text-rose-700" role="alert">
+            {error}
+          </p>
+        ) : null}
+        <Button type="submit" disabled={pending} size="sm">
+          Publish review
+        </Button>
+      </form>
+    </Card>
   );
 }

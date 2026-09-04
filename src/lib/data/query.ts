@@ -25,11 +25,11 @@ export async function getAuthContext(): Promise<AuthContext> {
   return { userId: user.id, profile: mapPublicProfile(data), configured };
 }
 
-export type ListResult<T> = { data: T[]; meta: QueryMeta };
+export type ListResult<T> = { data: T[]; meta: QueryMeta; total?: number };
 export type ItemResult<T> = { data: T | null; meta: QueryMeta };
 
-export function listOk<T>(data: T[]): ListResult<T> {
-  return { data, meta: emptyMeta() };
+export function listOk<T>(data: T[], total?: number): ListResult<T> {
+  return { data, meta: emptyMeta(), total };
 }
 
 export function listFail<T>(message?: string): ListResult<T> {

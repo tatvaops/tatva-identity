@@ -1,5 +1,21 @@
 export type OccupationMode = "white_collar" | "blue_collar" | "freelancer" | "contractor";
 
+export type ProfessionalTitle =
+  | "white_collar"
+  | "blue_collar"
+  | "skilled_trade"
+  | "gig_worker"
+  | "freelancer"
+  | "contractor"
+  | "technician"
+  | "supervisor"
+  | "engineer"
+  | "architect"
+  | "designer"
+  | "service_professional";
+
+export type VisibilityAudience = "public" | "connections" | "recruiters" | "private";
+
 export type AvailabilityStatus =
   | "not_looking"
   | "open_to_opportunities"
@@ -88,6 +104,7 @@ export type PublicProfile = {
   avatarPath: string | null;
   coverPath: string | null;
   occupationMode: OccupationMode;
+  professionalTitle: ProfessionalTitle | null;
   classification: string | null;
   workerPassportId: string | null;
   currentOrganisationId: string | null;
@@ -104,6 +121,10 @@ export type PublicProfile = {
   arrangement: "on_site" | "hybrid" | "remote";
   preferredRoles: string[];
   preferredCities: string[];
+  website: string | null;
+  emailVisibleTo: "none" | "connections" | "recruiters";
+  aboutVisibleTo: VisibilityAudience;
+  locationVisibleTo: VisibilityAudience;
   identityVerified: boolean;
   employmentVerified: boolean;
   tradeVerified: boolean;
@@ -124,6 +145,14 @@ export type Organisation = {
   foundedYear: number | null;
   teamSizeLabel: string | null;
   website: string | null;
+  logoPath: string | null;
+  coverPath: string | null;
+  publicPhone: string | null;
+  publicEmail: string | null;
+  officeLocality: string | null;
+  serviceAreas: string[];
+  /** True only when the signed-in viewer created this organisation. Never a public owner id. */
+  isOwner: boolean;
   createdBy: string | null;
 };
 
@@ -155,6 +184,7 @@ export type JobPost = {
   responsibilities: string[];
   requirements: string[];
   easyApply: boolean;
+  closedAt: string | null;
   createdAt: string;
 };
 
@@ -163,6 +193,7 @@ export type GigPost = {
   organisationId: string;
   title: string;
   siteName: string | null;
+  projectId: string | null;
   trade: string | null;
   shiftLabel: string | null;
   payLabel: string | null;
@@ -171,6 +202,7 @@ export type GigPost = {
   seats: number | null;
   duration: string | null;
   description: string | null;
+  closedAt: string | null;
   createdAt: string;
 };
 
@@ -257,7 +289,33 @@ export type MessageRow = {
   conversationId: string;
   senderId: string;
   body: string;
+  readAt: string | null;
   createdAt: string;
+};
+
+export type ProfileService = {
+  id: string;
+  profileId: string;
+  name: string;
+  description: string | null;
+  locations: string[];
+  availabilityLabel: string | null;
+};
+
+export type ProjectMilestone = {
+  id: string;
+  projectId: string;
+  title: string;
+  body: string | null;
+  occurredOn: string | null;
+};
+
+export type ProjectMedia = {
+  id: string;
+  projectId: string;
+  storagePath: string;
+  caption: string | null;
+  kind: "photo" | "before" | "after";
 };
 
 export type NotificationRow = {

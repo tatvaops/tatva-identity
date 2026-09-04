@@ -29,6 +29,9 @@ export async function createJobPost(input: unknown): Promise<ActionResult> {
       salary_label: parsed.data.salaryLabel || null,
       skills: splitList(parsed.data.skills),
       description: parsed.data.description || null,
+      responsibilities: splitList(parsed.data.responsibilities ?? ""),
+      requirements: splitList(parsed.data.requirements ?? ""),
+      easy_apply: parsed.data.easyApply ?? false,
     })
     .select("id")
     .single();
@@ -56,6 +59,8 @@ export async function createGigPost(input: unknown): Promise<ActionResult> {
       seats: Number.isFinite(seats) ? seats : null,
       duration: parsed.data.duration,
       description: parsed.data.description || null,
+      project_id: parsed.data.projectId || null,
+      distance_km: parsed.data.distanceKm ? Number.parseFloat(parsed.data.distanceKm) : null,
     })
     .select("id")
     .single();
@@ -81,6 +86,49 @@ export async function updateGigApplicationStatus(input: unknown): Promise<Action
   const auth = await requireUser();
   if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
   const { error } = await auth.supabase.from("gig_applications").update({ status: parsed.data.status }).eq("id", parsed.data.id);
+  if (error) return fail(error.message);
+  revalidatePath("/gigs");
+  return { ok: true };
+}
+
+export async function updateJobPost(input: unknown): Promise<ActionResult> {
+  const parsed = jobPostSchema.safeParse(input);
+  if (!parsed.success || !parsed.data.jobId) return fail("Save the job details, then try again.");
+  const auth = await requireUser();
+  if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
+  const { error } = await auth.supabase
+    .from("job_posts")
+    .update({
+      title: parsed.data.title,
+      city: parsed.data.city || null,
+      employment_type: parsed.data.employmentType,
+      experience_label: parsed.data.experienceLabel || null,
+      salary_label: parsed.data.salaryLabel || null,
+      skills: splitList(parsed.data.skills),
+      description: parsed.data.description || null,
+      responsibilities: splitList(parsed.data.responsibilities ?? ""),
+      requirements: splitList(parsed.data.requirements ?? ""),
+      easy_apply: parsed.data.easyApply ?? false,
+    })
+    .eq("id", parsed.data.jobId);
+  if (error) return fail(error.message);
+  revalidatePath(`/jobs/${parsed.data.jobId}`);
+  return { ok: true };
+}
+
+export async function closeJobPost(jobId: string): Promise<ActionResult> {
+  const auth = await requireUser();
+  if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
+  const { error } = await auth.supabase.from("job_posts").update({ closed_at: new Date().toISOString() }).eq("id", jobId);
+  if (error) return fail(error.message);
+  revalidatePath("/jobs");
+  return { ok: true };
+}
+
+export async function closeGigPost(gigId: string): Promise<ActionResult> {
+  const auth = await requireUser();
+  if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
+  const { error } = await auth.supabase.from("gig_posts").update({ closed_at: new Date().toISOString() }).eq("id", gigId);
   if (error) return fail(error.message);
   revalidatePath("/gigs");
   return { ok: true };

@@ -44,11 +44,57 @@ export async function startOrGetPersonConversation(otherId: string): Promise<Act
   return { ok: true, id: conversationId };
 }
 
-export async function startOrGetOrgConversation(_organisationId: string, createdBy: string | null): Promise<ActionResult> {
-  void _organisationId;
+export async function startOrGetOrgConversation(organisationId: string, _createdBy?: string | null): Promise<ActionResult> {
   const auth = await requireUser();
   if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
-  if (!createdBy) return fail("This organisation has no owner to message yet.");
-  if (createdBy === auth.ctx.userId) return fail("This is your organisation.");
-  return startOrGetPersonConversation(createdBy);
+  const org = await auth.supabase.from("organisations").select("id, created_by, name").eq("id", organisationId).maybeSingle();
+  const ownerId = org.data?.created_by ?? _createdBy ?? null;
+  if (!ownerId) return fail("This organisation has no owner to message yet.");
+  if (ownerId === auth.ctx.userId) return fail("This is your organisation.");
+  const started = await startOrGetPersonConversation(ownerId);
+  if (started.ok && started.id) {
+    await auth.supabase
+      .from("conversations")
+      .update({ kind: "organisation", organisation_id: organisationId, title: org.data?.name ?? "Organisation" })
+      .eq("id", started.id);
+  }
+  return started;
+}
+
+export async function startJobConversation(jobId: string, candidateId: string): Promise<ActionResult> {
+  const started = await startOrGetPersonConversation(candidateId);
+  if (started.ok && started.id) {
+    const auth = await requireUser();
+    if (auth.supabase) {
+      await auth.supabase.from("conversations").update({ kind: "job", job_id: jobId }).eq("id", started.id);
+    }
+  }
+  return started;
+}
+
+export async function startServiceEnquiry(organisationId: string, serviceId: string): Promise<ActionResult> {
+  const started = await startOrGetOrgConversation(organisationId);
+  if (started.ok && started.id) {
+    const auth = await requireUser();
+    if (auth.supabase) {
+      await auth.supabase
+        .from("conversations")
+        .update({ kind: "enquiry", organisation_id: organisationId, service_id: serviceId })
+        .eq("id", started.id);
+    }
+  }
+  return started;
+}
+
+export async function markMessagesRead(conversationId: string): Promise<ActionResult> {
+  const auth = await requireUser();
+  if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
+  const { error } = await auth.supabase
+    .from("messages")
+    .update({ read_at: new Date().toISOString() })
+    .eq("conversation_id", conversationId)
+    .neq("sender_id", auth.ctx.userId)
+    .is("read_at", null);
+  if (error) return fail(error.message);
+  return { ok: true };
 }

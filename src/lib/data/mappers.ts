@@ -8,11 +8,13 @@ import type {
   Organisation,
   OrganisationType,
   Post,
+  ProfessionalTitle,
   ProfileCertification,
   ProfileSkill,
   PublicProfile,
   SkillVerificationLevel,
   VerificationState,
+  VisibilityAudience,
 } from "@/lib/types/identity";
 
 type ProfileRow = {
@@ -24,6 +26,7 @@ type ProfileRow = {
   avatar_path: string | null;
   cover_path: string | null;
   occupation_mode: string;
+  professional_title?: string | null;
   classification: string | null;
   worker_passport_id: string | null;
   current_organisation_id: string | null;
@@ -40,6 +43,10 @@ type ProfileRow = {
   arrangement: string;
   preferred_roles: string[] | null;
   preferred_cities: string[] | null;
+  website?: string | null;
+  email_visible_to?: string | null;
+  about_visible_to?: string | null;
+  location_visible_to?: string | null;
   identity_verified: boolean;
   employment_verified: boolean;
   trade_verified: boolean;
@@ -55,6 +62,7 @@ export function mapPublicProfile(row: ProfileRow): PublicProfile {
     avatarPath: row.avatar_path,
     coverPath: row.cover_path,
     occupationMode: row.occupation_mode as OccupationMode,
+    professionalTitle: (row.professional_title as ProfessionalTitle | null) ?? null,
     classification: row.classification,
     workerPassportId: row.worker_passport_id,
     currentOrganisationId: row.current_organisation_id,
@@ -71,13 +79,18 @@ export function mapPublicProfile(row: ProfileRow): PublicProfile {
     arrangement: row.arrangement as PublicProfile["arrangement"],
     preferredRoles: row.preferred_roles ?? [],
     preferredCities: row.preferred_cities ?? [],
+    website: row.website ?? null,
+    emailVisibleTo: (row.email_visible_to as PublicProfile["emailVisibleTo"]) || "none",
+    aboutVisibleTo: (row.about_visible_to as VisibilityAudience) || "public",
+    locationVisibleTo: (row.location_visible_to as VisibilityAudience) || "public",
     identityVerified: row.identity_verified,
     employmentVerified: row.employment_verified,
     tradeVerified: row.trade_verified,
   };
 }
 
-export function mapOrganisation(row: {
+export function mapOrganisation(
+  row: {
   id: string;
   slug: string;
   name: string;
@@ -92,8 +105,17 @@ export function mapOrganisation(row: {
   founded_year: number | null;
   team_size_label: string | null;
   website: string | null;
+  logo_path?: string | null;
+  cover_path?: string | null;
+  public_phone?: string | null;
+  public_email?: string | null;
+  office_locality?: string | null;
+  service_areas?: string[] | null;
   created_by?: string | null;
-}): Organisation {
+},
+  viewerId?: string | null,
+): Organisation {
+  const viewerOwns = Boolean(viewerId && row.created_by && viewerId === row.created_by);
   return {
     id: row.id,
     slug: row.slug,
@@ -109,7 +131,14 @@ export function mapOrganisation(row: {
     foundedYear: row.founded_year,
     teamSizeLabel: row.team_size_label,
     website: row.website,
-    createdBy: row.created_by ?? null,
+    logoPath: row.logo_path ?? null,
+    coverPath: row.cover_path ?? null,
+    publicPhone: row.public_phone ?? null,
+    publicEmail: row.public_email ?? null,
+    officeLocality: row.office_locality ?? null,
+    serviceAreas: row.service_areas ?? [],
+    isOwner: viewerOwns,
+    createdBy: viewerOwns ? row.created_by ?? null : null,
   };
 }
 
@@ -155,6 +184,7 @@ export function mapJob(row: {
   responsibilities: string[] | null;
   requirements: string[] | null;
   easy_apply: boolean;
+  closed_at?: string | null;
   created_at: string;
 }): JobPost {
   return {
@@ -171,6 +201,7 @@ export function mapJob(row: {
     responsibilities: row.responsibilities ?? [],
     requirements: row.requirements ?? [],
     easyApply: row.easy_apply,
+    closedAt: row.closed_at ?? null,
     createdAt: row.created_at,
   };
 }
@@ -180,6 +211,7 @@ export function mapGig(row: {
   organisation_id: string;
   title: string;
   site_name: string | null;
+  project_id?: string | null;
   trade: string | null;
   shift_label: string | null;
   pay_label: string | null;
@@ -188,6 +220,7 @@ export function mapGig(row: {
   seats: number | null;
   duration: string | null;
   description: string | null;
+  closed_at?: string | null;
   created_at: string;
 }): GigPost {
   return {
@@ -195,6 +228,7 @@ export function mapGig(row: {
     organisationId: row.organisation_id,
     title: row.title,
     siteName: row.site_name,
+    projectId: row.project_id ?? null,
     trade: row.trade,
     shiftLabel: row.shift_label,
     payLabel: row.pay_label,
@@ -203,6 +237,7 @@ export function mapGig(row: {
     seats: row.seats,
     duration: row.duration,
     description: row.description,
+    closedAt: row.closed_at ?? null,
     createdAt: row.created_at,
   };
 }

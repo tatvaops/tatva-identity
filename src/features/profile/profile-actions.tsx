@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { MoreHorizontal } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 import { ConnectionButton, FollowButton } from "@/components/identity/network-buttons";
+import { removeConnection, toggleBlock, toggleMute } from "@/lib/actions/network";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -33,6 +36,9 @@ export function ProfileActionBar({
   signedIn: boolean;
   layout?: "header" | "mobile";
 }) {
+  const router = useRouter();
+  const [overflowError, setOverflowError] = useState<string | null>(null);
+  const [pending, start] = useTransition();
   const messageHref = signedIn
     ? `/messages?person=${profile.id}`
     : `/auth/sign-in?next=/people/${profile.handle}`;
@@ -101,14 +107,54 @@ export function ProfileActionBar({
             <FollowButton personId={profile.id} following={following} size="sm" />
           </div>
           {connectionState === "connected" ? (
-            <DropdownMenuItem disabled>Connected</DropdownMenuItem>
+            <DropdownMenuItem
+              disabled={pending}
+              onSelect={() =>
+                start(async () => {
+                  const result = await removeConnection(profile.id);
+                  if (!result.ok) setOverflowError(result.error);
+                  else router.refresh();
+                })
+              }
+            >
+              Remove connection
+            </DropdownMenuItem>
           ) : null}
+          <DropdownMenuItem
+            disabled={pending}
+            onSelect={() =>
+              start(async () => {
+                const result = await toggleMute(profile.id, false);
+                if (!result.ok) setOverflowError(result.error);
+                else router.refresh();
+              })
+            }
+          >
+            Mute
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            disabled={pending}
+            onSelect={() =>
+              start(async () => {
+                const result = await toggleBlock(profile.id, false);
+                if (!result.ok) setOverflowError(result.error);
+                else router.refresh();
+              })
+            }
+          >
+            Block
+          </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href={`/people/${profile.handle}`}>View public profile</Link>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
       <ProfileShareButton handle={profile.handle} />
+      {overflowError ? (
+        <p className="basis-full text-sm text-rose-700" role="alert">
+          {overflowError}
+        </p>
+      ) : null}
     </div>
   );
 }
