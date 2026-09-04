@@ -18,14 +18,41 @@ WhatsApp OTP: set `TATVA_USERS_API_BASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`. Fo
 
 ## Demonstration data
 
-The platform can be filled with labelled demo people, companies, jobs, gigs, posts and comments.
+Use this when the live network looks empty. All demo rows are labelled as demonstration records (handles like `seed-ananya`). Hide them before treating the product as genuine.
 
-1. Apply `supabase/migrations/20260904120000_seed_toggle.sql` and `supabase/migrations/20260904130000_demo_seed_data.sql` in the Supabase SQL editor (or run `supabase/seed.sql` after the toggle migration).
-2. **Hide without deleting:** `update public.platform_settings set seed_data_enabled = false;`
-3. **Show again:** `update public.platform_settings set seed_data_enabled = true;`
-4. **Delete forever:** `select public.unseed_platform();` (also in `supabase/unseed.sql`)
+**Files**
 
-Demo profiles use handles like `seed-ananya` and copy that says they are demonstration records.
+- Toggle + hide/show switch: `supabase/migrations/20260904120000_seed_toggle.sql`
+- Full seed (people, companies, projects, jobs, gigs, posts, comments, reactions, skills, credentials, reviews, recommendations, follows, applications): `supabase/migrations/20260904130000_demo_seed_data.sql`
+- Reload after the toggle exists: `supabase/seed.sql`
+- Delete forever: `supabase/unseed.sql`
+
+**Load (Supabase SQL editor, in order)**
+
+1. Run `supabase/migrations/20260904120000_seed_toggle.sql`
+2. Run `supabase/migrations/20260904130000_demo_seed_data.sql`
+
+Or, if the toggle is already applied: `select public.seed_demo_data();`
+
+**Hide without deleting (instant)**
+
+```sql
+update public.platform_settings set seed_data_enabled = false;
+```
+
+**Show again**
+
+```sql
+update public.platform_settings set seed_data_enabled = true;
+```
+
+**Delete forever**
+
+```sql
+select public.unseed_platform();
+```
+
+While demo data is on, the app shows a banner with these same SQL lines. After hide or delete, hard-refresh the feed, people, companies, and jobs.
 
 ## Environment
 
