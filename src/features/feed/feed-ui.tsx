@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useSession } from "@/components/providers/session-provider";
 import { createPost } from "@/lib/actions/network";
 import { hueFromId, initialsFromName } from "@/lib/domain/passport-strength";
-import type { Post, PublicProfile } from "@/lib/types/identity";
+import type { Post, PostComment, PublicProfile } from "@/lib/types/identity";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
@@ -150,10 +150,14 @@ export function PostCard({
   post,
   author,
   organisationName,
+  comments = [],
+  commentAuthors = [],
 }: {
   post: Post;
   author?: PublicProfile | null;
   organisationName?: string | null;
+  comments?: PostComment[];
+  commentAuthors?: PublicProfile[];
 }) {
   const name = author?.fullName ?? organisationName ?? "Member";
   const href = author ? `/people/${author.handle}` : "#";
@@ -166,7 +170,7 @@ export function PostCard({
           size={44}
           className={!author ? "rounded-xl" : undefined}
         />
-        <div>
+        <div className="min-w-0 flex-1">
           {author ? (
             <Link href={href} className="text-sm font-semibold hover:text-primary">
               {name}
@@ -181,6 +185,25 @@ export function PostCard({
             {POST_TYPE_LABEL[post.postType] ?? post.postType.replaceAll("_", " ")}
           </Badge>
           <p className="mt-3 text-sm leading-6">{post.body}</p>
+          {comments.length > 0 ? (
+            <ul className="mt-4 space-y-3 border-t border-border pt-3">
+              {comments.map((comment) => {
+                const commentAuthor = commentAuthors.find((person) => person.id === comment.authorId);
+                return (
+                  <li key={comment.id} className="text-sm">
+                    {commentAuthor ? (
+                      <Link href={`/people/${commentAuthor.handle}`} className="font-medium hover:text-primary">
+                        {commentAuthor.fullName}
+                      </Link>
+                    ) : (
+                      <span className="font-medium">Member</span>
+                    )}
+                    <p className="mt-0.5 text-muted-foreground">{comment.body}</p>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
         </div>
       </div>
     </Card>

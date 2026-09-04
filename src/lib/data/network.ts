@@ -35,6 +35,7 @@ import type {
   OrgService,
   Organisation,
   Post,
+  PostComment,
   ProfileCertification,
   ProfileSkill,
   PublicProfile,
@@ -196,6 +197,34 @@ export async function listFeedPosts(): Promise<ListResult<Post>> {
   const { data, error } = await supabase.from("posts").select("*").order("created_at", { ascending: false }).limit(50);
   if (error) return listFail(error.message);
   return listOk((data ?? []).map(mapPost));
+}
+
+export async function seedDataEnabled(): Promise<boolean> {
+  const supabase = await createServerSupabase();
+  if (!supabase) return false;
+  const { data } = await supabase.from("platform_settings").select("seed_data_enabled").eq("id", 1).maybeSingle();
+  return Boolean(data?.seed_data_enabled);
+}
+
+export async function listCommentsForPosts(postIds: string[]): Promise<ListResult<PostComment>> {
+  const supabase = await createServerSupabase();
+  if (!supabase) return unconfiguredList();
+  if (postIds.length === 0) return listOk([]);
+  const { data, error } = await supabase
+    .from("comments")
+    .select("*")
+    .in("post_id", postIds)
+    .order("created_at");
+  if (error) return listFail(error.message);
+  return listOk(
+    (data ?? []).map((row) => ({
+      id: row.id,
+      postId: row.post_id,
+      authorId: row.author_profile_id,
+      body: row.body,
+      createdAt: row.created_at,
+    })),
+  );
 }
 
 export async function listPostsByAuthor(profileId?: string, organisationId?: string): Promise<ListResult<Post>> {

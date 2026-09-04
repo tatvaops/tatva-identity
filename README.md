@@ -16,6 +16,17 @@ Apply `supabase/migrations/20260902120000_identity_foundation.sql` in the Supaba
 
 WhatsApp OTP: set `TATVA_USERS_API_BASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`. For local codes without WhatsApp, set `TATVA_VISION_OTP_ENABLED=false`. Set `REDIS_URL` on Vercel so rate limits and local OTPs work across instances.
 
+## Demonstration data
+
+The platform can be filled with labelled demo people, companies, jobs, gigs, posts and comments.
+
+1. Apply `supabase/migrations/20260904120000_seed_toggle.sql` and `supabase/migrations/20260904130000_demo_seed_data.sql` in the Supabase SQL editor (or run `supabase/seed.sql` after the toggle migration).
+2. **Hide without deleting:** `update public.platform_settings set seed_data_enabled = false;`
+3. **Show again:** `update public.platform_settings set seed_data_enabled = true;`
+4. **Delete forever:** `select public.unseed_platform();` (also in `supabase/unseed.sql`)
+
+Demo profiles use handles like `seed-ananya` and copy that says they are demonstration records.
+
 ## Environment
 
 Set these in `.env.local` and in the Vercel project:

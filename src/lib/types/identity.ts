@@ -174,6 +174,14 @@ export type GigPost = {
   createdAt: string;
 };
 
+export type PostComment = {
+  id: string;
+  postId: string;
+  authorId: string;
+  body: string;
+  createdAt: string;
+};
+
 export type Post = {
   id: string;
   postType: string;

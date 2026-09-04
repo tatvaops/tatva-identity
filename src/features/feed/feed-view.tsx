@@ -7,7 +7,7 @@ import { EmptyState, QueryNotice } from "@/components/states/empty-state";
 import { PostCard, PostComposer } from "@/features/feed/feed-ui";
 import { Card } from "@/components/ui/card";
 import { getAuthContext } from "@/lib/data/query";
-import { getProfileById, getOrganisationById, listFeedPosts, listJobs, listGigs, listOrganisations, listPublicProfiles } from "@/lib/data/network";
+import { getProfileById, getOrganisationById, listCommentsForPosts, listFeedPosts, listJobs, listGigs, listOrganisations, listPublicProfiles } from "@/lib/data/network";
 import { JobCard, GigCard, CompanyCard, PersonCard } from "@/components/cards/entity-cards";
 
 export async function FeedView({ compose = false }: { compose?: boolean }) {
@@ -26,6 +26,10 @@ export async function FeedView({ compose = false }: { compose?: boolean }) {
       p.authorOrganisationId ? getOrganisationById(p.authorOrganisationId) : Promise.resolve({ data: null }),
     ),
   );
+  const comments = await listCommentsForPosts(posts.data.map((post) => post.id));
+  const commentAuthorIds = [...new Set(comments.data.map((comment) => comment.authorId))];
+  const commentAuthorRows = await Promise.all(commentAuthorIds.map((id) => getProfileById(id)));
+  const commentAuthors = commentAuthorRows.map((row) => row.data).filter((row): row is NonNullable<typeof row> => Boolean(row));
 
   return (
     <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,640px)_300px] lg:justify-center">
@@ -67,6 +71,8 @@ export async function FeedView({ compose = false }: { compose?: boolean }) {
               post={post}
               author={authors[i]?.data}
               organisationName={orgs[i]?.data?.name}
+              comments={comments.data.filter((comment) => comment.postId === post.id)}
+              commentAuthors={commentAuthors}
             />
           ))
         )}
