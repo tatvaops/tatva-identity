@@ -6,97 +6,31 @@ import { Wordmark } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { AUTH_NEXT_COOKIE, safeNextPath } from "@/lib/auth/next-path";
-import { parseSignInSecret } from "@/lib/auth/sign-in-input";
-import { createBrowserSupabase } from "@/lib/supabase/browser";
-import { supabaseConfigured, supabaseUrl } from "@/lib/supabase/env";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { safeNextPath } from "@/lib/auth/next-path";
+import { digitsOnly, normalizeIndianMobile } from "@/lib/auth/phone";
 
-function timeout(ms: number) {
-  return new Promise<never>((_, reject) => {
-    window.setTimeout(() => reject(new Error("timeout")), ms);
-  });
-}
-
-async function finishOnApp(router: ReturnType<typeof useRouter>, next: string) {
-  router.replace(next);
-  router.refresh();
-}
-
-async function completeWithSecret(opts: {
-  supabase: SupabaseClient;
-  projectUrl: string;
-  email: string;
-  secret: string;
-  next: string;
-  router: ReturnType<typeof useRouter>;
-}) {
-  const parsed = parseSignInSecret(opts.secret, {
-    appOrigin: window.location.origin,
-    supabaseUrl: opts.projectUrl,
-  });
-
-  if (parsed.kind === "verifyUrl" || parsed.kind === "callback") {
-    window.location.assign(parsed.href);
-    return "navigating";
-  }
-
-  if (parsed.kind === "tokenHash") {
-    const { error } = await Promise.race([
-      opts.supabase.auth.verifyOtp({ type: parsed.type, token_hash: parsed.tokenHash }),
-      timeout(15000),
-    ]);
-    if (error) return "That sign-in link is invalid or expired. Wait about an hour and send a new email.";
-    await finishOnApp(opts.router, opts.next);
-    return null;
-  }
-
-  if (parsed.kind !== "otp") {
-    return "Paste the sign-in link from the email. Do not paste a google.com address from the browser bar.";
-  }
-
-  const { error } = await Promise.race([
-    opts.supabase.auth.verifyOtp({ email: opts.email, token: parsed.token, type: "email" }),
-    timeout(15000),
-  ]);
-  if (error) return "That code is wrong or expired. Wait about an hour and send a new email.";
-  await finishOnApp(opts.router, opts.next);
-  return null;
+function extractOtp(raw: string) {
+  const match = /(\d{6})/.exec(raw.replace(/\s/g, ""));
+  return match?.[1] ?? raw.replace(/\D/g, "").slice(0, 6);
 }
 
 export function SignInForm() {
   const router = useRouter();
-  const params = useSearchParams();
-  const next = safeNextPath(params.get("next"));
-  const [email, setEmail] = useState("");
+  const next = safeNextPath(useSearchParams().get("next"));
+  const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
-  const [step, setStep] = useState<"email" | "code">("email");
+  const [step, setStep] = useState<"phone" | "code">("phone");
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(
-    params.get("error") === "link"
-      ? "That sign-in link did not work. Copy the link from the email and paste it here — do not click it."
-      : null,
-  );
-
-  if (!supabaseConfigured()) {
-    return (
-      <Card className="mx-auto mt-16 max-w-md p-6">
-        <Wordmark />
-        <h1 className="mt-4 text-xl font-semibold">Sign in</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Authentication needs Supabase. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.
-        </p>
-      </Card>
-    );
-  }
+  const [error, setError] = useState<string | null>(null);
+  const [devOtp, setDevOtp] = useState<string | null>(null);
 
   let submitLabel = "Sign in";
   if (pending) submitLabel = "Working…";
-  else if (step === "email") submitLabel = "Send email";
+  else if (step === "phone") submitLabel = "Send WhatsApp code";
 
-  let helpText = `Check inbox and spam for ${email}. Copy the sign-in link from that email and paste it below. Do not click the link.`;
-  if (step === "email") {
-    helpText = "Enter your email. We send a sign-in link. First use creates your profile.";
+  let helpText = `Enter the 6-digit code sent to +91 ${normalizeIndianMobile(phone) ?? phone} on WhatsApp.`;
+  if (step === "phone") {
+    helpText = "Enter your mobile number. We send a 6-digit code on WhatsApp. First use creates your profile.";
   }
 
   return (
@@ -111,46 +45,47 @@ export function SignInForm() {
           if (pending) return;
           setPending(true);
           setError(null);
-          const supabase = createBrowserSupabase();
-          const projectUrl = supabaseUrl();
-          if (!supabase || !projectUrl) {
-            setError("Supabase is not configured.");
-            setPending(false);
-            return;
-          }
           try {
-            if (step === "email") {
-              document.cookie = `${AUTH_NEXT_COOKIE}=${encodeURIComponent(next)}; Path=/; Max-Age=600; SameSite=Lax`;
-              const { error: sendError } = await Promise.race([
-                supabase.auth.signInWithOtp({
-                  email,
-                  options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-                }),
-                timeout(15000),
-              ]);
-              if (sendError) {
-                const limited = sendError.message.toLowerCase().includes("rate limit");
-                setError(
-                  limited
-                    ? "No new email was sent. Wait about an hour. If you already have a sign-in email, paste that link below."
-                    : "Could not send the email. Try again in a few minutes.",
-                );
-                if (limited) setStep("code");
+            const digits = normalizeIndianMobile(phone);
+            if (!digits) {
+              setError("Enter a 10-digit Indian mobile number.");
+              return;
+            }
+            if (step === "phone") {
+              const response = await fetch("/api/auth/whatsapp/send-otp", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ phone: digits }),
+              });
+              const payload = (await response.json().catch(() => null)) as
+                | { error?: string; dev_otp?: string }
+                | null;
+              if (!response.ok) {
+                setError(payload?.error || "Could not send the WhatsApp code.");
                 return;
               }
+              setDevOtp(payload?.dev_otp ?? null);
               setStep("code");
               return;
             }
 
-            const result = await completeWithSecret({
-              supabase,
-              projectUrl,
-              email,
-              secret: code,
-              next,
-              router,
+            const otp = extractOtp(code);
+            if (!/^\d{6}$/.test(otp)) {
+              setError("Enter the 6-digit code from WhatsApp.");
+              return;
+            }
+            const response = await fetch("/api/auth/whatsapp/verify-otp", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ phone: digits, code: otp }),
             });
-            if (result && result !== "navigating") setError(result);
+            const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+            if (!response.ok) {
+              setError(payload?.error || "That code is wrong or expired.");
+              return;
+            }
+            router.replace(next);
+            router.refresh();
           } catch {
             setError("Sign-in timed out. Wait a moment and try again.");
           } finally {
@@ -158,23 +93,33 @@ export function SignInForm() {
           }
         }}
       >
-        <Input
-          type="email"
-          required
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          placeholder="you@company.com"
-          aria-label="Email"
-          disabled={pending || step === "code"}
-        />
+        <div className="flex items-center gap-2">
+          <span className="grid h-10 place-items-center rounded-lg border border-input bg-muted px-3 text-sm text-muted-foreground">
+            +91
+          </span>
+          <Input
+            type="tel"
+            inputMode="numeric"
+            autoComplete="tel"
+            required
+            maxLength={10}
+            value={phone}
+            onChange={(event) => setPhone(digitsOnly(event.target.value).slice(0, 10))}
+            placeholder="9876543210"
+            aria-label="Mobile number"
+            disabled={pending || step === "code"}
+          />
+        </div>
         {step === "code" ? (
           <Input
+            inputMode="numeric"
             autoComplete="one-time-code"
             required
+            maxLength={6}
             value={code}
-            onChange={(event) => setCode(event.target.value)}
-            placeholder="Paste the sign-in link from the email"
-            aria-label="Sign-in link from email"
+            onChange={(event) => setCode(extractOtp(event.target.value))}
+            placeholder="6-digit code"
+            aria-label="WhatsApp code"
             disabled={pending}
           />
         ) : null}
@@ -182,6 +127,9 @@ export function SignInForm() {
           {submitLabel}
         </Button>
       </form>
+      {devOtp ? (
+        <output className="mt-3 block text-sm text-slate-700">Dev code: {devOtp}</output>
+      ) : null}
       {error ? (
         <p className="mt-3 text-sm text-rose-700" role="alert">
           {error}
@@ -192,12 +140,13 @@ export function SignInForm() {
           type="button"
           className="mt-3 text-sm text-primary hover:underline"
           onClick={() => {
-            setStep("email");
+            setStep("phone");
             setCode("");
+            setDevOtp(null);
             setError(null);
           }}
         >
-          Use a different email
+          Use a different number
         </button>
       ) : null}
       <Button variant="ghost" className="mt-4" onClick={() => router.push("/")}>

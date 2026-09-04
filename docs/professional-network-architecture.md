@@ -21,7 +21,7 @@ This workspace (`PassportIdentity` / package `tatva-identity`) is a greenfield N
 | Forms | React Hook Form + Zod (dependencies present) |
 | Data fetching | TanStack Query provider exists |
 | Charts / flow | Recharts, React Flow (passport visualisation) |
-| Auth | Supabase Auth magic link, `src/proxy.ts`, session provider, `/auth/sign-in` |
+| Auth | WhatsApp OTP via Tatva Vision, Supabase session, `src/proxy.ts`, `/auth/sign-in` |
 | Database | Identity schema in `supabase/migrations/`; applied to the connected project |
 | Supabase | `@supabase/ssr` clients; app reads `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` |
 | Routes | App Router routes under `src/app` (feed, people, companies, jobs, gigs, passport, search, etc.) |
@@ -56,7 +56,7 @@ Identity tables live in `supabase/migrations/` (`profiles`, `organisations`, `ne
 
 ## 4. Existing authentication model (EXISTING)
 
-Supabase Auth (`auth.users`) via `@supabase/ssr`, cookie session, proxy refresh. Magic link sign-in creates the user; `handle_new_user` creates `profiles`.
+Supabase Auth (`auth.users`) via `@supabase/ssr`, cookie session, proxy refresh. WhatsApp OTP is verified by Tatva Vision; the app then upserts `auth.users` and sets the session. `handle_new_user` creates `profiles`.
 
 Identity: `auth.users.id` = `profiles.id`.
 

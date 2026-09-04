@@ -9,7 +9,7 @@ export async function updateSession(request: NextRequest) {
 
   if (!url || !key) return response;
 
-  if (request.nextUrl.pathname.startsWith("/auth/")) {
+  if (request.nextUrl.pathname.startsWith("/auth/") || request.nextUrl.pathname.startsWith("/api/auth/")) {
     return response;
   }
 
