@@ -2,16 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AdminHeader, AdminTable, adminDate } from "@/features/admin/admin-chrome";
 import { AdminActionButton } from "@/features/admin/admin-action";
-import { AdminGrantForm } from "@/features/admin/admin-forms";
+import { AdminGrantForm, AdminMintCredentialForm } from "@/features/admin/admin-forms";
+import { adminRevokeCredential, adminRevokeOperator, adminSetSeedEnabled } from "@/lib/admin/actions";
+import { listAdminCredentials, listAdminOperators, loadAdminStats } from "@/lib/admin/data";
 import { Card } from "@/components/ui/card";
-import { adminRevokeOperator, adminSetSeedEnabled } from "@/lib/admin/actions";
-import { listAdminOperators, loadAdminStats } from "@/lib/admin/data";
 import { bootstrapAdminHandles, bootstrapAdminUserIds } from "@/lib/admin/bootstrap";
 
 export const metadata: Metadata = { title: "Settings" };
 
 export default async function AdminSettingsPage() {
-  const [stats, operators] = await Promise.all([loadAdminStats(), listAdminOperators()]);
+  const [stats, operators, credentials] = await Promise.all([loadAdminStats(), listAdminOperators(), listAdminCredentials()]);
   const bootstrapHandles = bootstrapAdminHandles();
   const bootstrapIds = bootstrapAdminUserIds();
   return (
@@ -77,6 +77,36 @@ export default async function AdminSettingsPage() {
                 confirm="Revoke operations access for this person?"
                 action={adminRevokeOperator.bind(null, row.profile_id)}
               />
+            </td>
+          </tr>
+        ))}
+      </AdminTable>
+      <Card className="mt-8 p-5">
+        <p className="text-sm font-semibold">Vantage API credentials</p>
+        <p className="mt-1 mb-3 text-sm text-muted-foreground">
+          Only a hash is stored. The plaintext token is shown once. Use it as the Bearer token on the discussion-created webhook.
+        </p>
+        <AdminMintCredentialForm />
+      </Card>
+      <h2 className="mb-3 mt-8 text-lg font-semibold">Minted credentials</h2>
+      <AdminTable headers={["Name", "Scopes", "Last used", "Actions"]}>
+        {credentials.map((row) => (
+          <tr key={row.id}>
+            <td className="px-3 py-3">
+              {row.name}
+              {row.revoked_at ? <p className="text-xs text-muted-foreground">Revoked {adminDate(row.revoked_at)}</p> : null}
+            </td>
+            <td className="px-3 py-3 text-muted-foreground">{(row.scopes ?? []).join(", ")}</td>
+            <td className="px-3 py-3 text-muted-foreground">{row.last_used_at ? adminDate(row.last_used_at) : "—"}</td>
+            <td className="px-3 py-3">
+              {row.revoked_at ? null : (
+                <AdminActionButton
+                  label="Revoke"
+                  variant="destructive"
+                  confirm="Revoke this credential?"
+                  action={adminRevokeCredential.bind(null, row.id)}
+                />
+              )}
             </td>
           </tr>
         ))}

@@ -43,6 +43,8 @@ export async function toggleSavedItem(entityKind: string, entityId: string, save
   revalidatePath("/saved");
   revalidatePath("/jobs");
   revalidatePath("/gigs");
+  revalidatePath("/service-brands");
+  revalidatePath("/product-brands");
   return { ok: true };
 }
 

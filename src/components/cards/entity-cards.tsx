@@ -18,6 +18,7 @@ import type {
   NetworkProject,
 } from "@/lib/types/identity";
 import type { PassportComponent } from "@/lib/domain/passport-strength";
+import { personPublicHref } from "@/lib/domain/identiti-routes";
 import { cn } from "@/lib/utils";
 
 const PASSPORT_HREF: Record<string, string> = {
@@ -45,14 +46,15 @@ export function PersonCard({
 }) {
   const flags = headerFlags(flagsFromProfile(profile));
   const trade = profile.classification ?? profile.preferredRoles[0] ?? null;
+  const href = personPublicHref(profile.handle, profile.occupationMode);
   return (
     <Card className="p-4">
       <div className="flex gap-3">
-        <Link href={`/people/${profile.handle}`} aria-label={profile.fullName}>
+        <Link href={href} aria-label={profile.fullName}>
           <InitialsAvatar initials={initialsFromName(profile.fullName)} hue={hueFromId(profile.id)} size={48} />
         </Link>
         <div className="min-w-0 flex-1">
-          <Link href={`/people/${profile.handle}`} className="truncate text-sm font-semibold hover:text-primary">
+          <Link href={href} className="truncate text-sm font-semibold hover:text-primary">
             {profile.fullName}
           </Link>
           <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{profile.headline ?? "Professional"}</p>
@@ -202,7 +204,7 @@ export function ProfileMiniCard({ profile }: { profile: PublicProfile }) {
       <div className="h-14 bg-gradient-to-r from-slate-800 to-indigo-900" />
       <div className="-mt-6 px-4 pb-4">
         <InitialsAvatar initials={initialsFromName(profile.fullName)} hue={hueFromId(profile.id)} size={52} />
-        <Link href={`/people/${profile.handle}`} className="mt-2 block text-sm font-semibold">
+        <Link href={personPublicHref(profile.handle, profile.occupationMode)} className="mt-2 block text-sm font-semibold">
           {profile.fullName}
         </Link>
         <p className="line-clamp-2 text-xs text-muted-foreground">{profile.headline}</p>

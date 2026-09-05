@@ -7,4 +7,4 @@ export const product = {
 } as const;
 
 export const searchPlaceholder =
-  "Search people, skills, jobs, companies or projects";
+  "Search brands, people, skills, jobs or projects";

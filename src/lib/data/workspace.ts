@@ -472,6 +472,15 @@ export async function hydrateSavedGigs(items: SavedItem[]): Promise<GigPost[]> {
   return (data ?? []).map(mapGig);
 }
 
+export async function hydrateSavedOrgs(items: SavedItem[]): Promise<Organisation[]> {
+  const ids = items.filter((item) => item.entityKind === "organisation").map((item) => item.entityId);
+  if (ids.length === 0) return [];
+  const supabase = await createServerSupabase();
+  if (!supabase) return [];
+  const { data } = await supabase.from("organisations").select("*").in("id", ids);
+  return (data ?? []).map((row) => mapOrganisation(row));
+}
+
 export async function getWorkGraph(profileId: string) {
   const [workedWith, connections, owned, members, projects] = await Promise.all([
     listWorkedWith(profileId),

@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "npx --yes tsx --test src/lib/domain/search-rank.test.ts src/lib/admin/search.test.ts"
+    "test": "npx --yes tsx --test src/lib/domain/search-rank.test.ts src/lib/admin/search.test.ts src/lib/domain/forum-token.test.ts src/lib/domain/requirement-fit.test.ts src/lib/domain/trust-score.test.ts src/lib/domain/ai-review.test.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

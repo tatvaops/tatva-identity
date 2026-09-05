@@ -11,7 +11,7 @@ export function SaveButton({
   id,
   saved,
 }: {
-  kind: "job" | "gig";
+  kind: "job" | "gig" | "organisation";
   id: string;
   saved: boolean;
 }) {

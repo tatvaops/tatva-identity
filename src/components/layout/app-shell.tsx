@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, Briefcase, Home, MessageSquare, Search, UserRound, Users } from "lucide-react";
+import { Bell, Briefcase, Building2, Hammer, MessageCircle, Search, UserRound } from "lucide-react";
 import { InitialsAvatar } from "@/components/identity/visuals";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +17,6 @@ import { SearchBox } from "@/features/search/search-box";
 import { useSession } from "@/components/providers/session-provider";
 import { useDictionary } from "@/components/providers/locale-provider";
 import { SkipLink } from "@/components/layout/page-nav";
-import { product } from "@/lib/config";
 import { hueFromId, initialsFromName } from "@/lib/domain/passport-strength";
 import { signOut } from "@/lib/actions/network";
 import { cn } from "@/lib/utils";
@@ -25,8 +24,13 @@ import { cn } from "@/lib/utils";
 export function Wordmark({ compact = false }: { compact?: boolean }) {
   return (
     <Link href="/" className="flex items-center gap-2">
-      <span className="grid size-8 place-items-center rounded-lg bg-primary text-[11px] font-bold text-white">TI</span>
-      {!compact && <span className="text-[15px] font-semibold tracking-tight">{product.name}</span>}
+      <span className="grid size-8 place-items-center rounded-lg bg-[#0b1f3a] text-[11px] font-bold text-white">TI</span>
+      {!compact && (
+        <span className="leading-tight">
+          <span className="block text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Tatva</span>
+          <span className="block text-[15px] font-semibold tracking-tight">IDENTITI</span>
+        </span>
+      )}
     </Link>
   );
 }
@@ -39,11 +43,12 @@ export function GlobalHeader() {
   const profileHref = profile ? `/people/${profile.handle}` : "/auth/sign-in";
   const profileActive = profile ? pathname === `/people/${profile.handle}` : pathname.startsWith("/auth");
   const items = [
-    { href: "/feed", label: copy.home, icon: Home },
-    { href: "/network", label: copy.network, icon: Users },
-    { href: "/jobs", label: copy.jobs, icon: Briefcase },
-    { href: "/messages", label: copy.messages, icon: MessageSquare },
-    { href: "/notifications", label: copy.notifications, icon: Bell },
+    { href: "/service-brands", label: "Service brand" },
+    { href: "/product-brands", label: "Product brand" },
+    { href: "/professionals", label: "Professional" },
+    { href: "/gig-workers", label: "Gig worker" },
+    { href: "/forums", label: "Brand forum" },
+    ...(isPlatformAdmin ? [{ href: "/admin", label: "Admin control" }] : []),
   ];
 
   return (
@@ -64,11 +69,10 @@ export function GlobalHeader() {
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex w-[76px] flex-col items-center justify-center gap-0.5 text-[11px] text-muted-foreground hover:text-foreground",
+                  "flex min-w-[88px] flex-col items-center justify-center px-1 text-[11px] text-muted-foreground hover:text-foreground",
                   active && "text-foreground",
                 )}
               >
-                <item.icon className="size-5" aria-hidden />
                 {item.label}
               </Link>
             );
@@ -77,11 +81,10 @@ export function GlobalHeader() {
             href={profileHref}
             aria-current={profileActive ? "page" : undefined}
             className={cn(
-              "flex w-[76px] flex-col items-center justify-center gap-0.5 text-[11px] text-muted-foreground hover:text-foreground",
+              "flex min-w-[64px] flex-col items-center justify-center px-1 text-[11px] text-muted-foreground hover:text-foreground",
               profileActive && "text-foreground",
             )}
           >
-            <UserRound className="size-5" aria-hidden />
             {copy.profile}
           </Link>
         </nav>
@@ -152,6 +155,16 @@ export function GlobalHeader() {
               <DropdownMenuItem asChild>
                 <Link href="/settings">Settings</Link>
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/feed">Feed</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/jobs">Jobs</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/messages">Messages</Link>
+              </DropdownMenuItem>
               {isPlatformAdmin ? (
                 <DropdownMenuItem asChild>
                   <Link href="/admin">Operations</Link>
@@ -185,11 +198,11 @@ export function MobileBottomNav() {
   const copy = useDictionary();
   const profileHref = profile ? `/people/${profile.handle}` : "/auth/sign-in";
   const items = [
-    { href: "/feed", label: copy.home, icon: Home },
-    { href: "/network", label: copy.network, icon: Users },
-    { href: "/messages", label: copy.messages, icon: MessageSquare },
-    { href: "/jobs", label: copy.jobs, icon: Briefcase },
-    { href: profileHref, label: copy.profile, icon: UserRound },
+    { href: "/service-brands", label: "Services", icon: Building2 },
+    { href: "/product-brands", label: "Products", icon: Briefcase },
+    { href: "/professionals", label: "Executive", icon: UserRound },
+    { href: "/gig-workers", label: "Gig worker", icon: Hammer },
+    { href: "/forums", label: "Forum", icon: MessageCircle },
   ];
   return (
     <nav

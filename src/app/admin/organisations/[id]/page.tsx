@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdminHeader, adminDate } from "@/features/admin/admin-chrome";
 import { AdminActionButton } from "@/features/admin/admin-action";
-import { AdminOrgCredentialState } from "@/features/admin/admin-forms";
+import { AdminAiSourceForm, AdminOrgCredentialState } from "@/features/admin/admin-forms";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { adminHideOrganisation, adminSetProjectVerified } from "@/lib/admin/actions";
@@ -15,12 +15,21 @@ export default async function AdminOrganisationPage({ params }: { params: Promis
   const { id } = await params;
   const data = await getAdminOrganisation(id);
   if (!data) notFound();
-  const { organisation, credentials, projects } = data;
+  const { organisation, credentials, projects, ai } = data;
   return (
     <div>
       <AdminHeader title={organisation.name} body={`${organisation.tagline || organisation.about || "Business passport"} · /${organisation.slug}`} />
       <div className="mb-6 flex flex-wrap gap-3 text-sm">
-        <Link href={`/companies/${organisation.slug}`} className="text-primary hover:underline">
+        <Link
+          href={
+            organisation.passport_kind === "product_brand"
+              ? `/product-brands/${organisation.slug}`
+              : organisation.passport_kind === "service_brand"
+                ? `/service-brands/${organisation.slug}`
+                : `/companies/${organisation.slug}`
+          }
+          className="text-primary hover:underline"
+        >
           Open public company
         </Link>
         <span className="text-muted-foreground">
@@ -91,6 +100,17 @@ export default async function AdminOrganisationPage({ params }: { params: Promis
           )}
         </Card>
       </div>
+      <Card className="mt-4 p-5">
+        <p className="text-sm font-semibold">AI review source</p>
+        <p className="mt-1 mb-3 text-sm text-muted-foreground">
+          Labelled as Google Reviews or Vantage Forum. Below the evidence threshold the public pulse stays empty.
+        </p>
+        <AdminAiSourceForm
+          organisationId={organisation.id}
+          source={ai?.ai_review_source ?? "vantage_forum"}
+          enabled={ai?.ai_review_enabled ?? true}
+        />
+      </Card>
     </div>
   );
 }

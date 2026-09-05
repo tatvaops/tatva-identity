@@ -1,0 +1,70 @@
+import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { InitialsAvatar } from "@/components/identity/visuals";
+import { hueFromId, initialsFromName } from "@/lib/domain/passport-strength";
+import type { PublicProfile } from "@/lib/types/identity";
+import type { IdentitiProject } from "@/lib/data/identiti";
+
+export function ProfessionalView({
+  profile,
+  projects,
+}: {
+  profile: PublicProfile;
+  projects: IdentitiProject[];
+}) {
+  return (
+    <div className="space-y-8">
+      <section className="overflow-hidden rounded-2xl bg-[#0b1f3a] p-8 text-white md:p-10">
+        <p className="text-xs uppercase tracking-[0.2em] text-white/70">Professional</p>
+        <div className="mt-4 flex flex-wrap items-start gap-4">
+          <InitialsAvatar initials={initialsFromName(profile.fullName)} hue={hueFromId(profile.id)} size={72} />
+          <div>
+            <div className="flex flex-wrap gap-2">
+              {profile.identityVerified ? <Badge variant="verify">Identity verified</Badge> : null}
+              {profile.employmentVerified ? <Badge variant="outline" className="border-white/30 text-white">Employment verified</Badge> : null}
+            </div>
+            <h1 className="mt-3 text-4xl font-semibold">{profile.fullName}</h1>
+            <p className="mt-2 text-white/80">{profile.headline}</p>
+            <p className="mt-1 text-sm text-white/60">
+              {profile.city}
+              {profile.preferredRoles[0] ? ` · ${profile.preferredRoles[0]}` : ""}
+            </p>
+          </div>
+        </div>
+        <p className="mt-6 max-w-3xl text-white/90">{profile.about}</p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Button asChild variant="secondary">
+            <Link href={`/passport/${profile.handle}`}>Open passport</Link>
+          </Button>
+          <Button asChild>
+            <Link href="/auth/sign-in?next=/messages">Request an introduction</Link>
+          </Button>
+        </div>
+      </section>
+      <section>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Proof of work</p>
+        <h2 className="mt-1 text-2xl font-semibold">Projects this person is named on</h2>
+        {projects.length === 0 ? (
+          <p className="mt-3 text-sm text-muted-foreground">No opted-in projects are public yet.</p>
+        ) : (
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            {projects.map((project) => (
+              <Link key={project.id} href={`/projects/${project.slug}`}>
+                <Card className="p-5">
+                  <p className="text-xs text-muted-foreground">{project.type}</p>
+                  <h3 className="mt-1 text-lg font-semibold">{project.name}</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {project.city}
+                    {project.valueLabel ? ` · ${project.valueLabel}` : ""}
+                  </p>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}

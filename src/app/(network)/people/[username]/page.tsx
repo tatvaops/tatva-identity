@@ -1,17 +1,7 @@
-import { notFound } from "next/navigation";
-import { PersonProfileView } from "@/features/profile/person-profile";
-import {
-  getProfileByHandle,
-  listExperiences,
-  listProfileSkills,
-  listPublicCertifications,
-  listRecommendations,
-  listOptedInProjects,
-} from "@/lib/data/profile";
-import { listPostsByAuthor } from "@/lib/data/discovery";
-import { listProfileServices, recordProfileView } from "@/lib/data/workspace";
-import { getAuthContext } from "@/lib/data/query";
+import { notFound, redirect } from "next/navigation";
+import { getProfileByHandle } from "@/lib/data/profile";
 import { QueryNotice } from "@/components/states/empty-state";
+import { personPublicHref } from "@/lib/domain/identiti-routes";
 
 export default async function PersonPage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;
@@ -20,32 +10,8 @@ export default async function PersonPage({ params }: { params: Promise<{ usernam
     return <QueryNotice configured={profile.meta.configured} error={profile.meta.error} />;
   }
   if (!profile.data) {
-    if (!profile.meta.configured) {
-      return <QueryNotice configured={false} error={null} />;
-    }
+    if (!profile.meta.configured) return <QueryNotice configured={false} error={null} />;
     notFound();
   }
-  const session = await getAuthContext();
-  await recordProfileView(profile.data.id, session.userId);
-  const [experiences, skills, certs, recs, projects, posts, services] = await Promise.all([
-    listExperiences(profile.data.id),
-    listProfileSkills(profile.data.id),
-    listPublicCertifications(profile.data.id),
-    listRecommendations(profile.data.id),
-    listOptedInProjects(profile.data.id),
-    listPostsByAuthor(profile.data.id),
-    listProfileServices(profile.data.id),
-  ]);
-  return (
-    <PersonProfileView
-      profile={profile.data}
-      experiences={experiences.data}
-      skills={skills.data}
-      certifications={certs.data}
-      recommendations={recs.data}
-      projects={projects.data}
-      posts={posts.data}
-      services={services.data}
-    />
-  );
+  redirect(personPublicHref(profile.data.handle, profile.data.occupationMode));
 }

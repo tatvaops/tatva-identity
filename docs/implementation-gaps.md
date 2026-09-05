@@ -65,6 +65,18 @@ Signed-in platform operators only. Bootstrap the first operator with `PLATFORM_A
 
 ---
 
+## IDENTITI marketplace (this pass)
+
+Primary nav is Service brand / Product brand / Professional / Gig worker / Brand forum. Feed, Jobs and Messages stay in the account menu. Hire and Quote remain Vertex boundaries.
+
+Forum start URLs are signed. Existing-thread redirects never include an API key. If Vantage env is empty, profiles and pending mappings still render.
+
+Sample Aurum Habitat / Nandi Surfaces / Aditi / Ramesh rows are labelled demonstration data and honour `seed_data_enabled`.
+
+Apply `20260905120000_identiti_marketplace.sql` and `20260905121000_identiti_seed.sql` on the live database, then `select public.seed_identiti_marketplace();` if the seed function was not run by the migration.
+
+---
+
 ## Suggested check
 
 1. Sign in with WhatsApp OTP.
@@ -74,3 +86,6 @@ Signed-in platform operators only. Bootstrap the first operator with `PLATFORM_A
 5. First account: accept, applications, close job, `/insights`, `/graph`, `/applications`.
 6. Expect Hire, Quote, and verified work history to stay empty on purpose.
 7. Set `PLATFORM_ADMIN_HANDLES` to your handle, apply `20260904180000_platform_admin.sql`, open `/admin`.
+8. Open `/service-brands/aurum-habitat` after the IDENTITI seed. Confirm requirement fit, featured projects, labelled AI pulse and trust breakdown.
+9. Signed-out Discuss → sign-in. Signed-in Discuss → Vantage `/forums/new?context=` or an honest “signing key not configured” page. View discussions stays pending until a slug is mapped.
+10. `/admin/forums` can store a thread slug. `/admin` organisation page can set AI source. Settings can mint a webhook credential (plaintext once).

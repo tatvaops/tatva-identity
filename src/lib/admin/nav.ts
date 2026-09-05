@@ -8,5 +8,6 @@ export const ADMIN_NAV = [
   { href: "/admin/moderation", label: "Moderation", description: "Posts, reports, hidden rows" },
   { href: "/admin/activity", label: "Activity", description: "First-party events from the last 7 days" },
   { href: "/admin/audit", label: "Audit", description: "What operators changed" },
-  { href: "/admin/settings", label: "Settings", description: "Demo data and operators" },
+  { href: "/admin/forums", label: "Forums", description: "Vantage thread mappings and AI source" },
+  { href: "/admin/settings", label: "Settings", description: "Demo data, operators and credentials" },
 ] as const;

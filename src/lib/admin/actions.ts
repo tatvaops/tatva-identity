@@ -272,6 +272,86 @@ export async function adminRevokeOperator(profileId: string): Promise<ActionResu
   return { ok: true };
 }
 
+export async function adminSetAiReviewSource(
+  organisationId: string,
+  source: "google_reviews" | "vantage_forum",
+  enabled: boolean,
+): Promise<ActionResult> {
+  const gate = await gated();
+  if (!gate.ok) return gate.result;
+  const { error } = await gate.auth.admin.from("organisation_ai_review_settings").upsert({
+    organisation_id: organisationId,
+    ai_review_source: source,
+    ai_review_enabled: enabled,
+  });
+  if (error) return fail(error.message);
+  await operatorAudit(gate.auth.admin, gate.actorId, "set_ai_review_source", "organisation", organisationId);
+  revalidateAdmin();
+  revalidatePath("/service-brands");
+  revalidatePath("/product-brands");
+  return { ok: true };
+}
+
+export async function adminSaveForumLink(input: {
+  id?: string;
+  entityType: string;
+  entityId: string;
+  threadSlug: string;
+  canonicalUrl: string;
+  status: "pending" | "active" | "failed";
+}): Promise<ActionResult> {
+  const gate = await gated();
+  if (!gate.ok) return gate.result;
+  if (!["service_brand", "product_brand", "product"].includes(input.entityType)) return fail("Choose a valid entity type.");
+  const patch = {
+    entity_type: input.entityType,
+    entity_id: input.entityId,
+    thread_slug: input.threadSlug || null,
+    canonical_url: input.canonicalUrl || null,
+    status: input.status,
+    updated_at: new Date().toISOString(),
+  };
+  const { error } = input.id
+    ? await gate.auth.admin.from("forum_entity_links").update(patch).eq("id", input.id)
+    : await gate.auth.admin.from("forum_entity_links").insert(patch);
+  if (error) return fail(error.message);
+  await operatorAudit(gate.auth.admin, gate.actorId, "save_forum_link", "forum_entity_link", input.entityId);
+  revalidateAdmin();
+  revalidatePath("/forums");
+  return { ok: true };
+}
+
+export async function adminMintCredential(name: string, kind: "read" | "write"): Promise<ActionResult & { token?: string }> {
+  const gate = await gated();
+  if (!gate.ok) return gate.result;
+  const { randomBytes } = await import("node:crypto");
+  const { credentialScopes, hashCredential } = await import("@/lib/domain/forum-token");
+  const token = randomBytes(32).toString("hex");
+  const { error } = await gate.auth.admin.from("api_credentials").insert({
+    name: name.trim() || "Vantage forum credential",
+    token_hash: hashCredential(token),
+    scopes: credentialScopes(kind),
+    created_by: gate.actorId,
+  });
+  if (error) return fail(error.message);
+  await operatorAudit(gate.auth.admin, gate.actorId, "mint_api_credential", "api_credential", gate.actorId);
+  revalidateAdmin();
+  return { ok: true, token };
+}
+
+export async function adminRevokeCredential(id: string): Promise<ActionResult> {
+  const gate = await gated();
+  if (!gate.ok) return gate.result;
+  const { error } = await gate.auth.admin
+    .from("api_credentials")
+    .update({ revoked_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) return fail(error.message);
+  await operatorAudit(gate.auth.admin, gate.actorId, "revoke_api_credential", "api_credential", id);
+  revalidateAdmin();
+  return { ok: true };
+}
+
 export async function adminResolveReport(reportId: string, status: "actioned" | "dismissed"): Promise<ActionResult> {
   const gate = await gated();
   if (!gate.ok) return gate.result;

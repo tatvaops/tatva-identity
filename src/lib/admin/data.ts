@@ -113,13 +113,35 @@ export async function listAdminOrganisations(query: string, page = 1) {
 export async function getAdminOrganisation(id: string) {
   const admin = await adminClient();
   if (!admin) return null;
-  const org = await admin.from("organisations").select("id, slug, name, tagline, about, organisation_type, city, industry, admin_hidden, public_phone, public_email, website, created_at").eq("id", id).maybeSingle();
+  const org = await admin.from("organisations").select("id, slug, name, tagline, about, organisation_type, passport_kind, city, industry, admin_hidden, public_phone, public_email, website, gst_verified, kyc_verified, created_at").eq("id", id).maybeSingle();
   if (!org.data) return null;
-  const [creds, projects] = await Promise.all([
+  const [creds, projects, ai] = await Promise.all([
     admin.from("organisation_credentials").select("id, name, category, verification_state, expiry_label").eq("organisation_id", id),
     admin.from("network_projects").select("id, slug, name, verified, status, city").or(`client_organisation_id.eq.${id},main_contractor_id.eq.${id}`),
+    admin.from("organisation_ai_review_settings").select("ai_review_source, ai_review_enabled, minimum_source_count").eq("organisation_id", id).maybeSingle(),
   ]);
-  return { organisation: org.data, credentials: creds.data ?? [], projects: projects.data ?? [] };
+  return { organisation: org.data, credentials: creds.data ?? [], projects: projects.data ?? [], ai: ai.data };
+}
+
+export async function listAdminForumLinks() {
+  const admin = await adminClient();
+  if (!admin) return [];
+  const { data } = await admin
+    .from("forum_entity_links")
+    .select("id, entity_type, entity_id, brand_id, thread_slug, canonical_url, status, updated_at")
+    .order("updated_at", { ascending: false })
+    .limit(80);
+  return data ?? [];
+}
+
+export async function listAdminCredentials() {
+  const admin = await adminClient();
+  if (!admin) return [];
+  const { data } = await admin
+    .from("api_credentials")
+    .select("id, name, scopes, expires_at, revoked_at, last_used_at, created_at")
+    .order("created_at", { ascending: false });
+  return data ?? [];
 }
 
 export async function listAdminVerifications(status = "pending") {

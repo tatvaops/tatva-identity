@@ -1,5 +1,7 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { CompanyProfileView } from "@/features/company/company-profile";
+import { getIdentitiBrand } from "@/lib/data/identiti";
+import { brandPublicHref } from "@/lib/domain/identiti-routes";
 import {
   getOrganisationBySlug,
   listOrgPeople,
@@ -17,6 +19,10 @@ import { RecordOrgView } from "@/features/company/record-org-view";
 
 export default async function CompanyPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  const typed = await getIdentitiBrand(slug);
+  if (typed.data && typed.data.passportKind !== "other") {
+    redirect(brandPublicHref(typed.data.passportKind, typed.data.slug));
+  }
   const org = await getOrganisationBySlug(slug);
   if (org.meta.error) return <QueryNotice configured={org.meta.configured} error={org.meta.error} />;
   if (!org.data) {
