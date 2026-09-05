@@ -7,6 +7,7 @@ import { adminRevokeCredential, adminRevokeOperator, adminSetSeedEnabled } from 
 import { listAdminCredentials, listAdminOperators, loadAdminStats } from "@/lib/admin/data";
 import { Card } from "@/components/ui/card";
 import { bootstrapAdminHandles, bootstrapAdminUserIds } from "@/lib/admin/bootstrap";
+import { forumEnvStatus } from "@/lib/domain/forum-env";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -14,6 +15,7 @@ export default async function AdminSettingsPage() {
   const [stats, operators, credentials] = await Promise.all([loadAdminStats(), listAdminOperators(), listAdminCredentials()]);
   const bootstrapHandles = bootstrapAdminHandles();
   const bootstrapIds = bootstrapAdminUserIds();
+  const forum = forumEnvStatus();
   return (
     <div>
       <AdminHeader
@@ -47,6 +49,23 @@ export default async function AdminSettingsPage() {
           </p>
         </Card>
       </div>
+      <Card className="mt-4 p-5">
+        <p className="text-sm font-semibold">Vantage Forums</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          IDENTITI maps brands to Vantage. Secrets stay in server env. This card never prints key values.
+        </p>
+        <ul className="mt-3 space-y-1 text-sm">
+          <li>Forums origin: {forum.vantageOrigin}</li>
+          <li>Return origin: {forum.appOrigin}</li>
+          <li>Signing key (IDENTITI_FORUM_PRIVATE_KEY): {forum.signingKey ? "set" : "missing"}</li>
+          <li>Webhook write token: {forum.writeToken ? "set" : "missing"}</li>
+          <li>Read API: {forum.apiBaseUrl && forum.readToken ? forum.apiBaseUrl : "not connected (planned)"}</li>
+          <li>
+            Webhook: {forum.appOrigin}
+            {forum.webhookPath}
+          </li>
+        </ul>
+      </Card>
       <Card className="mt-4 p-5">
         <p className="text-sm font-semibold">Grant an operator</p>
         <p className="mt-1 mb-3 text-sm text-muted-foreground">

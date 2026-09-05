@@ -1,5 +1,7 @@
 import type { OccupationMode } from "@/lib/types/identity";
 import type { ForumEntityType } from "@/lib/domain/forum";
+import { appOrigin } from "@/lib/domain/forum-env";
+export { appOrigin };
 
 export function personPublicHref(handle: string, occupationMode: OccupationMode) {
   return occupationMode === "blue_collar" ? `/gig-workers/${handle}` : `/professionals/${handle}`;
@@ -15,6 +17,3 @@ export function isForumEntityType(value: string): value is ForumEntityType {
   return value === "service_brand" || value === "product_brand" || value === "product";
 }
 
-export function appOrigin() {
-  return (process.env.NEXT_PUBLIC_APP_ORIGIN ?? "https://tatva-identity-dev.vercel.app").replace(/\/$/, "");
-}

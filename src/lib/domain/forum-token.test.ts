@@ -52,8 +52,11 @@ describe("forum token", () => {
   });
 
   it("allow-lists localhost and the live app origin", () => {
+    process.env.NEXT_PUBLIC_APP_ORIGIN = "https://tatva-identity-dev.vercel.app";
+    process.env.VANTAGE_ALLOWED_RETURN_ORIGINS = "https://quotesense.withtatva.ai";
     assert.equal(isAllowedReturnUrl("http://localhost:3000/forums"), true);
     assert.equal(isAllowedReturnUrl("https://tatva-identity-dev.vercel.app/service-brands/x"), true);
+    assert.equal(isAllowedReturnUrl("https://quotesense.withtatva.ai/service-brands/x"), true);
     assert.equal(isAllowedReturnUrl("http://example.com/"), false);
     assert.equal(hasScope(credentialScopes("write"), "forum:links:create"), true);
     assert.equal(hasScope(credentialScopes("read"), "forum:links:create"), false);

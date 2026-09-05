@@ -1,6 +1,7 @@
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { existingThreadUrl, newDiscussionUrl, type ForumEntityType, type ForumLink } from "@/lib/domain/forum";
 import { createForumContextToken } from "@/lib/domain/forum-token";
+import { vantageApiBaseUrl, vantageApiConfigured } from "@/lib/domain/forum-env";
 
 function mapLink(row: {
   entity_type: string;
@@ -59,7 +60,7 @@ export async function ensureForumHub(input: {
       entity_id: input.entityId,
       brand_id: input.brandId,
       product_id: input.productId ?? null,
-      status: process.env.VANTAGE_API_BASE_URL ? "pending" : "pending",
+      status: "pending",
       created_by: input.createdBy,
     })
     .select("entity_type, entity_id, brand_id, product_id, forum_hub_id, forum_thread_id, thread_slug, canonical_url, status")
@@ -100,4 +101,44 @@ export async function startDiscussionRedirect(input: {
 
 export function outboundDiscussionUrl(link: ForumLink | null) {
   return existingThreadUrl(link);
+}
+
+/** Planned Vantage hub API. Returns null unless both base URL and read token are set. */
+export async function fetchVantageHub(entityType: ForumEntityType, entityId: string): Promise<ForumLink | null> {
+  if (!vantageApiConfigured()) return null;
+  const token = process.env.VANTAGE_FORUM_READ_TOKEN?.trim();
+  if (!token) return null;
+  try {
+    const url = new URL("/forums/hubs", `${vantageApiBaseUrl()}/`);
+    url.searchParams.set("entity_type", entityType);
+    url.searchParams.set("entity_id", entityId);
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    if (!response.ok) return null;
+    const body = (await response.json()) as {
+      thread_slug?: string;
+      canonical_url?: string;
+      forum_hub_id?: string;
+      forum_thread_id?: string;
+      brand_id?: string;
+      product_id?: string;
+      status?: ForumLink["status"];
+    };
+    if (!body.thread_slug && !body.canonical_url) return null;
+    return {
+      entityType,
+      entityId,
+      brandId: body.brand_id ?? null,
+      productId: body.product_id ?? null,
+      forumHubId: body.forum_hub_id ?? null,
+      forumThreadId: body.forum_thread_id ?? null,
+      threadSlug: body.thread_slug ?? null,
+      canonicalUrl: body.canonical_url ?? null,
+      status: body.status === "active" || body.status === "failed" ? body.status : "pending",
+    };
+  } catch {
+    return null;
+  }
 }
