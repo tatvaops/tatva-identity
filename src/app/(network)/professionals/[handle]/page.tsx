@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { ProfessionalView } from "@/features/identiti/professional-view";
 import { QueryNotice } from "@/components/states/empty-state";
 import { getProfileByHandle } from "@/lib/data/profile";
-import { listIdentitiProjectsForProfile, recordIdentitiEvent } from "@/lib/data/identiti";
+import { getIdentitiBrandById, listIdentitiProjectsForProfile, recordIdentitiEvent } from "@/lib/data/identiti";
 import { personPublicHref } from "@/lib/domain/identiti-routes";
 
 export default async function ProfessionalPage({ params }: { params: Promise<{ handle: string }> }) {
@@ -13,10 +13,13 @@ export default async function ProfessionalPage({ params }: { params: Promise<{ h
     if (!profile.meta.configured) return <QueryNotice configured={false} error={null} />;
     notFound();
   }
-  if (profile.data.occupationMode === "blue_collar") {
+  if (profile.data.occupationMode === "blue_collar" || profile.data.occupationMode === "contractor") {
     redirect(personPublicHref(profile.data.handle, profile.data.occupationMode));
   }
-  const projects = await listIdentitiProjectsForProfile(profile.data.id);
+  const [projects, employer] = await Promise.all([
+    listIdentitiProjectsForProfile(profile.data.id),
+    profile.data.currentOrganisationId ? getIdentitiBrandById(profile.data.currentOrganisationId) : Promise.resolve(null),
+  ]);
   await recordIdentitiEvent("professional_profile_view", "profile", profile.data.id);
-  return <ProfessionalView profile={profile.data} projects={projects} />;
+  return <ProfessionalView profile={profile.data} projects={projects} employer={employer} />;
 }

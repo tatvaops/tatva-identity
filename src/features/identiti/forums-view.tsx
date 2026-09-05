@@ -16,10 +16,12 @@ type ForumRow = {
 
 export function ForumsHubView({
   brands,
+  products,
   links,
   signedIn,
 }: {
   brands: IdentitiBrand[];
+  products: { id: string; slug: string; name: string; organisation_id: string }[];
   links: ForumRow[];
   signedIn: boolean;
 }) {
@@ -72,6 +74,47 @@ export function ForumsHubView({
                   </Button>
                   <Button asChild>
                     <Link href={signedIn ? `/forum/new/${entityType}/${brand.id}` : `/auth/sign-in?next=/forums`}>
+                      Start a discussion
+                    </Link>
+                  </Button>
+                </div>
+              </Card>
+            );
+          })}
+          {products.map((product) => {
+            const brand = brands.find((row) => row.id === product.organisation_id);
+            const link = byEntity.get(`product:${product.id}`);
+            const existing = existingThreadUrl(
+              link
+                ? {
+                    entityType: "product",
+                    entityId: product.id,
+                    brandId: brand?.id ?? product.organisation_id,
+                    productId: product.id,
+                    forumHubId: null,
+                    forumThreadId: null,
+                    threadSlug: link.thread_slug,
+                    canonicalUrl: link.canonical_url,
+                    status: (link.status as "pending" | "active" | "failed") ?? "pending",
+                  }
+                : null,
+            );
+            return (
+              <Card key={product.id} className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="outline">product</Badge>
+                    <Badge variant={existing ? "success" : "warning"}>{existing ? "Thread mapped" : "Pending mapping"}</Badge>
+                  </div>
+                  <h2 className="mt-2 text-lg font-semibold">{product.name}</h2>
+                  <p className="text-sm text-muted-foreground">{brand?.name ?? "Product"}</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button asChild variant="outline">
+                    <Link href={`/forum/go/product/${product.id}`}>{existing ? "Open discussion" : "View mapping"}</Link>
+                  </Button>
+                  <Button asChild>
+                    <Link href={signedIn ? `/forum/new/product/${product.id}` : `/auth/sign-in?next=/forums`}>
                       Start a discussion
                     </Link>
                   </Button>

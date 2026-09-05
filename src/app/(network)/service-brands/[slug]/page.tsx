@@ -8,6 +8,7 @@ import {
   getIdentitiBrand,
   listBrandStrengths,
   listBrandVideos,
+  listBrandPeople,
   listIdentitiProjects,
   recordIdentitiEvent,
 } from "@/lib/data/identiti";
@@ -23,13 +24,14 @@ export default async function ServiceBrandPage({ params }: { params: Promise<{ s
   }
   const current = brand.data;
   const session = await getAuthContext();
-  const [projects, performance, strengths, videos, ai, saved] = await Promise.all([
+  const [projects, performance, strengths, videos, ai, saved, people] = await Promise.all([
     listIdentitiProjects(current.id),
     getBrandPerformance(current.id),
     listBrandStrengths(current.id),
     listBrandVideos(current.id),
     getBrandAi(current.id),
     session.userId ? listSavedItems(session.userId) : Promise.resolve({ data: [] }),
+    listBrandPeople(current.id),
   ]);
   await recordIdentitiEvent("brand_profile_view", "organisation", current.id);
   return (
@@ -40,6 +42,7 @@ export default async function ServiceBrandPage({ params }: { params: Promise<{ s
       strengths={strengths}
       videos={videos}
       ai={ai}
+      people={people}
       saved={saved.data.some((row) => row.entityKind === "organisation" && row.entityId === current.id)}
       signedIn={Boolean(session.userId)}
     />

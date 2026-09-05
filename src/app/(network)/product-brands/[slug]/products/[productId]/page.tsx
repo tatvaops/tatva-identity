@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { QueryNotice } from "@/components/states/empty-state";
 import { getAuthContext } from "@/lib/data/query";
-import { getBrandProduct, getIdentitiBrand, recordIdentitiEvent } from "@/lib/data/identiti";
+import { PhotoFrame } from "@/components/identity/media-photo";
+import { getBrandProduct, getIdentitiBrand, listProductProjectUses, recordIdentitiEvent } from "@/lib/data/identiti";
 
 export default async function ProductPage({
   params,
@@ -22,13 +23,16 @@ export default async function ProductPage({
   const product = await getBrandProduct(brand.data.id, productId);
   if (!product) notFound();
   const session = await getAuthContext();
+  const uses = (await listProductProjectUses(brand.data.id)).filter((row) => row.product?.id === product.id && row.project);
   await recordIdentitiEvent("product_profile_view", "product", product.id);
   const discuss = session.userId
     ? `/forum/new/product/${product.id}`
     : `/auth/sign-in?next=/product-brands/${slug}/products/${productId}`;
   return (
     <div className="space-y-8">
-      <section className="rounded-2xl bg-[#0b1f3a] p-8 text-white">
+      <section className="overflow-hidden rounded-2xl bg-[#0b1f3a] text-white">
+        <PhotoFrame src={product.photo_url} alt="" className="h-64" />
+        <div className="p-8">
         <p className="text-xs uppercase tracking-[0.2em] text-white/70">{brand.data.name}</p>
         <div className="mt-3 flex flex-wrap gap-2">
           <Badge variant="outline" className="border-white/30 text-white">{product.application_family}</Badge>
@@ -45,7 +49,26 @@ export default async function ProductPage({
             <Link href={`/forum/go/product/${product.id}`}>View product discussion</Link>
           </Button>
         </div>
+        </div>
       </section>
+      {uses.length > 0 ? (
+        <section>
+          <h2 className="text-xl font-semibold">Used on projects</h2>
+          <div className="mt-3 grid gap-4 md:grid-cols-2">
+            {uses.map((row) => (
+              <Link key={row.id} href={`/projects/${row.project!.slug}`}>
+                <Card className="overflow-hidden">
+                  <PhotoFrame src={row.project!.coverImageUrl} alt="" className="h-36" />
+                  <div className="p-4">
+                    <p className="font-semibold">{row.project!.name}</p>
+                    <p className="text-sm text-muted-foreground">{row.application || row.location}</p>
+                  </div>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
       <Card className="p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Specification</p>
         <p className="mt-3 text-sm text-muted-foreground">

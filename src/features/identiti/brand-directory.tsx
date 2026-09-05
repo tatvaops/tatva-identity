@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/states/empty-state";
+import { PhotoFrame } from "@/components/identity/media-photo";
 import type { IdentitiBrand } from "@/lib/data/identiti";
 
 export function BrandDirectory({
@@ -26,12 +27,7 @@ export function BrandDirectory({
           {brands.map((brand) => (
             <Link key={brand.id} href={`${hrefBase}/${brand.slug}`}>
               <Card className="overflow-hidden">
-                <div className="h-36 bg-[#0b1f3a]">
-                  {brand.coverPath ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={brand.coverPath} alt="" className="h-full w-full object-cover" />
-                  ) : null}
-                </div>
+                <PhotoFrame src={brand.coverPath} alt="" className="h-40" />
                 <div className="p-5">
                   <div className="flex flex-wrap gap-2">
                     {brand.gstVerified || brand.kycVerified ? <Badge variant="verify">TatvaOps verified</Badge> : null}

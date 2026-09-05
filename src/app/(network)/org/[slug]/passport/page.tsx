@@ -1,4 +1,5 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { brandPublicHref } from "@/lib/domain/identiti-routes";
 import { headers } from "next/headers";
 import { PublicBusinessPassportView } from "@/features/company/public-business-passport";
 import {
@@ -15,6 +16,9 @@ export default async function OrgPassportPage({ params }: { params: Promise<{ sl
   const org = await getOrganisationBySlug(slug);
   if (org.meta.error) return <QueryNotice configured={org.meta.configured} error={org.meta.error} />;
   if (!org.data) notFound();
+  if (org.data.passportKind === "service_brand" || org.data.passportKind === "product_brand") {
+    redirect(brandPublicHref(org.data.passportKind, org.data.slug));
+  }
   const [services, credentials, projects, people] = await Promise.all([
     listOrgServices(org.data.id),
     listOrgCredentials(org.data.id),

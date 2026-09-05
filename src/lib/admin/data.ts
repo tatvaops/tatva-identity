@@ -85,13 +85,14 @@ export async function listAdminPeople(query: string, page = 1) {
 export async function getAdminPerson(id: string) {
   const admin = await adminClient();
   if (!admin) return null;
-  const profile = await admin.from("profiles").select("id, handle, full_name, headline, about, city, state, occupation_mode, professional_title, identity_verified, employment_verified, trade_verified, admin_hidden, created_at, website").eq("id", id).maybeSingle();
+  const profile = await admin.from("profiles").select("id, handle, full_name, headline, about, city, state, occupation_mode, professional_title, identity_verified, employment_verified, trade_verified, admin_hidden, created_at, website, avatar_path, cover_path").eq("id", id).maybeSingle();
   if (!profile.data) return null;
-  const [requests, certs] = await Promise.all([
+  const [requests, certs, projects] = await Promise.all([
     admin.from("verification_requests").select("id, kind, status, created_at, reviewer_note").eq("profile_id", id).order("created_at", { ascending: false }),
     admin.from("profile_certifications").select("id, name, issuer, category, verification_state, public_visible").eq("profile_id", id).order("created_at", { ascending: false }),
+    admin.from("network_projects").select("id, name").order("name").limit(80),
   ]);
-  return { profile: profile.data, requests: requests.data ?? [], certifications: certs.data ?? [] };
+  return { profile: profile.data, requests: requests.data ?? [], certifications: certs.data ?? [], projects: projects.data ?? [] };
 }
 
 export async function listAdminOrganisations(query: string, page = 1) {
@@ -113,14 +114,35 @@ export async function listAdminOrganisations(query: string, page = 1) {
 export async function getAdminOrganisation(id: string) {
   const admin = await adminClient();
   if (!admin) return null;
-  const org = await admin.from("organisations").select("id, slug, name, tagline, about, organisation_type, passport_kind, city, industry, admin_hidden, public_phone, public_email, website, gst_verified, kyc_verified, created_at").eq("id", id).maybeSingle();
+  const org = await admin
+    .from("organisations")
+    .select("id, slug, name, tagline, about, organisation_type, passport_kind, city, industry, admin_hidden, public_phone, public_email, website, gst_verified, kyc_verified, created_at, cover_path, logo_path, category_label, serving_regions")
+    .eq("id", id)
+    .maybeSingle();
   if (!org.data) return null;
-  const [creds, projects, ai] = await Promise.all([
+  const [creds, projects, ai, review, products, performance, strengths, videos, people] = await Promise.all([
     admin.from("organisation_credentials").select("id, name, category, verification_state, expiry_label").eq("organisation_id", id),
-    admin.from("network_projects").select("id, slug, name, verified, status, city").or(`client_organisation_id.eq.${id},main_contractor_id.eq.${id}`),
+    admin.from("network_projects").select("id, slug, name, verified, status, city, cover_image_url, youtube_url, qc_notes, testimonial, value_label").or(`client_organisation_id.eq.${id},main_contractor_id.eq.${id}`),
     admin.from("organisation_ai_review_settings").select("ai_review_source, ai_review_enabled, minimum_source_count").eq("organisation_id", id).maybeSingle(),
+    admin.from("organisation_ai_reviews").select("source_kind, source_label, summary, source_count, source_href").eq("organisation_id", id).maybeSingle(),
+    admin.from("brand_products").select("id, slug, name, application_family, category, description, photo_url, indicative_price_label").eq("organisation_id", id).order("name"),
+    admin.from("organisation_performance").select("on_time_pct, quality_rating, completed_projects, ongoing_projects").eq("organisation_id", id).maybeSingle(),
+    admin.from("organisation_strengths").select("id, title, metric_label").eq("organisation_id", id),
+    admin.from("organisation_videos").select("id, title, youtube_url").eq("organisation_id", id),
+    admin.from("profiles").select("id, full_name").order("full_name").limit(80),
   ]);
-  return { organisation: org.data, credentials: creds.data ?? [], projects: projects.data ?? [], ai: ai.data };
+  return {
+    organisation: org.data,
+    credentials: creds.data ?? [],
+    projects: projects.data ?? [],
+    ai: ai.data,
+    review: review.data,
+    products: products.data ?? [],
+    performance: performance.data,
+    strengths: strengths.data ?? [],
+    videos: videos.data ?? [],
+    people: people.data ?? [],
+  };
 }
 
 export async function listAdminForumLinks() {
@@ -226,7 +248,11 @@ export async function listAdminReports() {
 export async function listAdminProjects() {
   const admin = await adminClient();
   if (!admin) return [];
-  const { data } = await admin.from("network_projects").select("id, slug, name, city, status, verified, created_at").order("created_at", { ascending: false }).limit(80);
+  const { data } = await admin
+    .from("network_projects")
+    .select("id, slug, name, city, status, verified, created_at, cover_image_url, youtube_url, qc_notes, testimonial, value_label")
+    .order("created_at", { ascending: false })
+    .limit(80);
   return data ?? [];
 }
 

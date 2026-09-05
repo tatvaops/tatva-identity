@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { ProjectProfileView } from "@/features/projects/project-profile";
 import { getProjectBySlug } from "@/lib/data/network";
-import { listProjectCompanies, listProjectPeople } from "@/lib/data/workspace";
+import { listProductUsesForProject } from "@/lib/data/identiti";
+import { listProjectCompanies, listProjectMedia, listProjectPeople } from "@/lib/data/workspace";
 import { listFeedPosts } from "@/lib/data/discovery";
 import { QueryNotice } from "@/components/states/empty-state";
 
@@ -13,10 +14,12 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
     if (!project.meta.configured) return <QueryNotice configured={false} error={null} />;
     notFound();
   }
-  const [contributors, companies, updates] = await Promise.all([
+  const [contributors, companies, updates, gallery, products] = await Promise.all([
     listProjectPeople(project.data.id),
     listProjectCompanies(project.data),
     listFeedPosts(),
+    listProjectMedia(project.data.id),
+    listProductUsesForProject(project.data.id),
   ]);
   const client = companies.data.find((org) => org.id === project.data!.clientOrganisationId) ?? null;
   const main = companies.data.find((org) => org.id === project.data!.mainContractorId) ?? null;
@@ -28,6 +31,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
       contributors={contributors.data}
       companies={companies.data}
       updates={updates.data.filter((post) => post.linkedProjectId === project.data!.id)}
+      gallery={gallery.data}
+      products={products}
     />
   );
 }

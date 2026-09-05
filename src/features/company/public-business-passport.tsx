@@ -30,10 +30,10 @@ export async function PublicBusinessPassportView({
   return (
     <div className="mx-auto max-w-3xl space-y-4">
       <Card className="overflow-hidden print:shadow-none">
-        <CoverBand tone="office" className="h-28" />
+        <CoverBand tone="office" className="h-28" src={org.coverPath} />
         <div className="px-5 pb-5">
           <div className="-mt-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <InitialsAvatar initials={initialsFromName(org.name)} hue={hueFromId(org.id)} size={88} className="rounded-2xl ring-4 ring-white" />
+            <InitialsAvatar initials={initialsFromName(org.name)} hue={hueFromId(org.id)} size={88} className="rounded-2xl ring-4 ring-white" src={org.logoPath} />
             <div className="hidden print:block">
               <PassportQr url={url} />
             </div>

@@ -151,6 +151,7 @@ export type Organisation = {
   publicEmail: string | null;
   officeLocality: string | null;
   serviceAreas: string[];
+  passportKind: "service_brand" | "product_brand" | "other";
   /** True only when the signed-in viewer created this organisation. Never a public owner id. */
   isOwner: boolean;
   createdBy: string | null;
@@ -168,6 +169,12 @@ export type NetworkProject = {
   verified: boolean;
   clientOrganisationId: string | null;
   mainContractorId: string | null;
+  coverImageUrl: string | null;
+  youtubeUrl: string | null;
+  valueLabel: string | null;
+  durationLabel: string | null;
+  qcNotes: string | null;
+  testimonial: string | null;
 };
 
 export type JobPost = {
@@ -331,6 +338,9 @@ export type NotificationRow = {
 export type OrgService = {
   id: string;
   organisationId: string;
+  organisationSlug?: string | null;
+  organisationName?: string | null;
+  passportKind?: "service_brand" | "product_brand" | "other";
   name: string;
   description: string | null;
   locations: string[];

@@ -1,4 +1,4 @@
-import { PeopleDirectory } from "@/features/network/people-directory";
+import { redirect } from "next/navigation";
 
 export default async function PeoplePage({
   searchParams,
@@ -6,16 +6,9 @@ export default async function PeoplePage({
   searchParams: Promise<{ q?: string; city?: string; availability?: string; skill?: string; page?: string }>;
 }) {
   const p = await searchParams;
-  return (
-    <div>
-      <h1 className="mb-4 text-xl font-semibold">People</h1>
-      <PeopleDirectory
-        query={p.q}
-        city={p.city}
-        availability={p.availability}
-        skill={p.skill}
-        page={Number.parseInt(p.page ?? "1", 10) || 1}
-      />
-    </div>
-  );
+  const next = new URLSearchParams();
+  if (p.q) next.set("q", p.q);
+  if (p.city) next.set("city", p.city);
+  const query = next.toString();
+  redirect(query ? `/professionals?${query}` : "/professionals");
 }

@@ -1,6 +1,6 @@
 import { createServerSupabase } from "@/lib/supabase/server";
 import { getAuthContext, itemFail, itemOk, listFail, listOk, unconfiguredItem, unconfiguredList, type ItemResult, type ListResult } from "@/lib/data/query";
-import { mapOrganisation, mapPublicProfile } from "@/lib/data/mappers";
+import { mapOrganisation, mapPublicProfile, ORGANISATION_GRANTED_COLUMNS, ORGANISATION_SAFE_COLUMNS } from "@/lib/data/mappers";
 import { trackEvent } from "@/lib/actions/notify";
 import type { Organisation, PublicProfile } from "@/lib/types/identity";
 import type { AiReviewRecord, AiReviewSource } from "@/lib/domain/ai-review";
@@ -49,9 +49,9 @@ function mapBrand(row: Record<string, unknown>, viewerId?: string | null): Ident
   const base = mapOrganisation(row as Parameters<typeof mapOrganisation>[0], viewerId);
   return {
     ...base,
-    passportKind: (row.passport_kind as IdentitiBrand["passportKind"]) ?? "other",
+    passportKind: base.passportKind,
     legalEntityName: (row.legal_entity_name as string | null) ?? null,
-    gstin: (row.gstin as string | null) ?? null,
+    gstin: null,
     gstVerified: Boolean(row.gst_verified),
     kycVerified: Boolean(row.kyc_verified),
     typicalValueMinInr: (row.typical_value_min_inr as number | null) ?? null,
@@ -73,18 +73,22 @@ export async function listIdentitiBrands(kind: "service_brand" | "product_brand"
   const supabase = await createServerSupabase();
   if (!supabase) return unconfiguredList();
   const session = await getAuthContext();
-  const { data, error } = await supabase.from("organisations").select("*").eq("passport_kind", kind).order("name");
-  if (error) return listFail();
-  return listOk((data ?? []).map((row) => mapBrand(row, session.userId)));
+  const full = await supabase.from("organisations").select(ORGANISATION_GRANTED_COLUMNS).order("name");
+  const fallback = full.error ? await supabase.from("organisations").select(ORGANISATION_SAFE_COLUMNS).order("name") : null;
+  if (full.error && fallback?.error) return listFail();
+  const rows = (full.error ? fallback?.data : full.data) ?? [];
+  return listOk(rows.map((row) => mapBrand(row, session.userId)).filter((brand) => brand.passportKind === kind));
 }
 
 export async function getIdentitiBrand(slug: string): Promise<ItemResult<IdentitiBrand>> {
   const supabase = await createServerSupabase();
   if (!supabase) return unconfiguredItem();
   const session = await getAuthContext();
-  const { data, error } = await supabase.from("organisations").select("*").eq("slug", slug).maybeSingle();
-  if (error) return itemFail();
-  return itemOk(data ? mapBrand(data, session.userId) : null);
+  const full = await supabase.from("organisations").select(ORGANISATION_GRANTED_COLUMNS).eq("slug", slug).maybeSingle();
+  const fallback = full.error ? await supabase.from("organisations").select(ORGANISATION_SAFE_COLUMNS).eq("slug", slug).maybeSingle() : null;
+  if (full.error && fallback?.error) return itemFail();
+  const row = full.error ? fallback?.data : full.data;
+  return itemOk(row ? mapBrand(row, session.userId) : null);
 }
 
 function mapProject(row: {
@@ -127,6 +131,18 @@ function mapProject(row: {
 
 const PROJECT_COLUMNS =
   "id, slug, name, project_type, city, size_label, value_label, duration_label, youtube_url, youtube_duration, cover_image_url, summary, qc_notes, testimonial, customer_verified, verified";
+
+export async function listFeaturedProjects(): Promise<IdentitiProject[]> {
+  const supabase = await createServerSupabase();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from("network_projects")
+    .select(PROJECT_COLUMNS)
+    .not("cover_image_url", "is", null)
+    .order("name")
+    .limit(8);
+  return (data ?? []).map(mapProject);
+}
 
 export async function listIdentitiProjects(organisationId: string): Promise<IdentitiProject[]> {
   const supabase = await createServerSupabase();
@@ -221,7 +237,7 @@ export async function getBrandProduct(organisationId: string, productSlug: strin
 export async function listProfessionals() {
   const supabase = await createServerSupabase();
   if (!supabase) return unconfiguredList<PublicProfile>();
-  const { data, error } = await supabase.from("public_profiles").select("*").in("occupation_mode", ["white_collar", "freelancer", "contractor"]).order("full_name");
+  const { data, error } = await supabase.from("public_profiles").select("*").in("occupation_mode", ["white_collar", "freelancer"]).order("full_name");
   if (error) return listFail<PublicProfile>();
   return listOk((data ?? []).map(mapPublicProfile));
 }
@@ -229,16 +245,100 @@ export async function listProfessionals() {
 export async function listGigWorkers() {
   const supabase = await createServerSupabase();
   if (!supabase) return unconfiguredList<PublicProfile>();
-  const { data, error } = await supabase.from("public_profiles").select("*").in("occupation_mode", ["blue_collar", "freelancer", "contractor"]).order("full_name");
+  const { data, error } = await supabase.from("public_profiles").select("*").in("occupation_mode", ["blue_collar", "contractor"]).order("full_name");
   if (error) return listFail<PublicProfile>();
   return listOk((data ?? []).map(mapPublicProfile));
+}
+
+export async function listBrandPeople(organisationId: string): Promise<PublicProfile[]> {
+  const projects = await listIdentitiProjects(organisationId);
+  const ids = projects.map((project) => project.id);
+  if (ids.length === 0) return [];
+  const supabase = await createServerSupabase();
+  if (!supabase) return [];
+  const { data: links } = await supabase.from("project_contributors").select("profile_id").in("project_id", ids).eq("opted_in", true);
+  const profileIds = [...new Set((links ?? []).map((row) => row.profile_id).filter(Boolean))];
+  if (profileIds.length === 0) return [];
+  const { data } = await supabase.from("public_profiles").select("*").in("id", profileIds);
+  return (data ?? []).map(mapPublicProfile);
+}
+
+export async function listProductUsesForProject(projectId: string) {
+  const supabase = await createServerSupabase();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from("product_project_uses")
+    .select("id, application, location, endorsement, verified, product_id, project_id")
+    .eq("project_id", projectId);
+  const productIds = [...new Set((data ?? []).map((row) => row.product_id).filter(Boolean))];
+  if (productIds.length === 0) return [];
+  const products = await supabase.from("brand_products").select("*").in("id", productIds);
+  const orgIds = [...new Set((products.data ?? []).map((row) => row.organisation_id).filter(Boolean))];
+  const brands = orgIds.length
+    ? await Promise.all(orgIds.map((id) => getIdentitiBrandById(id)))
+    : [];
+  const brandById = new Map(brands.filter(Boolean).map((brand) => [brand!.id, brand!]));
+  const productById = new Map((products.data ?? []).map((product) => [product.id, product]));
+  return (data ?? []).map((row) => {
+    const product = productById.get(row.product_id) ?? null;
+    const brand = product ? brandById.get(product.organisation_id) ?? null : null;
+    return {
+      id: row.id,
+      application: row.application as string | null,
+      location: row.location as string | null,
+      endorsement: row.endorsement as string | null,
+      verified: Boolean(row.verified),
+      product,
+      brand,
+    };
+  });
+}
+
+export async function listAllBrandProducts() {
+  const supabase = await createServerSupabase();
+  if (!supabase) return [];
+  const { data } = await supabase.from("brand_products").select("*").order("name");
+  return data ?? [];
+}
+
+export async function listProductProjectUses(organisationId: string) {
+  const products = await listBrandProducts(organisationId);
+  const ids = products.map((product) => product.id);
+  if (ids.length === 0) return [];
+  const supabase = await createServerSupabase();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from("product_project_uses")
+    .select("id, application, location, endorsement, verified, product_id, project_id")
+    .in("product_id", ids);
+  const projectIds = [...new Set((data ?? []).map((row) => row.project_id).filter(Boolean))];
+  const projects = projectIds.length ? await supabase.from("network_projects").select(PROJECT_COLUMNS).in("id", projectIds) : { data: [] };
+  const byId = new Map((projects.data ?? []).map((row) => [row.id, mapProject(row)]));
+  const productById = new Map(products.map((product) => [product.id, product]));
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    application: row.application as string | null,
+    location: row.location as string | null,
+    endorsement: row.endorsement as string | null,
+    verified: Boolean(row.verified),
+    product: productById.get(row.product_id) ?? null,
+    project: row.project_id ? byId.get(row.project_id) ?? null : null,
+  }));
 }
 
 export async function listPortfolio(profileId: string) {
   const supabase = await createServerSupabase();
   if (!supabase) return [];
   const { data } = await supabase.from("work_portfolio_items").select("*").eq("profile_id", profileId).order("created_at", { ascending: false });
-  return data ?? [];
+  const projectIds = [...new Set((data ?? []).map((row) => row.project_id).filter(Boolean))];
+  const projects = projectIds.length
+    ? await supabase.from("network_projects").select("id, slug, name").in("id", projectIds)
+    : { data: [] };
+  const byId = new Map((projects.data ?? []).map((row) => [row.id, row]));
+  return (data ?? []).map((row) => ({
+    ...row,
+    project: row.project_id ? byId.get(row.project_id) ?? null : null,
+  }));
 }
 
 export async function listSupervisorReviews(profileId: string) {
@@ -270,8 +370,10 @@ export async function getIdentitiBrandById(id: string): Promise<IdentitiBrand | 
   const supabase = await createServerSupabase();
   if (!supabase) return null;
   const session = await getAuthContext();
-  const { data } = await supabase.from("organisations").select("*").eq("id", id).maybeSingle();
-  return data ? mapBrand(data, session.userId) : null;
+  const full = await supabase.from("organisations").select(ORGANISATION_GRANTED_COLUMNS).eq("id", id).maybeSingle();
+  const fallback = full.error ? await supabase.from("organisations").select(ORGANISATION_SAFE_COLUMNS).eq("id", id).maybeSingle() : null;
+  const row = full.error ? fallback?.data : full.data;
+  return row ? mapBrand(row, session.userId) : null;
 }
 
 export async function getBrandProductById(productId: string) {

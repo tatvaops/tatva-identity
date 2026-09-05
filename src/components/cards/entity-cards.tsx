@@ -18,7 +18,8 @@ import type {
   NetworkProject,
 } from "@/lib/types/identity";
 import type { PassportComponent } from "@/lib/domain/passport-strength";
-import { personPublicHref } from "@/lib/domain/identiti-routes";
+import { brandPublicHref, personPublicHref } from "@/lib/domain/identiti-routes";
+import { PhotoFrame } from "@/components/identity/media-photo";
 import { cn } from "@/lib/utils";
 
 const PASSPORT_HREF: Record<string, string> = {
@@ -51,7 +52,7 @@ export function PersonCard({
     <Card className="p-4">
       <div className="flex gap-3">
         <Link href={href} aria-label={profile.fullName}>
-          <InitialsAvatar initials={initialsFromName(profile.fullName)} hue={hueFromId(profile.id)} size={48} />
+          <InitialsAvatar initials={initialsFromName(profile.fullName)} hue={hueFromId(profile.id)} size={48} src={profile.avatarPath} />
         </Link>
         <div className="min-w-0 flex-1">
           <Link href={href} className="truncate text-sm font-semibold hover:text-primary">
@@ -81,14 +82,16 @@ export function PersonCard({
 }
 
 export function CompanyCard({ org }: { org: Organisation; following?: boolean }) {
+  const href = brandPublicHref(org.passportKind ?? "other", org.slug);
   return (
-    <Card className="p-4">
-      <div className="flex gap-3">
-        <Link href={`/org/${org.slug}`} aria-label={org.name}>
-          <InitialsAvatar initials={initialsFromName(org.name)} hue={250} size={48} className="rounded-xl" />
+    <Card className="overflow-hidden">
+      <PhotoFrame src={org.coverPath} alt="" className="h-28" />
+      <div className="flex gap-3 p-4">
+        <Link href={href} aria-label={org.name}>
+          <InitialsAvatar initials={initialsFromName(org.name)} hue={250} size={48} className="rounded-xl" src={org.logoPath} />
         </Link>
         <div className="min-w-0">
-          <Link href={`/org/${org.slug}`} className="text-sm font-semibold hover:text-primary">
+          <Link href={href} className="text-sm font-semibold hover:text-primary">
             {org.name}
           </Link>
           <p className="mt-1 text-xs text-muted-foreground">{organisationTypeLabel(org.type)}</p>
@@ -167,7 +170,7 @@ export function ProjectCard({ project, roleTitle }: { project: NetworkProject; r
   return (
     <Link href={`/projects/${project.slug}`} className="block">
       <Card className="overflow-hidden transition-shadow hover:shadow-md">
-        <div className="h-24 bg-gradient-to-r from-slate-800 to-indigo-900" />
+        <PhotoFrame src={project.coverImageUrl} alt="" className="h-36" />
         <div className="p-4">
           <p className="text-sm font-semibold">{project.name}</p>
           {roleTitle && <p className="mt-1 text-xs text-muted-foreground">{roleTitle}</p>}
@@ -186,7 +189,10 @@ export function ProjectCard({ project, roleTitle }: { project: NetworkProject; r
 }
 
 export function ServiceCard({ service }: { service: OrgService }) {
-  return (
+  const href = service.organisationSlug
+    ? brandPublicHref(service.passportKind ?? "other", service.organisationSlug)
+    : null;
+  const body = (
     <Card className="flex h-full flex-col p-4">
       <p className="text-sm font-semibold">{service.name}</p>
       {service.description && <p className="mt-1 flex-1 text-sm text-muted-foreground">{service.description}</p>}
@@ -194,16 +200,22 @@ export function ServiceCard({ service }: { service: OrgService }) {
         <p className="mt-2 text-xs text-muted-foreground">Coverage: {service.locations.join(" · ")}</p>
       )}
       {service.pricingModel && <p className="mt-1 text-xs">{service.pricingModel}</p>}
+      {service.organisationName ? <p className="mt-2 text-xs text-muted-foreground">{service.organisationName}</p> : null}
     </Card>
+  );
+  if (!href) return body;
+  return (
+    <Link href={href} className="block h-full">
+      {body}
+    </Link>
   );
 }
 
 export function ProfileMiniCard({ profile }: { profile: PublicProfile }) {
   return (
-    <Card className="overflow-hidden">
-      <div className="h-14 bg-gradient-to-r from-slate-800 to-indigo-900" />
-      <div className="-mt-6 px-4 pb-4">
-        <InitialsAvatar initials={initialsFromName(profile.fullName)} hue={hueFromId(profile.id)} size={52} />
+    <Card className="overflow-hidden p-4">
+      <div>
+        <InitialsAvatar initials={initialsFromName(profile.fullName)} hue={hueFromId(profile.id)} size={52} src={profile.avatarPath} />
         <Link href={personPublicHref(profile.handle, profile.occupationMode)} className="mt-2 block text-sm font-semibold">
           {profile.fullName}
         </Link>

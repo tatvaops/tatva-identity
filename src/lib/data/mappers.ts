@@ -17,6 +17,21 @@ import type {
   VisibilityAudience,
 } from "@/lib/types/identity";
 
+export const ORGANISATION_SAFE_COLUMNS =
+  "id, slug, name, tagline, about, organisation_type, industry, city, state, country, locality, founded_year, team_size_label, website, logo_path, cover_path, public_phone, public_email, office_locality, service_areas, created_at, updated_at" as const;
+
+export const ORGANISATION_GRANTED_COLUMNS =
+  "id, slug, name, tagline, about, organisation_type, industry, city, state, country, locality, founded_year, team_size_label, website, logo_path, cover_path, public_phone, public_email, office_locality, service_areas, created_at, updated_at, passport_kind, legal_entity_name, gst_verified, kyc_verified, typical_value_min_inr, typical_value_max_inr, delivery_slots, design_lead_weeks, active_cities, design_capability, execution_capability, capability_chips, category_label, serving_regions, average_rating, verified_review_count, manufacturer_or_importer" as const;
+
+export function inferPassportKind(organisationType: string, stored?: string | null): Organisation["passportKind"] {
+  if (stored === "service_brand" || stored === "product_brand" || stored === "other") return stored;
+  if (["service_provider", "subcontractor", "general_contractor", "developer", "consultancy"].includes(organisationType)) {
+    return "service_brand";
+  }
+  if (["manufacturer", "brand", "vendor"].includes(organisationType)) return "product_brand";
+  return "other";
+}
+
 type ProfileRow = {
   id: string;
   handle: string;
@@ -112,6 +127,7 @@ export function mapOrganisation(
   office_locality?: string | null;
   service_areas?: string[] | null;
   created_by?: string | null;
+  passport_kind?: string | null;
 },
   viewerId?: string | null,
 ): Organisation {
@@ -137,6 +153,7 @@ export function mapOrganisation(
     publicEmail: row.public_email ?? null,
     officeLocality: row.office_locality ?? null,
     serviceAreas: row.service_areas ?? [],
+    passportKind: inferPassportKind(row.organisation_type, row.passport_kind),
     isOwner: viewerOwns,
     createdBy: viewerOwns ? row.created_by ?? null : null,
   };
@@ -154,6 +171,12 @@ export function mapProject(row: {
   verified: boolean;
   client_organisation_id: string | null;
   main_contractor_id: string | null;
+  cover_image_url?: string | null;
+  youtube_url?: string | null;
+  value_label?: string | null;
+  duration_label?: string | null;
+  qc_notes?: string | null;
+  testimonial?: string | null;
 }): NetworkProject {
   return {
     id: row.id,
@@ -167,6 +190,12 @@ export function mapProject(row: {
     verified: row.verified,
     clientOrganisationId: row.client_organisation_id,
     mainContractorId: row.main_contractor_id,
+    coverImageUrl: row.cover_image_url ?? null,
+    youtubeUrl: row.youtube_url ?? null,
+    valueLabel: row.value_label ?? null,
+    durationLabel: row.duration_label ?? null,
+    qcNotes: row.qc_notes ?? null,
+    testimonial: row.testimonial ?? null,
   };
 }
 

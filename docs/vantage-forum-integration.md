@@ -17,7 +17,7 @@ NEXT_PUBLIC_APP_ORIGIN=https://tatva-identity-dev.vercel.app
 
 # Shared HMAC for context JWTs (IDENTITI signs; Vantage verifies with the same value)
 IDENTITI_FORUM_PRIVATE_KEY=
-# Vantage-side copy of that HMAC. Leave empty here; set it on Vantage as VANTAGE_FORUM_PUBLIC_KEY.
+# Local copy of that HMAC so operators can see it is set. Vantage stores the same value.
 VANTAGE_FORUM_PUBLIC_KEY=
 
 # Vantage → IDENTITI webhook
@@ -38,7 +38,7 @@ VANTAGE_FORUM_READ_TOKEN=
 | `NEXT_PUBLIC_VANTAGE_FORUMS_ORIGIN` | Public | Existing thread `{ORIGIN}/forums/{slug}` and new draft `{ORIGIN}/forums/new?context={jwt}` |
 | `NEXT_PUBLIC_APP_ORIGIN` | Public | JWT `return_url` and webhook URL shown in admin |
 | `IDENTITI_FORUM_PRIVATE_KEY` | Server | HMAC-SHA256 for context JWTs. Required to start a signed discussion |
-| `VANTAGE_FORUM_PUBLIC_KEY` | Vantage | Same string as the private key. IDENTITI does not verify inbound JWTs with this |
+| `VANTAGE_FORUM_PUBLIC_KEY` | Both | Same HMAC as the private key. IDENTITI does not verify inbound JWTs with this |
 | `VANTAGE_FORUM_WRITE_TOKEN` | Server | Bearer token Vantage sends to `/api/forum/webhooks/discussion-created` |
 | `VANTAGE_ALLOWED_RETURN_ORIGINS` | Server | Extra origins allowed in `return_url` (open-redirect guard) |
 | `VANTAGE_API_BASE_URL` | Planned | `GET {BASE}/forums/hubs` when Vantage ships a read API |
@@ -95,16 +95,35 @@ Header: `{ "alg": "HS256", "typ": "JWT" }`
 
 No API key or HMAC goes in the query string — only this JWT.
 
-## Share with the Vantage team
+## Ask Vantage now
 
-When they implement `/forums/new?context=`:
+Copy these from `.env.local`. Do not paste them in chat or commit them.
 
-1. The same HMAC secret as `IDENTITI_FORUM_PRIVATE_KEY`, stored on Vantage as `VANTAGE_FORUM_PUBLIC_KEY`
-2. Webhook URL `https://tatva-identity-dev.vercel.app/api/forum/webhooks/discussion-created`
-3. The `VANTAGE_FORUM_WRITE_TOKEN` value
-4. Allowed return origins: `http://localhost:3000`, `https://tatva-identity-dev.vercel.app`
+1. HMAC secret — same value as `IDENTITI_FORUM_PRIVATE_KEY` (they store it as `VANTAGE_FORUM_PUBLIC_KEY`)
+2. Write token — `VANTAGE_FORUM_WRITE_TOKEN`
+3. Webhook URL — `https://tatva-identity-dev.vercel.app/api/forum/webhooks/discussion-created`
+4. Return origins — `http://localhost:3000`, `NEXT_PUBLIC_APP_ORIGIN`, plus `VANTAGE_ALLOWED_RETURN_ORIGINS`
 
-Copy those values from `.env.local`. Do not commit them.
+Ask them to implement:
+
+- `GET /forums/new?context={jwt}` — verify JWT, pre-fill the composer, do not auto-publish
+- After a human publishes — `POST` the webhook with `entity_type`, `entity_id`, and `thread_slug`
+
+`/forums/new` on Vantage does not read `?context=` yet.
+
+## Ask Vantage later (`VANTAGE_API_BASE_URL`)
+
+Leave `VANTAGE_API_BASE_URL` empty. Do not guess. Vantage routes such as `/api/forums` are for Vantage’s own site, not IDENTITI bearer auth.
+
+When they ship partner hub mapping, ask for the **exact** origin only. Expected shape:
+
+```
+GET  {BASE}/forums/hubs?entity_type=&entity_id=
+POST {BASE}/forums/hubs
+Authorization: Bearer {VANTAGE_FORUM_READ_TOKEN}
+```
+
+Set `VANTAGE_API_BASE_URL` only after they confirm that base responds with the read token. `VANTAGE_FORUM_READ_TOKEN` can stay generated locally until then. `fetchVantageHub` no-ops while the URL is empty.
 
 ## What works today vs planned
 
@@ -114,7 +133,7 @@ Copy those values from `.env.local`. Do not commit them.
 | Mint JWT and redirect to `/forums/new?context=` | Works on IDENTITI |
 | Vantage verifies the context JWT | Not built on Vantage yet |
 | Webhook saves mapping | Works on IDENTITI when the write token is set |
-| `VANTAGE_API_BASE_URL` hub API | Planned; `fetchVantageHub` no-ops until both URL and read token are set |
+| Partner hub API | Not shipped. Keep `VANTAGE_API_BASE_URL` empty |
 
 ## Security
 

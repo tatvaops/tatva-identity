@@ -13,7 +13,7 @@ export default async function GigWorkerPage({ params }: { params: Promise<{ hand
     if (!profile.meta.configured) return <QueryNotice configured={false} error={null} />;
     notFound();
   }
-  if (profile.data.occupationMode === "white_collar") {
+  if (profile.data.occupationMode === "white_collar" || profile.data.occupationMode === "freelancer") {
     redirect(personPublicHref(profile.data.handle, profile.data.occupationMode));
   }
   const [portfolio, reviews, facts] = await Promise.all([

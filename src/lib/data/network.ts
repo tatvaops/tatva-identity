@@ -9,6 +9,9 @@ import {
   mapProject,
   mapPublicProfile,
   mapSkill,
+  inferPassportKind,
+  ORGANISATION_GRANTED_COLUMNS,
+  ORGANISATION_SAFE_COLUMNS,
 } from "@/lib/data/mappers";
 import {
   itemFail,
@@ -121,33 +124,43 @@ export async function listOrganisations(
 ): Promise<ListResult<Organisation>> {
   const supabase = await createServerSupabase();
   if (!supabase) return unconfiguredList();
-  let q = supabase.from("organisations").select("*", { count: "exact" }).order("name");
+  const ctx = await getAuthContext();
+  let q = supabase.from("organisations").select(ORGANISATION_GRANTED_COLUMNS, { count: "exact" }).order("name");
   if (query) q = q.or(`name.ilike.%${query}%,tagline.ilike.%${query}%,industry.ilike.%${query}%`);
   if (type) q = q.eq("organisation_type", type);
   const range = pageRange(options);
   if (range) q = q.range(range.from, range.to);
-  const { data, error, count } = await q;
-  if (error) return listFail(error.message);
-  const ctx = await getAuthContext();
-  return listOk((data ?? []).map((row) => mapOrganisation(row, ctx.userId)), count ?? undefined);
+  const full = await q;
+  if (!full.error) return listOk((full.data ?? []).map((row) => mapOrganisation(row, ctx.userId)), full.count ?? undefined);
+  let fallback = supabase.from("organisations").select(ORGANISATION_SAFE_COLUMNS, { count: "exact" }).order("name");
+  if (query) fallback = fallback.or(`name.ilike.%${query}%,tagline.ilike.%${query}%,industry.ilike.%${query}%`);
+  if (type) fallback = fallback.eq("organisation_type", type);
+  if (range) fallback = fallback.range(range.from, range.to);
+  const retry = await fallback;
+  if (retry.error) return listFail(retry.error.message);
+  return listOk((retry.data ?? []).map((row) => mapOrganisation(row, ctx.userId)), retry.count ?? undefined);
 }
 
 export async function getOrganisationBySlug(slug: string): Promise<ItemResult<Organisation>> {
   const supabase = await createServerSupabase();
   if (!supabase) return unconfiguredItem();
-  const { data, error } = await supabase.from("organisations").select("*").eq("slug", slug).maybeSingle();
-  if (error) return itemFail(error.message);
   const ctx = await getAuthContext();
-  return itemOk(data ? mapOrganisation(data, ctx.userId) : null);
+  const full = await supabase.from("organisations").select(ORGANISATION_GRANTED_COLUMNS).eq("slug", slug).maybeSingle();
+  const fallback = full.error ? await supabase.from("organisations").select(ORGANISATION_SAFE_COLUMNS).eq("slug", slug).maybeSingle() : null;
+  if (full.error && fallback?.error) return itemFail(fallback.error.message);
+  const row = full.error ? fallback?.data : full.data;
+  return itemOk(row ? mapOrganisation(row, ctx.userId) : null);
 }
 
 export async function getOrganisationById(id: string): Promise<ItemResult<Organisation>> {
   const supabase = await createServerSupabase();
   if (!supabase) return unconfiguredItem();
-  const { data, error } = await supabase.from("organisations").select("*").eq("id", id).maybeSingle();
-  if (error) return itemFail(error.message);
   const ctx = await getAuthContext();
-  return itemOk(data ? mapOrganisation(data, ctx.userId) : null);
+  const full = await supabase.from("organisations").select(ORGANISATION_GRANTED_COLUMNS).eq("id", id).maybeSingle();
+  const fallback = full.error ? await supabase.from("organisations").select(ORGANISATION_SAFE_COLUMNS).eq("id", id).maybeSingle() : null;
+  if (full.error && fallback?.error) return itemFail(fallback.error.message);
+  const row = full.error ? fallback?.data : full.data;
+  return itemOk(row ? mapOrganisation(row, ctx.userId) : null);
 }
 
 export async function listProjects(): Promise<ListResult<NetworkProject>> {
@@ -457,15 +470,26 @@ export async function listAllServices(): Promise<ListResult<OrgService>> {
   if (!supabase) return unconfiguredList();
   const { data, error } = await supabase.from("organisation_services").select("*").order("name");
   if (error) return listFail(error.message);
+  const orgIds = [...new Set((data ?? []).map((row) => row.organisation_id).filter(Boolean))];
+  const orgs = orgIds.length
+    ? await supabase.from("organisations").select("id, slug, name, organisation_type").in("id", orgIds)
+    : { data: [] };
+  const byId = new Map((orgs.data ?? []).map((row) => [row.id, row]));
   return listOk(
-    (data ?? []).map((s) => ({
-      id: s.id,
-      organisationId: s.organisation_id,
-      name: s.name,
-      description: s.description,
-      locations: s.locations ?? [],
-      pricingModel: s.pricing_model,
-    })),
+    (data ?? []).map((s) => {
+      const org = byId.get(s.organisation_id);
+      return {
+        id: s.id,
+        organisationId: s.organisation_id,
+        organisationSlug: org?.slug ?? null,
+        organisationName: org?.name ?? null,
+        passportKind: org ? inferPassportKind(org.organisation_type) : "other",
+        name: s.name,
+        description: s.description,
+        locations: s.locations ?? [],
+        pricingModel: s.pricing_model,
+      };
+    }),
   );
 }
 

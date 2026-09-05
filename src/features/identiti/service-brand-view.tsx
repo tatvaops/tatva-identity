@@ -10,7 +10,10 @@ import { calculateTrustScore } from "@/lib/domain/trust-score";
 import { presentAiReview } from "@/lib/domain/ai-review";
 import type { IdentitiBrand, IdentitiProject } from "@/lib/data/identiti";
 import type { AiReviewRecord, AiReviewSource } from "@/lib/domain/ai-review";
+import type { PublicProfile } from "@/lib/types/identity";
 import { SaveButton } from "@/components/identity/save-button";
+import { PersonCard } from "@/components/cards/entity-cards";
+import { PhotoFrame } from "@/components/identity/media-photo";
 
 const FIT_COPY: Record<string, string> = { strong: "Strong match", good: "Good match", clarify: "Clarify" };
 
@@ -21,6 +24,7 @@ export function ServiceBrandView({
   strengths,
   videos,
   ai,
+  people,
   saved,
   signedIn,
 }: {
@@ -37,6 +41,7 @@ export function ServiceBrandView({
     settings: { source: AiReviewSource; enabled: boolean; minimumSourceCount: number } | null;
     review: AiReviewRecord | null;
   };
+  people: PublicProfile[];
   saved: boolean;
   signedIn: boolean;
 }) {
@@ -79,14 +84,8 @@ export function ServiceBrandView({
   return (
     <div className="space-y-10">
       <section className="overflow-hidden rounded-2xl bg-[#0b1f3a] text-white">
-        <div className="relative min-h-[280px] md:min-h-[380px]">
-          {hero ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={hero} alt="" className="absolute inset-0 h-full w-full object-cover opacity-70" />
-          ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-[#0b1f3a] to-[#1d4ed8]" />
-          )}
-          <div className="relative flex min-h-[280px] flex-col justify-end p-6 md:min-h-[380px] md:p-10">
+        <PhotoFrame src={hero} alt="" className="h-56 opacity-80 md:h-72" />
+        <div className="p-6 md:p-10">
             {(brand.about ?? "").toLowerCase().includes("demonstration") ? (
               <p className="text-xs uppercase tracking-[0.2em] text-white/80">Sample data</p>
             ) : null}
@@ -95,9 +94,7 @@ export function ServiceBrandView({
                 Watch company showreel
               </a>
             ) : null}
-          </div>
-        </div>
-        <div className="space-y-4 px-6 py-8 md:px-10">
+        <div className="space-y-4 pt-6">
           <div className="flex flex-wrap gap-2">
             {brand.kycVerified || brand.gstVerified ? <Badge variant="verify">TatvaOps verified</Badge> : null}
             {brand.categoryLabel ? <Badge variant="outline" className="border-white/30 text-white">{brand.categoryLabel}</Badge> : null}
@@ -134,6 +131,7 @@ export function ServiceBrandView({
               <Link href={saveHref}>View brand discussions</Link>
             </Button>
           </div>
+        </div>
         </div>
       </section>
 
@@ -175,19 +173,14 @@ export function ServiceBrandView({
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Proof of delivery</p>
         <div className="mt-1 flex items-end justify-between">
           <h2 className="text-2xl font-semibold">Featured projects</h2>
-          <Link href="/projects" className="text-sm text-primary hover:underline">
+          <Link href={`/projects?brand=${brand.slug}`} className="text-sm text-primary hover:underline">
             View all {projects.length} projects
           </Link>
         </div>
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           {projects.slice(0, 2).map((project) => (
             <Link key={project.id} href={`/projects/${project.slug}`} className="overflow-hidden rounded-2xl border border-border bg-white">
-              <div className="h-48 bg-[#0b1f3a]">
-                {project.coverImageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={project.coverImageUrl} alt="" className="h-full w-full object-cover" />
-                ) : null}
-              </div>
+              <PhotoFrame src={project.coverImageUrl} alt="" className="h-48" />
               <div className="p-5">
                 <p className="text-xs text-muted-foreground">{project.type}</p>
                 <h3 className="mt-1 text-lg font-semibold">{project.name}</h3>
@@ -259,6 +252,18 @@ export function ServiceBrandView({
           </ul>
         </Card>
       </section>
+
+      {people.length > 0 ? (
+        <section>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Named on delivered work</p>
+          <h2 className="mt-1 text-2xl font-semibold">People you can meet on these projects</h2>
+          <div className="mt-5 grid gap-3 md:grid-cols-2">
+            {people.map((person) => (
+              <PersonCard key={person.id} profile={person} />
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <Card className="p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Delivery capacity</p>

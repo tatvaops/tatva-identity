@@ -1,5 +1,5 @@
 import { createServerSupabase } from "@/lib/supabase/server";
-import { mapGig, mapJob, mapOrganisation, mapPublicProfile } from "@/lib/data/mappers";
+import { mapGig, mapJob, mapOrganisation, mapPublicProfile, ORGANISATION_SAFE_COLUMNS } from "@/lib/data/mappers";
 import { itemFail, itemOk, listFail, listOk, unconfiguredItem, unconfiguredList, type ItemResult, type ListResult } from "@/lib/data/query";
 import type {
   GigPost,
@@ -91,7 +91,7 @@ export async function listWorkedWith(profileId: string): Promise<ListResult<Publ
 export async function listOwnedOrganisations(profileId: string): Promise<ListResult<Organisation>> {
   const supabase = await createServerSupabase();
   if (!supabase) return unconfiguredList();
-  const { data, error } = await supabase.from("organisations").select("*").eq("created_by", profileId).order("name");
+  const { data, error } = await supabase.from("organisations").select(ORGANISATION_SAFE_COLUMNS).eq("created_by", profileId).order("name");
   if (error) return listFail(error.message);
   return listOk((data ?? []).map((row) => mapOrganisation(row)));
 }
@@ -101,7 +101,7 @@ export async function listMemberOrganisations(profileId: string): Promise<ListRe
   if (!supabase) return unconfiguredList();
   const { data, error } = await supabase
     .from("organisation_members")
-    .select("organisations(*)")
+    .select(`organisations(${ORGANISATION_SAFE_COLUMNS})`)
     .eq("profile_id", profileId);
   if (error) return listFail(error.message);
   const orgs = (data ?? [])
@@ -137,7 +137,7 @@ export async function listProjectCompanies(project: NetworkProject): Promise<Lis
   const ids = [project.clientOrganisationId, project.mainContractorId].filter(Boolean) as string[];
   const supabase = await createServerSupabase();
   if (!supabase) return unconfiguredList();
-  const { data: linked, error } = await supabase.from("project_organisations").select("organisations(*)").eq("project_id", project.id);
+  const { data: linked, error } = await supabase.from("project_organisations").select(`organisations(${ORGANISATION_SAFE_COLUMNS})`).eq("project_id", project.id);
   if (error) return listFail(error.message);
   const fromLink = (linked ?? [])
     .map((row) => {
@@ -146,7 +146,7 @@ export async function listProjectCompanies(project: NetworkProject): Promise<Lis
     })
     .filter((org): org is Organisation => org !== null);
   if (ids.length === 0) return listOk(fromLink);
-  const { data, error: idError } = await supabase.from("organisations").select("*").in("id", ids);
+  const { data, error: idError } = await supabase.from("organisations").select(ORGANISATION_SAFE_COLUMNS).in("id", ids);
   if (idError) return listFail(idError.message);
   const byId = new Map(fromLink.map((org) => [org.id, org]));
   for (const row of data ?? []) {
@@ -268,7 +268,7 @@ export async function listFollowingOrganisations(profileId: string): Promise<Lis
   if (!supabase) return unconfiguredList();
   const { data, error } = await supabase
     .from("follows")
-    .select("organisations(*)")
+    .select(`organisations(${ORGANISATION_SAFE_COLUMNS})`)
     .eq("follower_id", profileId)
     .not("organisation_id", "is", null);
   if (error) return listFail(error.message);
@@ -477,7 +477,7 @@ export async function hydrateSavedOrgs(items: SavedItem[]): Promise<Organisation
   if (ids.length === 0) return [];
   const supabase = await createServerSupabase();
   if (!supabase) return [];
-  const { data } = await supabase.from("organisations").select("*").in("id", ids);
+  const { data } = await supabase.from("organisations").select(ORGANISATION_SAFE_COLUMNS).in("id", ids);
   return (data ?? []).map((row) => mapOrganisation(row));
 }
 

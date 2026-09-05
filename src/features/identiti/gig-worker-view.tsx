@@ -2,6 +2,9 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { PhotoFrame } from "@/components/identity/media-photo";
+import { InitialsAvatar } from "@/components/identity/visuals";
+import { hueFromId, initialsFromName } from "@/lib/domain/passport-strength";
 import type { PublicProfile } from "@/lib/types/identity";
 
 type PortfolioItem = {
@@ -14,6 +17,7 @@ type PortfolioItem = {
   product_used: string | null;
   supervisor_verified: boolean;
   brand_verified: boolean;
+  project?: { slug: string; name: string } | null;
 };
 
 type SupervisorReview = {
@@ -48,9 +52,14 @@ export function GigWorkerView({
 }) {
   return (
     <div className="space-y-8">
-      <section className="rounded-2xl bg-[#0b1f3a] p-8 text-white">
+      <section className="overflow-hidden rounded-2xl bg-[#0b1f3a] text-white">
+        <PhotoFrame src={profile.coverPath} alt="" className="h-40" />
+        <div className="p-8">
         <p className="text-xs uppercase tracking-[0.2em] text-white/70">Gig worker</p>
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-4 flex items-start gap-4">
+          <InitialsAvatar initials={initialsFromName(profile.fullName)} hue={hueFromId(profile.id)} size={72} src={profile.avatarPath} />
+          <div>
+        <div className="flex flex-wrap gap-2">
           {profile.tradeVerified ? <Badge variant="verify">Trade verified</Badge> : null}
           {profile.identityVerified ? <Badge variant="outline" className="border-white/30 text-white">Identity verified</Badge> : null}
         </div>
@@ -66,6 +75,9 @@ export function GigWorkerView({
             <Link href={`/passport/${profile.handle}`}>Skill passport</Link>
           </Button>
         </div>
+          </div>
+        </div>
+        </div>
       </section>
 
       <section>
@@ -77,13 +89,19 @@ export function GigWorkerView({
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {portfolio.map((item) => (
               <figure key={item.id} className="overflow-hidden rounded-2xl border border-border bg-white">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={item.image_url} alt={item.caption ?? "Work photo"} className="h-56 w-full object-cover" />
+                <PhotoFrame src={item.image_url} alt={item.caption ?? "Work photo"} className="h-56" />
                 <figcaption className="p-3 text-sm">
                   <p className="font-medium">{item.caption ?? item.work_category}</p>
                   <p className="text-muted-foreground">
                     {[item.location, item.product_used].filter(Boolean).join(" · ")}
                   </p>
+                  {item.project ? (
+                    <p className="mt-1 text-xs">
+                      <Link href={`/projects/${item.project.slug}`} className="text-primary hover:underline">
+                        {item.project.name}
+                      </Link>
+                    </p>
+                  ) : null}
                   {item.supervisor_verified || item.brand_verified ? (
                     <p className="mt-1 text-xs text-primary">
                       {item.supervisor_verified ? "Supervisor verified" : "Brand verified"}

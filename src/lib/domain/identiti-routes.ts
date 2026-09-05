@@ -3,8 +3,10 @@ import type { ForumEntityType } from "@/lib/domain/forum";
 import { appOrigin } from "@/lib/domain/forum-env";
 export { appOrigin };
 
-export function personPublicHref(handle: string, occupationMode: OccupationMode) {
-  return occupationMode === "blue_collar" ? `/gig-workers/${handle}` : `/professionals/${handle}`;
+export function personPublicHref(handle: string, occupationMode?: OccupationMode | string | null) {
+  return occupationMode === "blue_collar" || occupationMode === "contractor"
+    ? `/gig-workers/${handle}`
+    : `/professionals/${handle}`;
 }
 
 export function brandPublicHref(kind: "service_brand" | "product_brand" | "other", slug: string) {

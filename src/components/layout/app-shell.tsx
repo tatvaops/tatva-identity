@@ -40,13 +40,18 @@ export function GlobalHeader() {
   const router = useRouter();
   const { profile, userId, isPlatformAdmin } = useSession();
   const copy = useDictionary();
-  const profileHref = profile ? `/people/${profile.handle}` : "/auth/sign-in";
-  const profileActive = profile ? pathname === `/people/${profile.handle}` : pathname.startsWith("/auth");
+  const profileHref = profile
+    ? profile.occupationMode === "blue_collar" || profile.occupationMode === "contractor"
+      ? `/gig-workers/${profile.handle}`
+      : `/professionals/${profile.handle}`
+    : "/auth/sign-in";
+  const profileActive = Boolean(profile && (pathname.startsWith("/professionals/") || pathname.startsWith("/gig-workers/") || pathname === `/people/${profile.handle}`));
   const items = [
     { href: "/service-brands", label: "Service brand" },
     { href: "/product-brands", label: "Product brand" },
     { href: "/professionals", label: "Professional" },
     { href: "/gig-workers", label: "Gig worker" },
+    { href: "/projects", label: "Projects" },
     { href: "/forums", label: "Brand forum" },
     ...(isPlatformAdmin ? [{ href: "/admin", label: "Admin control" }] : []),
   ];
@@ -135,7 +140,10 @@ export function GlobalHeader() {
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>{profile.fullName}</DropdownMenuLabel>
               <DropdownMenuItem asChild>
-                <Link href={`/people/${profile.handle}`}>View profile</Link>
+                <Link href={profileHref}>View profile</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/saved">Saved</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/passport">Professional passport</Link>
@@ -196,7 +204,6 @@ export function MobileBottomNav() {
   const pathname = usePathname();
   const { profile } = useSession();
   const copy = useDictionary();
-  const profileHref = profile ? `/people/${profile.handle}` : "/auth/sign-in";
   const items = [
     { href: "/service-brands", label: "Services", icon: Building2 },
     { href: "/product-brands", label: "Products", icon: Briefcase },

@@ -3,7 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdminHeader, adminDate } from "@/features/admin/admin-chrome";
 import { AdminActionButton } from "@/features/admin/admin-action";
-import { AdminCertificationState, AdminReviewForm } from "@/features/admin/admin-forms";
+import { AdminCertificationState, AdminPortfolioForm, AdminProfileMediaForm, AdminReviewForm, AdminSkillFactForm, AdminSupervisorReviewForm } from "@/features/admin/admin-forms";
+import { personPublicHref } from "@/lib/domain/identiti-routes";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { adminHideProfile, adminSetProfileVerification } from "@/lib/admin/actions";
@@ -15,7 +16,7 @@ export default async function AdminPersonPage({ params }: { params: Promise<{ id
   const { id } = await params;
   const data = await getAdminPerson(id);
   if (!data) notFound();
-  const { profile, requests, certifications } = data;
+  const { profile, requests, certifications, projects } = data;
   return (
     <div>
       <AdminHeader
@@ -23,7 +24,7 @@ export default async function AdminPersonPage({ params }: { params: Promise<{ id
         body={`@${profile.handle} · operator record. Public profile never includes documents, rates or Aadhaar.`}
       />
       <div className="mb-6 flex flex-wrap gap-2">
-        <Link href={`/people/${profile.handle}`} className="text-sm text-primary hover:underline">
+        <Link href={personPublicHref(profile.handle, profile.occupation_mode ?? "white_collar")} className="text-sm text-primary hover:underline">
           Open public profile
         </Link>
         <Link href={`/passport/${profile.handle}`} className="text-sm text-primary hover:underline">
@@ -64,6 +65,10 @@ export default async function AdminPersonPage({ params }: { params: Promise<{ id
             {profile.trade_verified ? <Badge variant="primary">Trade</Badge> : <Badge variant="outline">Trade off</Badge>}
             {profile.admin_hidden ? <Badge variant="warning">Hidden</Badge> : null}
           </div>
+          <div className="mt-5 border-t border-border pt-4">
+            <p className="mb-2 text-sm font-semibold">Public photos</p>
+            <AdminProfileMediaForm profileId={profile.id} avatarPath={profile.avatar_path} coverPath={profile.cover_path} />
+          </div>
         </Card>
         <Card className="p-5">
           <p className="text-sm font-semibold">Verification requests</p>
@@ -88,6 +93,20 @@ export default async function AdminPersonPage({ params }: { params: Promise<{ id
               ))}
             </ul>
           )}
+        </Card>
+      </div>
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <Card className="p-5">
+          <p className="text-sm font-semibold">Work photos</p>
+          <p className="mt-1 mb-3 text-sm text-muted-foreground">Shown on the gig-worker page. Link a project when the photo is from named work.</p>
+          <AdminPortfolioForm profileId={profile.id} projects={projects} />
+        </Card>
+        <Card className="p-5">
+          <p className="text-sm font-semibold">Supervisor review and skill facts</p>
+          <AdminSupervisorReviewForm profileId={profile.id} />
+          <div className="mt-4">
+            <AdminSkillFactForm profileId={profile.id} />
+          </div>
         </Card>
       </div>
       <Card className="mt-4 p-5">
