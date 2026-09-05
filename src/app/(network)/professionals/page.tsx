@@ -1,6 +1,7 @@
 import { IdentitiPeopleDirectory } from "@/features/identiti/people-directory";
 import { listProfessionals } from "@/lib/data/identiti";
 import { QueryNotice } from "@/components/states/empty-state";
+import { isGigOccupation } from "@/lib/domain/identiti-routes";
 
 export default async function ProfessionalsPage() {
   const people = await listProfessionals();
@@ -10,7 +11,7 @@ export default async function ProfessionalsPage() {
       <IdentitiPeopleDirectory
         title="Professionals"
         body="Executives, designers and delivery leads. Judge them by named projects, not a slogan."
-        people={people.data}
+        people={people.data.filter((person) => !isGigOccupation(person.occupationMode))}
       />
     </>
   );

@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { PersonCard } from "@/components/cards/entity-cards";
 import { EmptyState } from "@/components/states/empty-state";
-import { PhotoFrame } from "@/components/identity/media-photo";
-import { personPublicHref } from "@/lib/domain/identiti-routes";
+import { SafePhotoStrip } from "@/components/identity/media-photo";
+import { InitialsAvatar } from "@/components/identity/visuals";
+import { isGigOccupation, personPublicHref } from "@/lib/domain/identiti-routes";
+import { hueFromId, initialsFromName } from "@/lib/domain/passport-strength";
 import type { PublicProfile } from "@/lib/types/identity";
 
 export function IdentitiPeopleDirectory({
@@ -38,35 +40,38 @@ export function GigWorkerDirectory({
   people: PublicProfile[];
   portfolios: Record<string, { image_url: string; caption: string | null }[]>;
 }) {
+  const workers = people.filter((person) => isGigOccupation(person.occupationMode));
   return (
     <div>
       <h1 className="text-3xl font-semibold tracking-tight">Gig workers</h1>
       <p className="mt-2 max-w-2xl text-muted-foreground">
         Tradespeople shown by delivered work, not a résumé paragraph.
       </p>
-      {people.length === 0 ? (
+      {workers.length === 0 ? (
         <EmptyState className="mt-6" title="No gig workers yet" body="When a worker publishes photos, they appear here." />
       ) : (
         <div className="mt-6 grid gap-4 md:grid-cols-2">
-          {people.map((person) => {
-            const photos = (portfolios[person.id] ?? []).filter((photo) => photo.image_url);
+          {workers.map((person) => {
+            const photos = (portfolios[person.id] ?? []).map((photo) => photo.image_url);
             return (
               <Link
                 key={person.id}
                 href={personPublicHref(person.handle, person.occupationMode)}
                 className="overflow-hidden rounded-2xl border border-border bg-white"
               >
-                {photos.length > 0 ? (
-                  <div className={`grid gap-px bg-border ${photos.length === 1 ? "grid-cols-1" : "grid-cols-3"}`}>
-                    {photos.slice(0, 3).map((photo) => (
-                      <PhotoFrame key={photo.image_url} src={photo.image_url} alt="" className="h-28" />
-                    ))}
+                <SafePhotoStrip urls={photos} />
+                <div className="flex items-start gap-3 p-4">
+                  <InitialsAvatar
+                    initials={initialsFromName(person.fullName)}
+                    hue={hueFromId(person.id)}
+                    size={48}
+                    src={person.avatarPath}
+                  />
+                  <div className="min-w-0">
+                    <p className="font-semibold">{person.fullName}</p>
+                    <p className="text-sm text-muted-foreground">{person.headline}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{person.city}</p>
                   </div>
-                ) : null}
-                <div className="p-4">
-                  <p className="font-semibold">{person.fullName}</p>
-                  <p className="text-sm text-muted-foreground">{person.headline}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">{person.city}</p>
                 </div>
               </Link>
             );

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { SafeMediaImg } from "@/components/identity/media-photo";
 import { cn } from "@/lib/utils";
 import { publicMediaUrl } from "@/lib/media/public-url";
 
@@ -29,8 +30,7 @@ export function CoverBand({
   return (
     <div className={cn("relative overflow-hidden bg-gradient-to-r", tones[tone] ?? tones.office, className)}>
       {image ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <SafeMediaImg src={image} alt="" className="absolute inset-0 h-full w-full object-cover" />
       ) : (
         <div className="absolute inset-0 opacity-30" style={{ backgroundImage: "radial-gradient(circle at 20% 20%, white, transparent 40%)" }} />
       )}
@@ -56,7 +56,7 @@ export function InitialsAvatar({
   return (
     <div
       className={cn(
-        "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold text-white ring-2 ring-white",
+        "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold text-white ring-2 ring-white",
         className,
       )}
       style={{
@@ -67,12 +67,8 @@ export function InitialsAvatar({
       }}
       aria-hidden
     >
-      {image ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={image} alt="" className="h-full w-full object-cover" />
-      ) : (
-        initials
-      )}
+      <span className="relative z-0">{initials}</span>
+      {image ? <SafeMediaImg src={image} alt="" className="absolute inset-0 z-10 h-full w-full object-cover" /> : null}
     </div>
   );
 }

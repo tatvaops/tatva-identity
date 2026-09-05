@@ -54,7 +54,7 @@ begin
   where id = aurum_id;
 
   update public.organisations set
-    cover_path = 'https://images.unsplash.com/photo-1615971677499-5467cb89d40f?auto=format&fit=crop&w=1400&q=80',
+    cover_path = 'https://images.unsplash.com/photo-1615873968403-89e068629265?auto=format&fit=crop&w=1400&q=80',
     logo_path = 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=200&q=80',
     category_label = coalesce(category_label, 'Material brand'),
     serving_regions = coalesce(serving_regions, 'South India')
@@ -63,7 +63,7 @@ begin
   update public.organisations set
     cover_path = case id
       when o1 then 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1400&q=80'
-      when o2 then 'https://images.unsplash.com/photo-1504307651254-35680f356988?auto=format&fit=crop&w=1400&q=80'
+      when o2 then 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&w=1400&q=80'
       when o3 then 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1400&q=80'
       when o4 then 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1400&q=80'
       when o5 then 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=1400&q=80'
@@ -81,7 +81,7 @@ begin
   where id in (o1, o2, o3, o4, o5, o6);
 
   update public.brand_products set photo_url = case id
-    when prod1 then 'https://images.unsplash.com/photo-1615971677499-5467cb89d40f?auto=format&fit=crop&w=1200&q=80'
+    when prod1 then 'https://images.unsplash.com/photo-1615873968403-89e068629265?auto=format&fit=crop&w=1200&q=80'
     when prod2 then 'https://images.unsplash.com/photo-1615876234886-fd9a39fda97f?auto=format&fit=crop&w=1200&q=80'
     when prod3 then 'https://images.unsplash.com/photo-1600607687644-c7171b42498f?auto=format&fit=crop&w=1200&q=80'
   end
@@ -140,7 +140,7 @@ begin
       when p10 then 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=400&q=80'
     end,
     cover_path = coalesce(cover_path, case occupation_mode
-      when 'blue_collar' then 'https://images.unsplash.com/photo-1504307651254-35680f356988?auto=format&fit=crop&w=1400&q=80'
+      when 'blue_collar' then 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&w=1400&q=80'
       when 'contractor' then 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1400&q=80'
       else 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1400&q=80'
     end)
@@ -150,7 +150,7 @@ begin
   select p3, 'photo', 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=900&q=80', 'Campus electrical board (demo)', 'Electrical', 'Whitefield', null, true
   where not exists (select 1 from public.work_portfolio_items where profile_id = p3 and caption = 'Campus electrical board (demo)');
   insert into public.work_portfolio_items (profile_id, kind, image_url, caption, work_category, location, product_used, supervisor_verified)
-  select p6, 'photo', 'https://images.unsplash.com/photo-1504307651254-35680f356988?auto=format&fit=crop&w=900&q=80', 'Site welding pass (demo)', 'Welding', 'Vashi', null, true
+  select p6, 'photo', 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&w=900&q=80', 'Site welding pass (demo)', 'Welding', 'Vashi', null, true
   where not exists (select 1 from public.work_portfolio_items where profile_id = p6 and caption = 'Site welding pass (demo)');
   insert into public.work_portfolio_items (profile_id, kind, image_url, caption, work_category, location, product_used, supervisor_verified)
   select p7, 'photo', 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=900&q=80', 'Office fit-out after paint (demo)', 'Interiors', 'Kalyani Nagar', null, true

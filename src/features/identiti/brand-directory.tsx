@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/states/empty-state";
 import { PhotoFrame } from "@/components/identity/media-photo";
+import { organisationTypeLabel } from "@/lib/domain/org-config";
 import type { IdentitiBrand } from "@/lib/data/identiti";
 
 export function BrandDirectory({
@@ -24,26 +25,30 @@ export function BrandDirectory({
         <EmptyState className="mt-6" title="No brands yet" body="When a verified brand is published, it appears here." />
       ) : (
         <div className="mt-6 grid gap-4 md:grid-cols-2">
-          {brands.map((brand) => (
-            <Link key={brand.id} href={`${hrefBase}/${brand.slug}`}>
-              <Card className="overflow-hidden">
-                <PhotoFrame src={brand.coverPath} alt="" className="h-40" />
-                <div className="p-5">
-                  <div className="flex flex-wrap gap-2">
-                    {brand.gstVerified || brand.kycVerified ? <Badge variant="verify">TatvaOps verified</Badge> : null}
-                    {brand.categoryLabel ? <Badge variant="outline">{brand.categoryLabel}</Badge> : null}
+          {brands.map((brand) => {
+            const category = brand.categoryLabel ?? (brand.type ? organisationTypeLabel(brand.type) : null);
+            const meta = [
+              brand.city,
+              brand.averageRating != null ? brand.averageRating.toFixed(1) : null,
+              brand.verifiedReviewCount ? `${brand.verifiedReviewCount} reviews` : null,
+            ].filter(Boolean);
+            return (
+              <Link key={brand.id} href={`${hrefBase}/${brand.slug}`}>
+                <Card className="overflow-hidden">
+                  <PhotoFrame src={brand.coverPath} alt="" className="h-40" />
+                  <div className="p-5">
+                    <div className="flex flex-wrap gap-2">
+                      {brand.gstVerified || brand.kycVerified ? <Badge variant="verify">TatvaOps verified</Badge> : null}
+                      {category ? <Badge variant="outline">{category}</Badge> : null}
+                    </div>
+                    <h2 className="mt-3 text-xl font-semibold">{brand.name}</h2>
+                    <p className="mt-1 text-sm text-muted-foreground">{brand.tagline || brand.about}</p>
+                    {meta.length > 0 ? <p className="mt-3 text-sm">{meta.join(" · ")}</p> : null}
                   </div>
-                  <h2 className="mt-3 text-xl font-semibold">{brand.name}</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">{brand.tagline || brand.about}</p>
-                  <p className="mt-3 text-sm">
-                    {brand.city}
-                    {brand.averageRating != null ? ` · ${brand.averageRating.toFixed(1)}` : ""}
-                    {brand.verifiedReviewCount ? ` · ${brand.verifiedReviewCount} reviews` : ""}
-                  </p>
-                </div>
-              </Card>
-            </Link>
-          ))}
+                </Card>
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>

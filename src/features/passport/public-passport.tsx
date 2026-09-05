@@ -12,6 +12,7 @@ import { calculatePassportStrength } from "@/lib/domain/passport-strength";
 import { CREDENTIAL_CATEGORIES } from "@/lib/domain/credentials";
 import { headerFlags, flagsFromEvidence, SKILL_LEVEL_LABEL } from "@/lib/domain/verification";
 import { hueFromId, initialsFromName } from "@/lib/domain/passport-strength";
+import { personPublicHref } from "@/lib/domain/identiti-routes";
 import { product } from "@/lib/config";
 import type {
   Experience,
@@ -54,9 +55,9 @@ export async function PublicPassportView({
   return (
     <div className="mx-auto max-w-3xl space-y-4">
       <Card className="overflow-hidden print:shadow-none">
-        <CoverBand tone="site" className="h-28" src={profile.coverPath} />
+        {profile.coverPath ? <CoverBand tone="site" className="h-28" src={profile.coverPath} /> : null}
         <div className="px-5 pb-5">
-          <div className="-mt-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className={`${profile.coverPath ? "-mt-10" : "pt-5"} flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between`}>
             <InitialsAvatar
               initials={initialsFromName(profile.fullName)}
               hue={hueFromId(profile.id)}
@@ -99,7 +100,7 @@ export async function PublicPassportView({
           <PassportQr url={url} />
           <p className="mt-2 text-center text-xs text-muted-foreground">Scan to open this passport</p>
           <Button className="mt-3 w-full" variant="outline" asChild>
-            <Link href={`/people/${profile.handle}`}>Full profile</Link>
+            <Link href={personPublicHref(profile.handle, profile.occupationMode)}>Full profile</Link>
           </Button>
         </Card>
       </div>

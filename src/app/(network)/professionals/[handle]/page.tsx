@@ -3,7 +3,7 @@ import { ProfessionalView } from "@/features/identiti/professional-view";
 import { QueryNotice } from "@/components/states/empty-state";
 import { getProfileByHandle } from "@/lib/data/profile";
 import { getIdentitiBrandById, listIdentitiProjectsForProfile, recordIdentitiEvent } from "@/lib/data/identiti";
-import { personPublicHref } from "@/lib/domain/identiti-routes";
+import { isGigOccupation, personPublicHref } from "@/lib/domain/identiti-routes";
 
 export default async function ProfessionalPage({ params }: { params: Promise<{ handle: string }> }) {
   const { handle } = await params;
@@ -13,7 +13,7 @@ export default async function ProfessionalPage({ params }: { params: Promise<{ h
     if (!profile.meta.configured) return <QueryNotice configured={false} error={null} />;
     notFound();
   }
-  if (profile.data.occupationMode === "blue_collar" || profile.data.occupationMode === "contractor") {
+  if (isGigOccupation(profile.data.occupationMode)) {
     redirect(personPublicHref(profile.data.handle, profile.data.occupationMode));
   }
   const [projects, employer] = await Promise.all([

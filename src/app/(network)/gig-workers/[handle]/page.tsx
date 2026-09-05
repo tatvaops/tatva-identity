@@ -3,7 +3,7 @@ import { GigWorkerView } from "@/features/identiti/gig-worker-view";
 import { QueryNotice } from "@/components/states/empty-state";
 import { getProfileByHandle } from "@/lib/data/profile";
 import { listPortfolio, listSkillFacts, listSupervisorReviews, recordIdentitiEvent } from "@/lib/data/identiti";
-import { personPublicHref } from "@/lib/domain/identiti-routes";
+import { isGigOccupation, personPublicHref } from "@/lib/domain/identiti-routes";
 
 export default async function GigWorkerPage({ params }: { params: Promise<{ handle: string }> }) {
   const { handle } = await params;
@@ -13,7 +13,7 @@ export default async function GigWorkerPage({ params }: { params: Promise<{ hand
     if (!profile.meta.configured) return <QueryNotice configured={false} error={null} />;
     notFound();
   }
-  if (profile.data.occupationMode === "white_collar" || profile.data.occupationMode === "freelancer") {
+  if (!isGigOccupation(profile.data.occupationMode)) {
     redirect(personPublicHref(profile.data.handle, profile.data.occupationMode));
   }
   const [portfolio, reviews, facts] = await Promise.all([

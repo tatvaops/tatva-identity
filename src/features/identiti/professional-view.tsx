@@ -59,7 +59,13 @@ export function ProfessionalView({
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Proof of work</p>
         <h2 className="mt-1 text-2xl font-semibold">Projects this person is named on</h2>
         {projects.length === 0 ? (
-          <p className="mt-3 text-sm text-muted-foreground">No opted-in projects are public yet.</p>
+          <p className="mt-3 text-sm text-muted-foreground">
+            No opted-in projects are public yet. Named work appears here after the person is linked on a
+            verified project record.{" "}
+            <Link href="/projects" className="font-medium text-primary underline underline-offset-2">
+              Browse projects
+            </Link>
+          </p>
         ) : (
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             {projects.map((project) => (
