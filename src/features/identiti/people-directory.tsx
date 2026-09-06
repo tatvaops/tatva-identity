@@ -18,8 +18,8 @@ export function IdentitiPeopleDirectory({
 }) {
   return (
     <div>
-      <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
-      <p className="mt-2 max-w-2xl text-muted-foreground">{body}</p>
+      <h1 className="text-3xl font-black tracking-tight text-[#111a42]">{title}</h1>
+      <p className="mt-2 max-w-2xl text-[#747a95]">{body}</p>
       {people.length === 0 ? (
         <EmptyState className="mt-6" title="No people yet" body="When a verified professional is published, they appear here." />
       ) : (
@@ -43,8 +43,8 @@ export function GigWorkerDirectory({
   const workers = people.filter((person) => isGigOccupation(person.occupationMode));
   return (
     <div>
-      <h1 className="text-3xl font-semibold tracking-tight">Gig workers</h1>
-      <p className="mt-2 max-w-2xl text-muted-foreground">
+      <h1 className="text-3xl font-black tracking-tight text-[#111a42]">Gig workers</h1>
+      <p className="mt-2 max-w-2xl text-[#747a95]">
         Tradespeople shown by delivered work, not a résumé paragraph.
       </p>
       {workers.length === 0 ? (

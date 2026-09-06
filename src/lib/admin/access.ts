@@ -1,10 +1,11 @@
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { fail, requireUser, type ActionResult } from "@/lib/actions/shared";
-import { isBootstrapAdmin } from "@/lib/admin/bootstrap";
+import { isBootstrapAdmin, isPlatformAdminOpenToSignedIn } from "@/lib/admin/bootstrap";
 
-export { bootstrapAdminHandles, bootstrapAdminUserIds, isBootstrapAdmin } from "@/lib/admin/bootstrap";
+export { bootstrapAdminHandles, bootstrapAdminUserIds, isBootstrapAdmin, isPlatformAdminOpenToSignedIn } from "@/lib/admin/bootstrap";
 
 export async function ensurePlatformAdminRecord(userId: string, handle: string | null) {
+  if (isPlatformAdminOpenToSignedIn()) return true;
   const admin = createAdminSupabase();
   if (!admin) return false;
   const existing = await admin.from("platform_admins").select("profile_id").eq("profile_id", userId).maybeSingle();

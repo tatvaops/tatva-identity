@@ -20,7 +20,7 @@ export default async function AdminSettingsPage() {
     <div>
       <AdminHeader
         title="Settings"
-        body="Demonstration data visibility and who can open this console. The first operator can also be listed in PLATFORM_ADMIN_HANDLES."
+        body="Demonstration data visibility and who can open this console. Access is temporarily open to signed-in users; set PLATFORM_ADMIN_OPEN=false and PLATFORM_ADMIN_HANDLES to lock it down."
       />
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="p-5">

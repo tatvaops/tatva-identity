@@ -2,7 +2,7 @@ import { createServerSupabase } from "@/lib/supabase/server";
 import { supabaseConfigured } from "@/lib/supabase/env";
 import { mapPublicProfile } from "@/lib/data/mappers";
 import { publicErrorMessage } from "@/lib/public-error";
-import { isBootstrapAdmin } from "@/lib/admin/bootstrap";
+import { isBootstrapAdmin, isPlatformAdminOpenToSignedIn } from "@/lib/admin/bootstrap";
 import type { AuthContext, ListOptions, PublicProfile, QueryMeta } from "@/lib/types/identity";
 
 export function emptyMeta(error: string | null = null): QueryMeta {
@@ -26,7 +26,7 @@ export async function getAuthContext(): Promise<AuthContext> {
       userId: user.id,
       profile: null,
       configured,
-      isPlatformAdmin: isBootstrapAdmin({ userId: user.id }),
+      isPlatformAdmin: isPlatformAdminOpenToSignedIn() || isBootstrapAdmin({ userId: user.id }),
     };
   }
 
@@ -36,7 +36,10 @@ export async function getAuthContext(): Promise<AuthContext> {
     userId: user.id,
     profile,
     configured,
-    isPlatformAdmin: Boolean(adminRow.data?.profile_id) || isBootstrapAdmin({ userId: user.id, handle: profile.handle }),
+    isPlatformAdmin:
+      isPlatformAdminOpenToSignedIn() ||
+      Boolean(adminRow.data?.profile_id) ||
+      isBootstrapAdmin({ userId: user.id, handle: profile.handle }),
   };
 }
 

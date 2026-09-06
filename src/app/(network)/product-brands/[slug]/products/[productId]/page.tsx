@@ -29,11 +29,11 @@ export default async function ProductPage({
     ? `/forum/new/product/${product.id}`
     : `/auth/sign-in?next=/product-brands/${slug}/products/${productId}`;
   return (
-    <div className="space-y-8">
-      <section className="overflow-hidden rounded-2xl bg-[#0b1f3a] text-white">
+    <div className="space-y-6 pb-14">
+      <section className="overflow-hidden rounded-[28px] border border-[#e2e5ef] bg-[#111a42] text-white shadow-[0_18px_60px_rgba(20,28,73,.09)]">
         <PhotoFrame src={product.photo_url} alt="" className="h-64" />
         <div className="p-8">
-        <p className="text-xs uppercase tracking-[0.2em] text-white/70">{brand.data.name}</p>
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/70">{brand.data.name}</p>
         <div className="mt-3 flex flex-wrap gap-2">
           <Badge variant="outline" className="border-white/30 text-white">{product.application_family}</Badge>
           {product.category ? <Badge variant="outline" className="border-white/30 text-white">{product.category}</Badge> : null}

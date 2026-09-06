@@ -19,8 +19,8 @@ export function BrandDirectory({
 }) {
   return (
     <div>
-      <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
-      <p className="mt-2 max-w-2xl text-muted-foreground">{body}</p>
+      <h1 className="text-3xl font-black tracking-tight text-[#111a42]">{title}</h1>
+      <p className="mt-2 max-w-2xl text-[#747a95]">{body}</p>
       {brands.length === 0 ? (
         <EmptyState className="mt-6" title="No brands yet" body="When a verified brand is published, it appears here." />
       ) : (
@@ -34,8 +34,8 @@ export function BrandDirectory({
             ].filter(Boolean);
             return (
               <Link key={brand.id} href={`${hrefBase}/${brand.slug}`}>
-                <Card className="overflow-hidden">
-                  <PhotoFrame src={brand.coverPath} alt="" className="h-40" />
+                <Card className="overflow-hidden rounded-2xl border-[#e4e6ef] shadow-[0_8px_30px_rgba(25,33,75,.06)]">
+                  <PhotoFrame src={brand.coverPath} alt="" className="h-44" />
                   <div className="p-5">
                     <div className="flex flex-wrap gap-2">
                       {brand.gstVerified || brand.kycVerified ? <Badge variant="verify">TatvaOps verified</Badge> : null}

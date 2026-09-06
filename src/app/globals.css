@@ -33,28 +33,28 @@
 }
 
 :root {
-  --background: #f4f6f8;
-  --foreground: #111827;
+  --background: #f4f5f9;
+  --foreground: #111a42;
   --card: #ffffff;
-  --card-foreground: #111827;
+  --card-foreground: #111a42;
   --popover: #ffffff;
-  --popover-foreground: #111827;
-  --primary: #0b1f3a;
+  --popover-foreground: #111a42;
+  --primary: #2437d4;
   --primary-foreground: #ffffff;
-  --secondary: #eef0f4;
-  --secondary-foreground: #0b1f3a;
-  --muted: #f3f4f6;
-  --muted-foreground: #6b7280;
-  --accent: #e8eef8;
-  --accent-foreground: #0b1f3a;
+  --secondary: #eef0ff;
+  --secondary-foreground: #2437d4;
+  --muted: #f7f8fb;
+  --muted-foreground: #7a7f99;
+  --accent: #eef0ff;
+  --accent-foreground: #111a42;
   --destructive: #e11d48;
-  --border: #e5e7eb;
-  --input: #e5e7eb;
-  --ring: #1d4ed8;
-  --verify: #0891b2;
+  --border: #e2e5ef;
+  --input: #e2e5ef;
+  --ring: #2437d4;
+  --verify: #059669;
   --success: #059669;
   --warning: #d97706;
-  --shadow-card: 0 1px 2px rgba(17, 24, 39, 0.04), 0 1px 1px rgba(17, 24, 39, 0.03);
+  --shadow-card: 0 8px 30px rgba(25, 33, 75, 0.06);
 }
 
 @layer base {
@@ -85,5 +85,5 @@
 @utility page-wrap {
   margin-inline: auto;
   width: 100%;
-  max-width: 1440px;
+  max-width: 1480px;
 }

@@ -24,11 +24,13 @@ import { cn } from "@/lib/utils";
 export function Wordmark({ compact = false }: { compact?: boolean }) {
   return (
     <Link href="/" className="flex items-center gap-2">
-      <span className="grid size-8 place-items-center rounded-lg bg-[#0b1f3a] text-[11px] font-bold text-white">TI</span>
+      <span className="grid size-10 place-items-center rounded-xl bg-[#2437d4] text-sm font-black tracking-tight text-white shadow-[0_8px_24px_rgba(36,55,212,.24)]">
+        TI
+      </span>
       {!compact && (
-        <span className="leading-tight">
-          <span className="block text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Tatva</span>
-          <span className="block text-[15px] font-semibold tracking-tight">IDENTITI</span>
+        <span className="leading-none">
+          <span className="block text-[11px] font-semibold uppercase tracking-[0.26em] text-[#6e7391]">Tatva</span>
+          <span className="mt-1 block text-lg font-black tracking-[0.12em] text-[#111a42]">IDENTITI</span>
         </span>
       )}
     </Link>
@@ -57,15 +59,10 @@ export function GlobalHeader() {
   ];
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur">
-      <div className="page-wrap flex h-14 items-center gap-3 px-4">
+    <header className="sticky top-0 z-40 border-b border-[#e2e5ef] bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur">
+      <div className="page-wrap flex h-16 items-center justify-between gap-4 px-4 sm:px-6">
         <Wordmark />
-        <div className="hidden min-w-0 flex-1 md:block">
-          <div className="mx-auto max-w-2xl">
-            <SearchBox />
-          </div>
-        </div>
-        <nav className="ml-auto hidden items-stretch lg:flex" aria-label="Primary">
+        <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary">
           {items.map((item) => {
             const active = pathname.startsWith(item.href);
             return (
@@ -74,8 +71,8 @@ export function GlobalHeader() {
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex min-w-[88px] flex-col items-center justify-center px-1 text-[11px] text-muted-foreground hover:text-foreground",
-                  active && "text-foreground",
+                  "rounded-lg px-3 py-2 text-sm font-semibold transition",
+                  active ? "bg-[#eef0ff] text-[#2437d4]" : "text-[#626983] hover:bg-slate-50 hover:text-[#111a42]",
                 )}
               >
                 {item.label}
@@ -86,18 +83,22 @@ export function GlobalHeader() {
             href={profileHref}
             aria-current={profileActive ? "page" : undefined}
             className={cn(
-              "flex min-w-[64px] flex-col items-center justify-center px-1 text-[11px] text-muted-foreground hover:text-foreground",
-              profileActive && "text-foreground",
+              "rounded-lg px-3 py-2 text-sm font-semibold transition",
+              profileActive ? "bg-[#eef0ff] text-[#2437d4]" : "text-[#626983] hover:bg-slate-50 hover:text-[#111a42]",
             )}
           >
             {copy.profile}
           </Link>
         </nav>
-        <Link href="/search" className="ml-auto md:hidden" aria-label={copy.search}>
-          <Search className="size-5" />
+        <div className="hidden min-w-0 max-w-md flex-1 xl:block">
+          <SearchBox />
+        </div>
+        <div className="flex items-center gap-3">
+        <Link href="/search" className="grid size-9 place-items-center rounded-lg border border-[#e1e4ed] text-[#68708b]" aria-label={copy.search}>
+          <Search className="size-4" />
         </Link>
-        <Link href="/notifications" className="md:hidden" aria-label={copy.notifications}>
-          <Bell className="size-5" />
+        <Link href="/notifications" className="grid size-9 place-items-center rounded-lg border border-[#e1e4ed] text-[#68708b] md:hidden" aria-label={copy.notifications}>
+          <Bell className="size-4" />
         </Link>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -191,10 +192,35 @@ export function GlobalHeader() {
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
-          <Button size="sm" className="hidden md:inline-flex" asChild>
+          <Button size="sm" className="hidden rounded-lg bg-[#111a42] px-4 font-bold text-white hover:bg-[#0d1433] md:inline-flex" asChild>
             <Link href="/auth/sign-in">Sign in</Link>
           </Button>
         )}
+        </div>
+      </div>
+      <div className="flex gap-1 overflow-x-auto border-t border-[#eef0f5] px-4 py-2 lg:hidden">
+        {[
+          { href: "/service-brands", label: "Services" },
+          { href: "/product-brands", label: "Products" },
+          { href: "/professionals", label: "Executive" },
+          { href: "/gig-workers", label: "Gig worker" },
+          { href: "/forums", label: "Forum" },
+          ...(isPlatformAdmin ? [{ href: "/admin", label: "Admin" }] : []),
+        ].map((item) => {
+          const active = pathname.startsWith(item.href);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold",
+                active ? "bg-[#2437d4] text-white" : "bg-[#f1f2f6] text-[#626983]",
+              )}
+            >
+              {item.label}
+            </Link>
+          );
+        })}
       </div>
     </header>
   );

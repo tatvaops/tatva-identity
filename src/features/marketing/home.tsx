@@ -35,7 +35,7 @@ export function MarketingHome({
           </div>
         </div>
       </header>
-      <section className="bg-[#0b1f3a] text-white">
+      <section className="bg-[#111a42] text-white">
         <div className="page-wrap px-4 py-16 md:py-24">
           <p className="text-xs font-semibold tracking-[0.2em] uppercase text-white/70">Tatva IDENTITI</p>
           <h1 className="mt-3 max-w-3xl text-4xl font-semibold tracking-tight md:text-5xl">
