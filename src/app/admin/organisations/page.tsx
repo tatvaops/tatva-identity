@@ -4,6 +4,7 @@ import { AdminHeader, AdminPager, AdminSearch, AdminTable, adminDate } from "@/f
 import { AdminActionButton } from "@/features/admin/admin-action";
 import { EmptyState } from "@/components/states/empty-state";
 import { Badge } from "@/components/ui/badge";
+import { AdminCreateOrganisationForm } from "@/features/admin/admin-create-forms";
 import { adminHideOrganisation } from "@/lib/admin/actions";
 import { listAdminOrganisations } from "@/lib/admin/data";
 
@@ -22,11 +23,12 @@ export default async function AdminOrganisationsPage({
     <div>
       <AdminHeader
         title="Organisations"
-        body="Business passports, credential state and hide from discovery. This is not Vertex company operations."
+        body="Add a live company or brand, upload cover and logo, then hide from discovery if needed. This is not Vertex company operations."
       />
+      <AdminCreateOrganisationForm />
       <AdminSearch action="/admin/organisations" defaultValue={query} placeholder="Name, slug or city" />
       {rows.length === 0 ? (
-        <EmptyState title="No organisations matched" body="Create a company from the network, or search a different name." />
+        <EmptyState title="No organisations matched" body="Add an organisation above, or search a different name." />
       ) : (
         <AdminTable headers={["Organisation", "Type", "Location", "Hidden", "Created", "Actions"]}>
           {rows.map((row) => (

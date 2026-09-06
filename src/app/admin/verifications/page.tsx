@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AdminHeader, AdminTable, adminDate } from "@/features/admin/admin-chrome";
+import { AdminCreateVerificationForm } from "@/features/admin/admin-create-forms";
 import { AdminReviewForm } from "@/features/admin/admin-forms";
 import { EmptyState } from "@/components/states/empty-state";
 import { Badge } from "@/components/ui/badge";
-import { listAdminVerifications } from "@/lib/admin/data";
+import { listAdminChoices, listAdminVerifications } from "@/lib/admin/data";
 
 export const metadata: Metadata = { title: "Verifications" };
 
@@ -15,13 +16,14 @@ export default async function AdminVerificationsPage({
 }) {
   const { status } = await searchParams;
   const current = status === "approved" || status === "declined" ? status : "pending";
-  const rows = await listAdminVerifications(current);
+  const [rows, choices] = await Promise.all([listAdminVerifications(current), listAdminChoices()]);
   return (
     <div>
       <AdminHeader
         title="Verifications"
-        body="Approve identity, employment or trade requests. Approval sets the matching public flag on the passport. This is the in-product reviewer — it does not mint a Vertex credential."
+        body="File a new identity, employment or trade request, then approve it. Approval sets the matching public flag. This does not mint a Vertex credential."
       />
+      <AdminCreateVerificationForm people={choices.people} />
       <div className="mb-4 flex gap-2 text-sm">
         {(["pending", "approved", "declined"] as const).map((value) => (
           <Link

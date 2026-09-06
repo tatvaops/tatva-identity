@@ -12,7 +12,7 @@ export default async function AdminActivityPage() {
     <div>
       <AdminHeader
         title="Activity"
-        body="First-party product events from the last 7 days. This is not an external analytics vendor."
+        body="First-party product events from the last 7 days. Events are recorded automatically when people use the network — operators do not invent rows here."
       />
       <div className="mb-6 grid gap-3 sm:grid-cols-3">
         <AdminStat label="Profile views" value={views.profileViews} />

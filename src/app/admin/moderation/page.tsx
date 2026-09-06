@@ -4,19 +4,21 @@ import { AdminHeader, AdminTable, adminDate } from "@/features/admin/admin-chrom
 import { AdminActionButton } from "@/features/admin/admin-action";
 import { EmptyState } from "@/components/states/empty-state";
 import { Badge } from "@/components/ui/badge";
+import { AdminCreatePostForm } from "@/features/admin/admin-create-forms";
 import { adminHidePost, adminResolveReport } from "@/lib/admin/actions";
-import { listAdminPosts, listAdminReports } from "@/lib/admin/data";
+import { listAdminChoices, listAdminPosts, listAdminReports } from "@/lib/admin/data";
 
 export const metadata: Metadata = { title: "Moderation" };
 
 export default async function AdminModerationPage() {
-  const [reports, posts] = await Promise.all([listAdminReports(), listAdminPosts()]);
+  const [reports, posts, choices] = await Promise.all([listAdminReports(), listAdminPosts(), listAdminChoices()]);
   return (
     <div>
       <AdminHeader
         title="Moderation"
-        body="Reports from the network and posts you can hold out of the public feed. Hidden posts remain visible to their author."
+        body="Publish a live feed post with an optional image, or hold a report and hide rows. Hidden posts remain visible to their author."
       />
+      <AdminCreatePostForm people={choices.people} organisations={choices.organisations} />
       <h2 className="mb-3 text-lg font-semibold">Reports</h2>
       {reports.length === 0 ? (
         <EmptyState title="No reports" body="People can report a post from the feed. Open reports stay here until an operator acts." />
@@ -57,7 +59,7 @@ export default async function AdminModerationPage() {
       )}
       <h2 className="mb-3 mt-8 text-lg font-semibold">Posts</h2>
       {posts.length === 0 ? (
-        <EmptyState title="No posts" body="Network updates appear here for hide / unhide." />
+        <EmptyState title="No posts" body="Publish a post above, or hide a row once the feed has updates." />
       ) : (
         <AdminTable headers={["Author", "Type", "Body", "State", "When", "Actions"]}>
           {posts.map((row) => (

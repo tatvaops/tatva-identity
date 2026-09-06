@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdminHeader, adminDate } from "@/features/admin/admin-chrome";
 import { AdminActionButton } from "@/features/admin/admin-action";
+import { AdminCreateCertificationForm, AdminCreateExperienceForm } from "@/features/admin/admin-create-forms";
 import { AdminCertificationState, AdminPortfolioForm, AdminProfileMediaForm, AdminReviewForm, AdminSkillFactForm, AdminSupervisorReviewForm } from "@/features/admin/admin-forms";
 import { personPublicHref } from "@/lib/domain/identiti-routes";
 import { Card } from "@/components/ui/card";
@@ -110,7 +111,15 @@ export default async function AdminPersonPage({ params }: { params: Promise<{ id
         </Card>
       </div>
       <Card className="mt-4 p-5">
+        <p className="text-sm font-semibold">Experience</p>
+        <p className="mt-1 mb-3 text-sm text-muted-foreground">Public career rows. No payroll, rates or home address.</p>
+        <AdminCreateExperienceForm profileId={profile.id} />
+      </Card>
+      <Card className="mt-4 p-5">
         <p className="text-sm font-semibold">Credentials on the wallet</p>
+        <div className="mb-4 mt-3">
+          <AdminCreateCertificationForm profileId={profile.id} />
+        </div>
         {certifications.length === 0 ? (
           <p className="mt-2 text-sm text-muted-foreground">No certifications listed.</p>
         ) : (

@@ -256,6 +256,21 @@ export async function listAdminProjects() {
   return data ?? [];
 }
 
+export async function listAdminChoices() {
+  const admin = await adminClient();
+  if (!admin) return { organisations: [], people: [], projects: [] };
+  const [organisations, people, projects] = await Promise.all([
+    admin.from("organisations").select("id, name, slug").order("name").limit(400),
+    admin.from("profiles").select("id, full_name, handle").order("full_name").limit(400),
+    admin.from("network_projects").select("id, name, slug").order("name").limit(400),
+  ]);
+  return {
+    organisations: organisations.data ?? [],
+    people: people.data ?? [],
+    projects: projects.data ?? [],
+  };
+}
+
 export async function listAdminOperators() {
   const admin = await adminClient();
   if (!admin) return [];

@@ -23,7 +23,7 @@ export default async function AdminOverviewPage() {
     <div>
       <AdminHeader
         title="Operations overview"
-        body="Queues for verification and moderation, plus platform volume. Hire, Quote and Vertex work history stay out of this console."
+        body="Add live people, organisations, projects and listings from each section. Hire, Quote and Vertex work history stay out of this console."
       />
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <AdminStat label="Pending verifications" value={stats.pendingVerifications} href="/admin/verifications" tone={stats.pendingVerifications ? "warn" : "ok"} />
@@ -41,6 +41,26 @@ export default async function AdminOverviewPage() {
         <AdminStat label="Search appearances (7d)" value={views.searchAppearances} href="/admin/activity" />
       </div>
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
+        <Card className="p-5">
+          <p className="text-sm font-semibold">Publish live records</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Each section can add real people, organisations, projects, jobs, gigs and posts with photos. Seed rows stay labelled demonstration data.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-3 text-sm">
+            <Link href="/admin/people" className="text-primary hover:underline">
+              People
+            </Link>
+            <Link href="/admin/organisations" className="text-primary hover:underline">
+              Organisations
+            </Link>
+            <Link href="/admin/projects" className="text-primary hover:underline">
+              Projects
+            </Link>
+            <Link href="/admin/opportunities" className="text-primary hover:underline">
+              Jobs & gigs
+            </Link>
+          </div>
+        </Card>
         <Card className="p-5">
           <p className="text-sm font-semibold">Demonstration data</p>
           <p className="mt-1 text-sm text-muted-foreground">

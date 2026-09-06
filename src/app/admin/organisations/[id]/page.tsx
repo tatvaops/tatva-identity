@@ -17,6 +17,7 @@ import {
   AdminStrengthForm,
   AdminVideoForm,
 } from "@/features/admin/admin-forms";
+import { AdminCreateOrgCredentialForm } from "@/features/admin/admin-create-forms";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { adminHideOrganisation, adminSetProjectVerified } from "@/lib/admin/actions";
@@ -89,6 +90,7 @@ export default async function AdminOrganisationPage({ params }: { params: Promis
               ))}
             </ul>
           )}
+          <AdminCreateOrgCredentialForm organisationId={organisation.id} />
         </Card>
         <Card className="p-5">
           <p className="text-sm font-semibold">Linked projects</p>

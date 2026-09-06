@@ -4,22 +4,25 @@ import { AdminHeader, AdminTable, adminDate } from "@/features/admin/admin-chrom
 import { AdminActionButton } from "@/features/admin/admin-action";
 import { EmptyState } from "@/components/states/empty-state";
 import { Badge } from "@/components/ui/badge";
+import { AdminCreateGigForm, AdminCreateJobForm } from "@/features/admin/admin-create-forms";
 import { adminCloseGig, adminCloseJob } from "@/lib/admin/actions";
-import { listAdminGigs, listAdminJobs } from "@/lib/admin/data";
+import { listAdminChoices, listAdminGigs, listAdminJobs } from "@/lib/admin/data";
 
 export const metadata: Metadata = { title: "Jobs & gigs" };
 
 export default async function AdminOpportunitiesPage() {
-  const [jobs, gigs] = await Promise.all([listAdminJobs(), listAdminGigs()]);
+  const [jobs, gigs, choices] = await Promise.all([listAdminJobs(), listAdminGigs(), listAdminChoices()]);
   return (
     <div>
       <AdminHeader
         title="Jobs & gigs"
-        body="Close listings that should not stay public. This does not hire, quote, or staff a site."
+        body="Publish a live listing or close one that should not stay public. This does not hire, quote, or staff a site."
       />
+      <AdminCreateJobForm organisations={choices.organisations} />
+      <AdminCreateGigForm organisations={choices.organisations} projects={choices.projects} />
       <h2 className="mb-3 text-lg font-semibold">Jobs</h2>
       {jobs.length === 0 ? (
-        <EmptyState title="No jobs" body="Job posts from organisations appear here." />
+        <EmptyState title="No jobs" body="Publish a job above. Open listings appear on the public jobs directory." />
       ) : (
         <AdminTable headers={["Job", "Organisation", "City", "Type", "State", "Created", "Actions"]}>
           {jobs.map((row) => (
@@ -48,7 +51,7 @@ export default async function AdminOpportunitiesPage() {
       )}
       <h2 className="mb-3 mt-8 text-lg font-semibold">Gigs</h2>
       {gigs.length === 0 ? (
-        <EmptyState title="No gigs" body="Gig posts from organisations appear here." />
+        <EmptyState title="No gigs" body="Publish a gig above. Open listings appear on the public gigs directory." />
       ) : (
         <AdminTable headers={["Gig", "Organisation", "Trade", "Site", "State", "Created", "Actions"]}>
           {gigs.map((row) => (

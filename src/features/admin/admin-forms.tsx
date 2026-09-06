@@ -28,6 +28,7 @@ import {
   adminSetProfileMedia,
   adminSetProjectMedia,
 } from "@/lib/admin/actions";
+import { AdminMediaField } from "@/features/admin/admin-media-field";
 
 export function AdminGrantForm() {
   const router = useRouter();
@@ -367,8 +368,8 @@ export function AdminOrganisationMediaForm({
         });
       }}
     >
-      <Input name="coverPath" defaultValue={coverPath ?? ""} placeholder="https://… cover photo" aria-label="Cover photo URL" />
-      <Input name="logoPath" defaultValue={logoPath ?? ""} placeholder="https://… logo" aria-label="Logo URL" />
+      <AdminMediaField name="coverPath" label="Cover photo" defaultValue={coverPath} placeholder="https://… cover photo" />
+      <AdminMediaField name="logoPath" label="Logo" defaultValue={logoPath} placeholder="https://… logo" />
       <Input name="categoryLabel" defaultValue={categoryLabel ?? ""} placeholder="Category label" aria-label="Category label" />
       <Input name="servingRegions" defaultValue={servingRegions ?? ""} placeholder="Serving regions" aria-label="Serving regions" />
       <Button type="submit" size="sm" disabled={pending}>
@@ -410,8 +411,8 @@ export function AdminProfileMediaForm({
         });
       }}
     >
-      <Input name="avatarPath" defaultValue={avatarPath ?? ""} placeholder="https://… portrait" aria-label="Avatar URL" />
-      <Input name="coverPath" defaultValue={coverPath ?? ""} placeholder="https://… cover" aria-label="Cover URL" />
+      <AdminMediaField name="avatarPath" label="Portrait" defaultValue={avatarPath} placeholder="https://… portrait" />
+      <AdminMediaField name="coverPath" label="Cover photo" defaultValue={coverPath} placeholder="https://… cover" />
       <Button type="submit" size="sm" disabled={pending}>
         Save profile photos
       </Button>
@@ -460,7 +461,7 @@ export function AdminProjectMediaForm({
         });
       }}
     >
-      <Input name="coverImageUrl" defaultValue={coverImageUrl ?? ""} placeholder="https://… project cover" aria-label="Project cover URL" />
+      <AdminMediaField name="coverImageUrl" label="Project cover" defaultValue={coverImageUrl} placeholder="https://… project cover" />
       <Input name="youtubeUrl" defaultValue={youtubeUrl ?? ""} placeholder="https://www.youtube.com/watch?v=…" aria-label="YouTube URL" />
       <Input name="valueLabel" defaultValue={valueLabel ?? ""} placeholder="Value label" aria-label="Value label" />
       <Textarea name="qcNotes" defaultValue={qcNotes ?? ""} placeholder="QC notes" className="min-h-16" aria-label="QC notes" />
@@ -522,7 +523,7 @@ export function AdminProductForm({
       <Input name="slug" defaultValue={product?.slug ?? ""} placeholder="slug" aria-label="Product slug" />
       <Input name="applicationFamily" defaultValue={product?.application_family ?? ""} placeholder="Application family" aria-label="Application family" />
       <Input name="category" defaultValue={product?.category ?? ""} placeholder="Category" aria-label="Category" />
-      <Input name="photoUrl" defaultValue={product?.photo_url ?? ""} placeholder="https://… product photo" aria-label="Product photo URL" />
+      <AdminMediaField name="photoUrl" label="Product photo" defaultValue={product?.photo_url} placeholder="https://… product photo" />
       <Input name="priceLabel" defaultValue={product?.indicative_price_label ?? ""} placeholder="Indicative price" aria-label="Indicative price" />
       <Textarea name="description" defaultValue={product?.description ?? ""} placeholder="Description" className="min-h-16" aria-label="Description" />
       <Button type="submit" size="sm" disabled={pending}>
@@ -815,7 +816,7 @@ export function AdminPortfolioForm({
         );
       }}
     >
-      <Input name="imageUrl" placeholder="https://… work photo" aria-label="Work photo URL" />
+      <AdminMediaField name="imageUrl" label="Work photo" placeholder="https://… work photo" />
       <Input name="caption" placeholder="Caption" aria-label="Caption" />
       <Input name="workCategory" placeholder="Category" aria-label="Work category" />
       <Input name="location" placeholder="Location" aria-label="Location" />

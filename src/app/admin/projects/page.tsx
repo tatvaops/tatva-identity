@@ -4,22 +4,24 @@ import { AdminHeader, AdminTable, adminDate } from "@/features/admin/admin-chrom
 import { AdminActionButton } from "@/features/admin/admin-action";
 import { EmptyState } from "@/components/states/empty-state";
 import { Badge } from "@/components/ui/badge";
+import { AdminCreateProjectForm } from "@/features/admin/admin-create-forms";
 import { AdminProjectMediaForm } from "@/features/admin/admin-forms";
 import { adminSetProjectVerified } from "@/lib/admin/actions";
-import { listAdminProjects } from "@/lib/admin/data";
+import { listAdminChoices, listAdminProjects } from "@/lib/admin/data";
 
 export const metadata: Metadata = { title: "Projects" };
 
 export default async function AdminProjectsPage() {
-  const rows = await listAdminProjects();
+  const [rows, choices] = await Promise.all([listAdminProjects(), listAdminChoices()]);
   return (
     <div>
       <AdminHeader
         title="Projects"
-        body="Mark opted-in network projects as verified. This is not a construction programme of record and does not write Vertex work history."
+        body="Add a live project with cover photo and YouTube walkthrough, or mark an existing one verified. This does not write Vertex work history."
       />
+      <AdminCreateProjectForm organisations={choices.organisations} />
       {rows.length === 0 ? (
-        <EmptyState title="No projects yet" body="Projects people opt into on their passport appear here." />
+        <EmptyState title="No projects yet" body="Add a project above. It will appear on the public projects directory." />
       ) : (
         <>
         <AdminTable headers={["Project", "City", "Status", "Verified", "Created", "Actions"]}>

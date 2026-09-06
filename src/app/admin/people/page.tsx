@@ -4,6 +4,7 @@ import { AdminHeader, AdminPager, AdminSearch, AdminTable, adminDate } from "@/f
 import { AdminActionButton } from "@/features/admin/admin-action";
 import { EmptyState } from "@/components/states/empty-state";
 import { Badge } from "@/components/ui/badge";
+import { AdminCreatePersonForm } from "@/features/admin/admin-create-forms";
 import { adminHideProfile, adminSetProfileVerification } from "@/lib/admin/actions";
 import { listAdminPeople } from "@/lib/admin/data";
 
@@ -22,11 +23,12 @@ export default async function AdminPeoplePage({
     <div>
       <AdminHeader
         title="People"
-        body="Set verification flags, hide a profile from public discovery, or open the full operator record. Hidden profiles stay visible to their owner."
+        body="Add a live passport, upload photos, set verification flags, or hide a profile from public discovery. Hidden profiles stay visible to their owner."
       />
+      <AdminCreatePersonForm />
       <AdminSearch action="/admin/people" defaultValue={query} placeholder="Name, handle or city" />
       {rows.length === 0 ? (
-        <EmptyState title="No people matched" body="Try a different handle or city. Demonstration rows appear here even when public directories hide them." />
+        <EmptyState title="No people matched" body="Add a person above, or try a different handle or city." />
       ) : (
         <AdminTable headers={["Person", "Location", "Flags", "Hidden", "Joined", "Actions"]}>
           {rows.map((row) => (

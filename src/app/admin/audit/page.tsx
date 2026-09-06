@@ -17,7 +17,7 @@ export default async function AdminAuditPage({
     <div>
       <AdminHeader
         title="Audit"
-        body="What operators changed. Actor, action and entity only — no Aadhaar, payroll or Vertex tables."
+        body="What operators changed, including new people, organisations, projects and listings. Actor, action and entity only — no Aadhaar, payroll or Vertex tables."
       />
       {rows.length === 0 ? (
         <EmptyState title="No operator actions yet" body="Hide, verify, grant and close actions write a row here." />
