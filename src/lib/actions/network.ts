@@ -5,7 +5,7 @@ import { createServerSupabase } from "@/lib/supabase/server";
 import { fail, requireUser, type ActionResult } from "@/lib/actions/shared";
 import { notify, trackEvent, limitAction } from "@/lib/actions/notify";
 import { canApplyToListing } from "@/lib/domain/application-lifecycle";
-import { isUuid } from "@/lib/domain/messaging-rules";
+import { canReadConversation, isUuid } from "@/lib/domain/messaging-rules";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 async function notifyOrgStaff(
@@ -315,7 +315,9 @@ export async function sendMessage(conversationId: string, body: string): Promise
     .eq("conversation_id", conversationId)
     .eq("profile_id", auth.ctx.userId)
     .maybeSingle();
-  if (!member.data) return fail("That conversation is not available.");
+  if (!canReadConversation({ userId: auth.ctx.userId, isMember: Boolean(member.data) })) {
+    return fail("That conversation is not available.");
+  }
   const { error } = await auth.supabase.from("messages").insert({
     conversation_id: conversationId,
     sender_id: auth.ctx.userId,

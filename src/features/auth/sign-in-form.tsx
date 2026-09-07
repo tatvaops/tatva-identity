@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Wordmark } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { safeNextPath } from "@/lib/auth/next-path";
 import { digitsOnly, normalizeIndianMobile } from "@/lib/auth/phone";
@@ -37,9 +36,11 @@ export function SignInForm() {
   }
 
   return (
-    <Card className="mx-auto mt-16 max-w-md p-6">
+    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-16">
+      <div className="w-full max-w-md border border-border bg-white p-8">
       <Wordmark />
-      <h1 className="mt-4 text-xl font-semibold">Sign in</h1>
+      <p className="mt-6 type-micro text-brand">Passport access</p>
+      <h1 className="mt-2 type-page">Sign in</h1>
       <p className="mt-1 text-sm text-muted-foreground">{helpText}</p>
       <form
         className="mt-4 space-y-3"
@@ -155,6 +156,7 @@ export function SignInForm() {
       <Button variant="ghost" className="mt-4" onClick={() => router.push("/")}>
         Back
       </Button>
-    </Card>
+    </div>
+    </div>
   );
 }
