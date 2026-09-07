@@ -108,7 +108,7 @@ export async function FeedView({ compose = false, page = 1 }: { compose?: boolea
           params={compose ? { compose: "1" } : undefined}
         />
       </section>
-      <aside className="hidden space-y-4 xl:block">
+      <aside className="hidden space-y-6 xl:block">
         <Rail title="People">
           {people.data.slice(0, 3).map((p) => (
             <PersonCard key={p.id} profile={p} connectionState={railStates.get(p.id) ?? "connect"} />
@@ -141,7 +141,7 @@ export async function FeedView({ compose = false, page = 1 }: { compose?: boolea
 function Rail({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div>
-      <p className="mb-2 text-sm font-semibold">{title}</p>
+      <p className="mb-3 type-micro">{title}</p>
       <div className="space-y-3">{children}</div>
     </div>
   );

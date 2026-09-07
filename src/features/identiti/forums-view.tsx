@@ -30,9 +30,9 @@ export function ForumsHubView({
   const featuredType = featured?.passportKind === "product_brand" ? "product_brand" : "service_brand";
   return (
     <div className="space-y-6 pb-14">
-      <section className="overflow-hidden rounded-[28px] border border-[#e2e5ef] bg-white p-6 shadow-[0_18px_60px_rgba(20,28,73,.09)] sm:p-8">
-        <IdentitiChip active>Open community</IdentitiChip>
-        <h1 className="mt-3 text-3xl font-black tracking-tight text-[#111a42]">
+      <section className="border border-border bg-white p-6 sm:p-8">
+        <IdentitiChip active>Vantage</IdentitiChip>
+        <h1 className="type-display mt-3 text-4xl">
           {featured ? `${featured.name} discussions` : "Brand forum"}
         </h1>
         <p className="mt-3 max-w-2xl text-[15px] leading-7 text-[#555c78]">
@@ -82,7 +82,7 @@ export function ForumsHubView({
                   : null,
               );
               return (
-                <div key={brand.id} className="flex flex-col gap-4 rounded-2xl border border-[#eceef4] p-5 md:flex-row md:items-center md:justify-between">
+                <div key={brand.id} className="flex flex-col gap-4 border border-border p-5 md:flex-row md:items-center md:justify-between">
                   <div>
                     <div className="flex flex-wrap gap-2">
                       <IdentitiChip>{entityType.replace("_", " ")}</IdentitiChip>

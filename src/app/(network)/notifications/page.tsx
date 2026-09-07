@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { NotificationsView } from "@/features/messaging/notifications-view";
 import { MarkAllReadButton } from "@/features/messaging/mark-all-read";
+import { PageHeader } from "@/components/ui/section";
 import { getAuthContext } from "@/lib/data/query";
 import { listNotifications } from "@/lib/data/network";
 
@@ -10,10 +11,11 @@ export default async function NotificationsPage() {
   const items = await listNotifications(session.userId);
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">Notifications</h1>
-        {items.data.some((item) => !item.readAt) ? <MarkAllReadButton /> : null}
-      </div>
+      <PageHeader
+        title="Notifications"
+        body="Follows, applications, messages and verification updates from the live network."
+        action={items.data.some((item) => !item.readAt) ? <MarkAllReadButton /> : undefined}
+      />
       <NotificationsView items={items.data} />
     </div>
   );

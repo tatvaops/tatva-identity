@@ -81,7 +81,7 @@ export async function IdentitiPeopleDirectory({
   return (
     <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
       <FilterDrawer title="Filters">
-        <div className="h-fit rounded-2xl border border-border bg-white p-4">
+        <div className="h-fit border border-border bg-white p-4">
           <DirectoryFilters query={query} city={city} availability={availability} skill={skill} />
         </div>
       </FilterDrawer>
@@ -130,7 +130,7 @@ export function GigWorkerDirectory({
   return (
     <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
       <FilterDrawer title="Filters">
-        <div className="h-fit rounded-2xl border border-border bg-white p-4">
+        <div className="h-fit border border-border bg-white p-4">
           <DirectoryFilters query={query} city={city} availability={availability} skill={skill} />
         </div>
       </FilterDrawer>

@@ -21,7 +21,7 @@ export async function JobsView({
   return (
     <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
       <FilterDrawer title="Filters">
-        <form method="get" className="h-fit space-y-5 rounded-2xl border border-border bg-white p-4 text-sm">
+        <form method="get" className="h-fit space-y-5 border border-border bg-white p-4 text-sm">
           <p className="font-semibold text-foreground">Jobs</p>
           <p className="text-muted-foreground">Permanent and contract roles. Not the same as gigs.</p>
           <fieldset className="space-y-2">
@@ -74,7 +74,7 @@ export async function GigsView({ city, trade, page = 1 }: { city?: string; trade
   return (
     <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
       <FilterDrawer title="Filters">
-        <form method="get" className="h-fit space-y-5 rounded-2xl border border-border bg-white p-4 text-sm">
+        <form method="get" className="h-fit space-y-5 border border-border bg-white p-4 text-sm">
           <p className="font-semibold text-foreground">Gigs</p>
           <p className="text-muted-foreground">Immediate work. Date, shift and pay first — not a job listing.</p>
           <p className="text-muted-foreground">Nearest first when distance is known.</p>
