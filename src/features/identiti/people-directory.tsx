@@ -86,8 +86,8 @@ export async function IdentitiPeopleDirectory({
         </div>
       </FilterDrawer>
       <div>
-        <h1 className="text-3xl font-black tracking-tight text-[#111a42]">{title}</h1>
-        <p className="mt-2 max-w-2xl text-[#747a95]">{body}</p>
+        <h1 className="type-page">{title}</h1>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">{body}</p>
         {people.length === 0 ? (
           <EmptyState
             className="mt-6"
@@ -135,8 +135,8 @@ export function GigWorkerDirectory({
         </div>
       </FilterDrawer>
       <div>
-        <h1 className="text-3xl font-black tracking-tight text-[#111a42]">Gig workers</h1>
-        <p className="mt-2 max-w-2xl text-[#747a95]">Tradespeople shown by delivered work, not a résumé paragraph.</p>
+        <h1 className="type-page">Gig workers</h1>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">Tradespeople shown by delivered work, availability and supervisor reviews.</p>
         {workers.length === 0 ? (
           <EmptyState
             className="mt-6"
@@ -151,7 +151,7 @@ export function GigWorkerDirectory({
                 <Link
                   key={person.id}
                   href={personPublicHref(person.handle, person.occupationMode)}
-                  className="overflow-hidden rounded-2xl border border-border bg-white"
+              className="overflow-hidden border border-border bg-white"
                 >
                   <SafePhotoStrip urls={photos} />
                   <div className="flex items-start gap-3 p-4">

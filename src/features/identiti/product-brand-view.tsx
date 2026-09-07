@@ -65,7 +65,7 @@ export function ProductBrandView({
 
   return (
     <div className="space-y-6 pb-14">
-      <section className="overflow-hidden rounded-[28px] border border-[#e2e5ef] bg-white shadow-[0_18px_60px_rgba(20,28,73,.09)]">
+      <section className="overflow-hidden border border-border bg-white">
         <OverlayHero src={brand.coverPath} alt={`${brand.name} materials`}>
           <div className="mb-2 flex flex-wrap gap-2">
             {brand.gstVerified ? (

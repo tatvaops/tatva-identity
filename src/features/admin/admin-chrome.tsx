@@ -127,7 +127,7 @@ export function AdminTable({
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-border [&_tr]:hover:bg-surface-muted">{children}</tbody>
+        <tbody className="divide-y divide-border [&_tr:hover]:bg-surface-muted">{children}</tbody>
       </table>
     </div>
   );

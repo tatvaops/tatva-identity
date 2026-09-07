@@ -12,6 +12,14 @@ create index if not exists search_appearances_profile_created_idx
 create index if not exists search_appearances_searcher_idx
   on public.search_appearances (searcher_profile_id, created_at desc);
 
+delete from public.profile_views a
+using public.profile_views b
+where a.ctid < b.ctid
+  and a.viewer_profile_id is not null
+  and a.viewed_profile_id = b.viewed_profile_id
+  and a.viewer_profile_id = b.viewer_profile_id
+  and a.created_at::date = b.created_at::date;
+
 create unique index if not exists profile_views_daily_unique
   on public.profile_views (viewed_profile_id, viewer_profile_id, (created_at::date))
   where viewer_profile_id is not null;

@@ -14,7 +14,7 @@ import { SaveButton } from "@/components/identity/save-button";
 import { VendorContactForm } from "@/features/company/vendor-contact-form";
 import { PersonCard } from "@/components/cards/entity-cards";
 import { PhotoFrame } from "@/components/identity/media-photo";
-import { IdentitiChip, IdentitiSection, OverlayHero, StarRating, TrustRing, formatInr } from "@/features/identiti/identiti-chrome";
+import { IdentitiChip, IdentitiSection, OverlayHero, StarRating, formatInr } from "@/features/identiti/identiti-chrome";
 
 const FIT_COPY: Record<string, string> = { strong: "Strong match", good: "Good match", clarify: "Clarify" };
 const FIT_TONE: Record<string, string> = {
@@ -89,7 +89,7 @@ export function ServiceBrandView({
 
   return (
     <div className="space-y-6 pb-14">
-      <section className="overflow-hidden rounded-[28px] border border-[#e2e5ef] bg-white shadow-[0_18px_60px_rgba(20,28,73,.09)]">
+      <section className="overflow-hidden border border-border bg-white">
         <OverlayHero
           src={hero}
           alt={`${brand.name} completed work`}
@@ -315,17 +315,18 @@ export function ServiceBrandView({
             )}
           </div>
 
-          <IdentitiSection title="Tatva trust score">
-            <div className="flex items-center gap-5">
-              <TrustRing score={trust.score} insufficient={trust.insufficient} />
-              <div className="space-y-2 text-sm text-[#545b78]">
-                {trust.breakdown.map((row) => (
-                  <div key={row.label} className={row.ok ? "text-[#111a42]" : "text-[#7a7f99]"}>
-                    {row.ok ? "✓" : "–"} {row.label}
-                  </div>
-                ))}
-              </div>
-            </div>
+          <IdentitiSection title="Trust evidence">
+            <ul className="space-y-2 text-sm">
+              {trust.breakdown.map((row) => (
+                <li key={row.label} className={row.ok ? "text-foreground" : "text-muted-foreground"}>
+                  <span className="mr-2 font-medium text-verify">{row.ok ? "Present" : "Not yet"}</span>
+                  {row.label}
+                </li>
+              ))}
+            </ul>
+            {trust.insufficient ? (
+              <p className="mt-3 text-sm text-muted-foreground">Not enough labelled evidence yet. This is not a hidden score.</p>
+            ) : null}
           </IdentitiSection>
 
           <IdentitiSection title="Delivery capacity">
