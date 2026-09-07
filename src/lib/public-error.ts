@@ -7,9 +7,9 @@ export function publicErrorMessage(message?: string | null): string {
 }
 
 export function publicActionError(error?: string | null): string {
-  if (!error) return "Something went wrong. Please try again.";
+  if (!error) return "Couldn't complete that action. Try again.";
   if (DATABASE_PATTERN.test(error) || error.length > 140) {
-    return "Something went wrong. Please try again.";
+    return "Couldn't complete that action. Try again.";
   }
   return error;
 }

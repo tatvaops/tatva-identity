@@ -34,9 +34,9 @@ export function PageNav({
     return `${path}?${query.toString()}`;
   };
   return (
-    <nav className="mt-4 flex items-center justify-between text-sm" aria-label="Pagination">
+    <nav className="mt-6 flex items-center justify-between border-t border-border pt-4 text-sm" aria-label="Pagination">
       {page > 1 ? (
-        <Link className="text-primary hover:underline" href={hrefFor(page - 1)}>
+        <Link className="font-medium text-brand hover:underline" href={hrefFor(page - 1)}>
           Previous
         </Link>
       ) : (
@@ -47,7 +47,7 @@ export function PageNav({
         {typeof total === "number" ? ` · ${total}` : ""}
       </span>
       {hasMore ? (
-        <Link className="text-primary hover:underline" href={hrefFor(page + 1)}>
+        <Link className="font-medium text-brand hover:underline" href={hrefFor(page + 1)}>
           Next
         </Link>
       ) : (

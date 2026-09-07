@@ -93,8 +93,8 @@ export async function SearchView({
               href={`/search?q=${encodeURIComponent(initialQuery)}&type=${value}`}
               role="tab"
               aria-selected={entity === value}
-              className={`rounded-full border px-3 py-1 text-sm ${
-                entity === value ? "border-primary bg-primary/5 text-primary" : "border-border"
+              className={`border px-3 py-1 text-sm ${
+                entity === value ? "border-brand bg-secondary text-brand" : "border-border text-text-secondary"
               }`}
             >
               {label}

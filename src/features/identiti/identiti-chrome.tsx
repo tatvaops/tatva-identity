@@ -88,16 +88,3 @@ export function IdentitiChip({ children, active = false }: { children: ReactNode
     </Badge>
   );
 }
-
-export function TrustRing({ score, insufficient }: { score: number | null; insufficient?: boolean }) {
-  const empty = insufficient || score == null;
-  return (
-    <div
-      className="flex size-20 shrink-0 flex-col items-center justify-center rounded-full border-4 border-primary/20 text-center"
-      aria-label={empty ? "Insufficient public evidence" : `Trust evidence ${score}`}
-    >
-      <span className="text-lg font-bold tabular-nums">{empty ? "—" : score}</span>
-      <span className="px-2 text-[10px] leading-tight text-muted-foreground">{empty ? "Low evidence" : "Evidence"}</span>
-    </div>
-  );
-}

@@ -5,6 +5,7 @@ import { useTransition, useState } from "react";
 import Link from "next/link";
 import { PersonCard } from "@/components/cards/entity-cards";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/states/empty-state";
 import { startGigConversation, startJobConversation } from "@/lib/actions/messaging";
@@ -126,7 +127,21 @@ export function MyApplicationsTable({
                   </Link>
                 </td>
                 <td className="px-4 py-3 capitalize">{row.kind}</td>
-                <td className="px-4 py-3">{applicationStatusLabel(row.status)}</td>
+                <td className="px-4 py-3">
+                  <Badge
+                    variant={
+                      normalizeApplicationStatus(row.status) === "accepted"
+                        ? "success"
+                        : normalizeApplicationStatus(row.status) === "rejected" || normalizeApplicationStatus(row.status) === "withdrawn"
+                          ? "muted"
+                          : normalizeApplicationStatus(row.status) === "shortlisted"
+                            ? "primary"
+                            : "outline"
+                    }
+                  >
+                    {applicationStatusLabel(row.status)}
+                  </Badge>
+                </td>
                 <td className="px-4 py-3 text-muted-foreground">{new Date(row.createdAt).toLocaleDateString()}</td>
                 <td className="px-4 py-3">
                   {canApplicantWithdraw(row.status) ? (
