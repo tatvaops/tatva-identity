@@ -37,6 +37,7 @@ function revalidateProfile(handle: string | undefined, occupationMode?: Occupati
   revalidatePath("/feed");
   revalidatePath("/professionals");
   revalidatePath("/gig-workers");
+  revalidatePath("/search");
   if (resolved) {
     revalidatePath(personPublicHref(resolved, occupationMode));
     revalidatePath(`/professionals/${resolved}`);

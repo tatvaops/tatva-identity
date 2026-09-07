@@ -331,11 +331,11 @@ Default Next port is 3000. Apply **all** files in `supabase/migrations/` on the 
 | `20260905121000_identiti_seed.sql` | Aurum / Nandi / Aditi / Ramesh sample IDENTITI rows |
 | `20260905130000_identiti_media_connect.sql` | Media wiring |
 | `20260907120000_identiti_self_service.sql` | Owner portfolio/skill-fact writes, feed media insert, org staff application access |
+| `20260907140000_identiti_product_complete.sql` | Onboarding, education, evidence, privacy view (`audience_allows`) |
+| `20260907160000_identiti_production_hardening.sql` | Onboarding step, current roles, evidence visibility |
 | `20260907180000_identiti_integrity.sql` | Notification prefs, search appearance attribution, privacy RLS |
 | `20260907180000_profile_owner_grants.sql` | Owner grants for onboarding/privacy/notification columns |
 | `20260907200000_identiti_security_repair.sql` | Conversation IDOR, GSTIN grants, applicant withdraw, staff job updates |
-| `20260907160000_identiti_production_hardening.sql` | Onboarding step, current roles, evidence visibility |
-| `20260907180000_identiti_integrity.sql` | Privacy RLS, notification prefs, attributed search appearances |
 
 Reload IDENTITI sample: `select public.seed_identiti_marketplace();`  
 Hide demo without delete: `update public.platform_settings set seed_data_enabled = false;` (or Admin → Settings).  

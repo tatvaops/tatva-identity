@@ -85,18 +85,21 @@ export function MessagesView({
       />
       {conversations.length === 0 ? (
         <EmptyState
-          title="No conversations yet"
-          body="Search for a professional above, or open Message on a public profile. Threads are created in the database when you start them — they are not simulated."
+          title="Messages"
+          body="Search for a professional above, or open Message on a public profile. Threads are created in the database when you start them."
         />
       ) : (
-        <div className="grid h-[calc(100vh-12rem)] overflow-hidden rounded-2xl border border-border bg-white lg:grid-cols-[300px_minmax(0,1fr)_260px]">
+        <div className="grid h-[calc(100vh-11rem)] overflow-hidden border border-border bg-white lg:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
           <aside className="overflow-y-auto border-r border-border">
             <ul>
               {conversations.map((c) => (
                 <li key={c.id}>
                   <button
                     type="button"
-                    className={cn("flex w-full gap-3 px-4 py-3 text-left hover:bg-muted", c.id === currentId && "bg-accent")}
+                    className={cn(
+                      "flex w-full gap-3 px-4 py-3 text-left hover:bg-surface-muted",
+                      c.id === currentId && "bg-secondary/60",
+                    )}
                     onClick={() => router.push(`/messages?c=${c.id}`)}
                   >
                     <InitialsAvatar
@@ -107,16 +110,14 @@ export function MessagesView({
                     />
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center justify-between gap-2">
-                        <span className="truncate text-sm font-medium">{c.title ?? "Conversation"}</span>
+                        <span className="truncate text-sm font-semibold">{c.title ?? "Conversation"}</span>
                         {c.unreadCount > 0 ? (
-                          <span className="rounded-full bg-primary px-1.5 text-[10px] font-semibold text-white">{c.unreadCount}</span>
+                          <span className="size-2 shrink-0 rounded-full bg-brand" aria-label={`${c.unreadCount} unread`} />
                         ) : null}
                       </span>
-                      <span className="block text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-                        {KIND_COPY[c.kind]?.label ?? c.kind}
-                      </span>
-                      <span className="block truncate text-xs text-muted-foreground">{c.preview ?? "No messages yet"}</span>
-                      <span className="block text-[11px] text-muted-foreground">
+                      <span className="mt-0.5 block type-micro">{KIND_COPY[c.kind]?.label ?? c.kind}</span>
+                      <span className="mt-0.5 block truncate text-xs text-muted-foreground">{c.preview ?? "No messages yet"}</span>
+                      <span className="mt-0.5 block text-[11px] text-muted-foreground">
                         {formatDistanceToNow(new Date(c.updatedAt), { addSuffix: true })}
                       </span>
                     </span>
@@ -127,9 +128,17 @@ export function MessagesView({
           </aside>
           <section className="flex min-h-0 flex-col">
             <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
-              <div>
-                <p className="text-sm font-semibold">{active?.title ?? "Chat"}</p>
-                <p className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">{kind.label}</p>
+              <div className="flex items-center gap-3">
+                <InitialsAvatar
+                  initials={initialsFromName(active?.title ?? "C")}
+                  hue={hueFromId(currentId ?? "x")}
+                  size={36}
+                  src={active?.peerAvatar}
+                />
+                <div>
+                  <p className="text-sm font-semibold">{active?.title ?? "Conversation"}</p>
+                  <p className="type-micro">{kind.label}</p>
+                </div>
               </div>
               {active?.peerHref ? (
                 <Button size="sm" variant="outline" asChild>
@@ -137,6 +146,7 @@ export function MessagesView({
                 </Button>
               ) : null}
             </header>
+            <p className="border-b border-border bg-surface-muted px-4 py-2 text-xs text-muted-foreground">{kind.body}</p>
             <div className="flex-1 space-y-3 overflow-y-auto p-4">
               {messages.length === 0 && (
                 <p className="text-sm text-muted-foreground">No messages in this thread yet. Write the first note below.</p>
@@ -145,12 +155,14 @@ export function MessagesView({
                 <div
                   key={m.id}
                   className={cn(
-                    "max-w-[80%] rounded-2xl px-3 py-2 text-sm",
-                    m.senderId === selfId ? "ml-auto bg-primary text-white" : "bg-muted",
+                    "max-w-[72%] px-3.5 py-2 text-sm leading-6",
+                    m.senderId === selfId
+                      ? "ml-auto bg-foreground text-white"
+                      : "border border-border bg-white text-foreground",
                   )}
                 >
                   <p>{m.body}</p>
-                  <p className={cn("mt-1 text-[11px]", m.senderId === selfId ? "text-white/70" : "text-muted-foreground")}>
+                  <p className={cn("mt-1 text-[11px]", m.senderId === selfId ? "text-white/65" : "text-muted-foreground")}>
                     {formatDistanceToNow(new Date(m.createdAt), { addSuffix: true })}
                   </p>
                 </div>
@@ -193,17 +205,6 @@ export function MessagesView({
               </p>
             )}
           </section>
-          <aside className="hidden border-l border-border p-4 lg:block">
-            <InitialsAvatar
-              initials={initialsFromName(active?.title ?? "C")}
-              hue={hueFromId(currentId ?? "x")}
-              size={56}
-              src={active?.peerAvatar}
-            />
-            <p className="mt-2 text-sm font-semibold">{active?.title}</p>
-            <p className="mt-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">{kind.label}</p>
-            <p className="mt-2 text-xs leading-5 text-muted-foreground">{kind.body}</p>
-          </aside>
         </div>
       )}
     </div>
@@ -225,7 +226,7 @@ function CardPicker({
 }) {
   const router = useRouter();
   return (
-    <div className="rounded-2xl border border-border bg-white p-4">
+    <div className="border border-border bg-white p-4">
       <form className="flex flex-wrap gap-2" action="/messages" method="get">
         <label className="sr-only" htmlFor="people-search">
           Find a professional

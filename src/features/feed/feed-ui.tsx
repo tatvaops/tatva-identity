@@ -83,7 +83,7 @@ export function PostComposer({ openOnMount = false }: { openOnMount?: boolean })
         <div className="flex gap-3">
           <InitialsAvatar initials={initialsFromName(profile.fullName)} hue={hueFromId(profile.id)} size={44} src={profile.avatarPath} />
           <button
-            className="h-11 flex-1 rounded-full border border-border bg-muted/50 px-4 text-left text-sm text-muted-foreground hover:bg-muted"
+            className="h-11 flex-1 border border-border bg-surface-muted px-4 text-left text-sm text-muted-foreground hover:bg-muted"
             onClick={() => setOpen(true)}
           >
             Share an update, project, achievement or opportunity...
@@ -236,14 +236,14 @@ export function PostCard({
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   return (
-    <Card className="p-4">
+    <article className="border border-border bg-white p-4">
       <div className="flex gap-3">
         <InitialsAvatar
           initials={initialsFromName(name)}
           hue={author ? hueFromId(author.id) : 250}
           size={44}
           src={author?.avatarPath}
-          className={!author ? "rounded-xl" : undefined}
+          className={!author ? "rounded-md" : undefined}
         />
         <div className="min-w-0 flex-1">
           {author ? (
@@ -254,13 +254,15 @@ export function PostCard({
             <p className="text-sm font-semibold">{name}</p>
           )}
           <p className="text-xs text-muted-foreground">
-            {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
+            {[author?.headline, author?.classification, formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })]
+              .filter(Boolean)
+              .join(" · ")}
           </p>
           <Badge variant="outline" className="mt-2">
             {POST_TYPE_LABEL[post.postType] ?? post.postType.replaceAll("_", " ")}
           </Badge>
           <p className="mt-3 text-sm leading-6">{post.body}</p>
-          {post.mediaPath ? <PhotoFrame src={post.mediaPath} alt="" className="mt-3 h-56 rounded-xl" /> : null}
+          {post.mediaPath ? <PhotoFrame src={post.mediaPath} alt="" className="mt-3 h-64" /> : null}
           <YoutubeEmbed url={post.youtubeUrl} title={`${name} video`} />
           {comments.length > 0 ? (
             <ul className="mt-4 space-y-3 border-t border-border pt-3">
@@ -381,6 +383,6 @@ export function PostCard({
           ) : null}
         </div>
       </div>
-    </Card>
+    </article>
   );
 }

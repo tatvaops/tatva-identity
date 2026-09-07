@@ -14,11 +14,11 @@ export function bootstrapAdminUserIds() {
 }
 
 /** Explicit open switch. Unset means open in development only; production stays locked. */
-export function isPlatformAdminOpenToSignedIn() {
-  const raw = (process.env.PLATFORM_ADMIN_OPEN ?? "").trim().toLowerCase();
+export function isPlatformAdminOpenToSignedIn(env: NodeJS.ProcessEnv = process.env) {
+  const raw = (env.PLATFORM_ADMIN_OPEN ?? "").trim().toLowerCase();
   if (raw === "true" || raw === "1" || raw === "on") return true;
   if (raw === "false" || raw === "0" || raw === "off") return false;
-  return process.env.NODE_ENV !== "production";
+  return env.NODE_ENV !== "production";
 }
 
 export function isBootstrapAdmin(input: { userId: string; handle?: string | null }) {

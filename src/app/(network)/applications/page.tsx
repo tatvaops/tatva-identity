@@ -41,9 +41,12 @@ export default async function ApplicationsPage() {
   ]);
   rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-semibold">Applications</h1>
-      <p className="text-sm text-muted-foreground">Jobs and gigs you have applied to. Status comes from the live application record.</p>
+    <div>
+      <PageHeader
+        eyebrow="Opportunity"
+        title="Applications"
+        body="Jobs and gigs you have applied to. Status comes from the live application record."
+      />
       {rows.length === 0 ? (
         <EmptyState
           title="No applications yet"

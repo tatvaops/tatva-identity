@@ -24,9 +24,9 @@ export function AdminStat({
   tone?: "default" | "warn" | "ok";
 }) {
   const inner = (
-    <Card className={cn("p-4", tone === "warn" && "border-amber-200", tone === "ok" && "border-emerald-200")}>
-      <p className="text-2xl font-semibold tabular-nums">{value}</p>
-      <p className="mt-1 text-sm font-medium">{label}</p>
+    <Card className={cn("p-4", tone === "warn" && "border-warning/30", tone === "ok" && "border-success/30")}>
+      <p className="type-micro">{label}</p>
+      <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">{value}</p>
       {hint ? <p className="mt-1 text-xs text-muted-foreground">{hint}</p> : null}
     </Card>
   );
@@ -43,7 +43,7 @@ export function AdminStat({
 export function AdminHeader({ title, body }: { title: string; body: string }) {
   return (
     <div className="mb-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+      <h1 className="type-page">{title}</h1>
       <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{body}</p>
     </div>
   );
@@ -116,18 +116,18 @@ export function AdminTable({
   children: ReactNode;
 }) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-border bg-white">
+    <div className="overflow-x-auto border border-border bg-white">
       <table className="w-full min-w-[720px] text-left text-sm">
-        <thead className="border-b border-border bg-zinc-50 text-xs uppercase tracking-wide text-muted-foreground">
+        <thead className="sticky top-0 border-b border-border bg-surface-muted text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">
           <tr>
             {headers.map((header) => (
-              <th key={header} className="px-3 py-2 font-medium">
+              <th key={header} className="px-3 py-2.5 font-medium">
                 {header}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-border">{children}</tbody>
+        <tbody className="divide-y divide-border [&_tr]:hover:bg-surface-muted">{children}</tbody>
       </table>
     </div>
   );

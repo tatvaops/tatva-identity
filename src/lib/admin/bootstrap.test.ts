@@ -4,42 +4,19 @@ import { isBootstrapAdmin, isPlatformAdminOpenToSignedIn, isPlatformOperator } f
 
 describe("isPlatformAdminOpenToSignedIn", () => {
   it("stays closed in production until operators are listed or explicitly opened", () => {
-    const previousOpen = process.env.PLATFORM_ADMIN_OPEN;
-    const previousEnv = process.env.NODE_ENV;
-    delete process.env.PLATFORM_ADMIN_OPEN;
-    process.env.NODE_ENV = "production";
-    try {
-      assert.equal(isPlatformAdminOpenToSignedIn(), false);
-    } finally {
-      if (previousOpen === undefined) delete process.env.PLATFORM_ADMIN_OPEN;
-      else process.env.PLATFORM_ADMIN_OPEN = previousOpen;
-      process.env.NODE_ENV = previousEnv;
-    }
+    assert.equal(isPlatformAdminOpenToSignedIn({ NODE_ENV: "production" }), false);
   });
 
   it("defaults to open outside production so local development still works", () => {
-    const previousOpen = process.env.PLATFORM_ADMIN_OPEN;
-    const previousEnv = process.env.NODE_ENV;
-    delete process.env.PLATFORM_ADMIN_OPEN;
-    process.env.NODE_ENV = "test";
-    try {
-      assert.equal(isPlatformAdminOpenToSignedIn(), true);
-    } finally {
-      if (previousOpen === undefined) delete process.env.PLATFORM_ADMIN_OPEN;
-      else process.env.PLATFORM_ADMIN_OPEN = previousOpen;
-      process.env.NODE_ENV = previousEnv;
-    }
+    assert.equal(isPlatformAdminOpenToSignedIn({ NODE_ENV: "test" }), true);
   });
 
   it("can be locked with PLATFORM_ADMIN_OPEN=false", () => {
-    const previous = process.env.PLATFORM_ADMIN_OPEN;
-    process.env.PLATFORM_ADMIN_OPEN = "false";
-    try {
-      assert.equal(isPlatformAdminOpenToSignedIn(), false);
-    } finally {
-      if (previous === undefined) delete process.env.PLATFORM_ADMIN_OPEN;
-      else process.env.PLATFORM_ADMIN_OPEN = previous;
-    }
+    assert.equal(isPlatformAdminOpenToSignedIn({ NODE_ENV: "test", PLATFORM_ADMIN_OPEN: "false" }), false);
+  });
+
+  it("can be opened explicitly in production", () => {
+    assert.equal(isPlatformAdminOpenToSignedIn({ NODE_ENV: "production", PLATFORM_ADMIN_OPEN: "true" }), true);
   });
 });
 

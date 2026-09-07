@@ -660,8 +660,9 @@ export async function listConversations(profileId: string): Promise<ListResult<C
     conversationIds.length > 0
       ? await supabase.rpc("conversation_previews", { ids: conversationIds })
       : { data: [] as { conversation_id: string; body: string | null; created_at: string }[], error: null };
+  const previewRows = (previews.data ?? []) as { conversation_id: string; body: string | null; created_at: string }[];
   const lastByConversation = new Map(
-    (previews.data ?? []).map((row) => [row.conversation_id, { body: row.body, created_at: row.created_at }]),
+    previewRows.map((row) => [row.conversation_id, { body: row.body, created_at: row.created_at }]),
   );
   for (const row of memberships ?? []) {
     const c = row.conversations as unknown as { id: string; title: string | null; kind: string; created_at: string } | null;
