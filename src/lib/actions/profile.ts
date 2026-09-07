@@ -656,7 +656,10 @@ export async function skipRemainingOnboarding(): Promise<ActionResult> {
   if (!name || name === "New professional") return fail("Add your name before leaving onboarding.");
   const { error } = await auth.supabase
     .from("profiles")
-    .update({ onboarding_completed_at: new Date().toISOString() })
+    .update({
+      onboarding_completed_at: new Date().toISOString(),
+      onboarding_step: 14,
+    })
     .eq("id", auth.ctx.userId);
   if (error) return fail(error.message);
   revalidatePath("/onboarding");

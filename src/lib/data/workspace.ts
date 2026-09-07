@@ -621,7 +621,10 @@ export async function listEvidence(profileId: string): Promise<ListResult<Eviden
       claimId: row.claim_id,
       mediaPath: row.media_path,
       note: row.note,
-      verificationState: row.verification_state,
+      verificationState:
+        row.verification_state === "verified" || row.verification_state === "evidence_backed"
+          ? row.verification_state
+          : "self_declared",
       isPublic: row.is_public ?? true,
       createdAt: row.created_at,
     })),

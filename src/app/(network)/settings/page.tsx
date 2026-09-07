@@ -27,7 +27,7 @@ export default async function SettingsPage() {
         blocked={blocked.data}
         organisations={orgs.data}
       />
-      <Card className="mx-auto max-w-xl p-5 text-sm">
+      <Card id="preferences" className="mx-auto max-w-xl scroll-mt-24 p-5 text-sm">
         <p className="font-medium">Language</p>
         <p className="mt-1 text-muted-foreground">
           Shell labels can follow English or Hindi. Other locales are reserved until copy is complete.
