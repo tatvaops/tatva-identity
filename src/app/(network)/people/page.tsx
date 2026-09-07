@@ -9,6 +9,9 @@ export default async function PeoplePage({
   const next = new URLSearchParams();
   if (p.q) next.set("q", p.q);
   if (p.city) next.set("city", p.city);
+  if (p.availability) next.set("availability", p.availability);
+  if (p.skill) next.set("skill", p.skill);
+  if (p.page) next.set("page", p.page);
   const query = next.toString();
   redirect(query ? `/professionals?${query}` : "/professionals");
 }

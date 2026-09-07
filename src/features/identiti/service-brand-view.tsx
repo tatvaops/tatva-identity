@@ -11,6 +11,7 @@ import type { IdentitiBrand, IdentitiProject } from "@/lib/data/identiti";
 import type { AiReviewRecord, AiReviewSource } from "@/lib/domain/ai-review";
 import type { PublicProfile } from "@/lib/types/identity";
 import { SaveButton } from "@/components/identity/save-button";
+import { VendorContactForm } from "@/features/company/vendor-contact-form";
 import { PersonCard } from "@/components/cards/entity-cards";
 import { PhotoFrame } from "@/components/identity/media-photo";
 import { IdentitiChip, IdentitiSection, OverlayHero, StarRating, TrustRing, formatInr } from "@/features/identiti/identiti-chrome";
@@ -143,6 +144,16 @@ export function ServiceBrandView({
             <Button asChild className="rounded-xl px-5 py-3 font-bold shadow-[0_10px_24px_rgba(36,55,212,.24)]">
               <Link href={discussHref}>Discuss your project</Link>
             </Button>
+            {!brand.isOwner ? (
+              <VendorContactForm
+                organisationId={brand.id}
+                organisationName={brand.name}
+                signedIn={signedIn}
+                signInHref={`/auth/sign-in?next=/service-brands/${brand.slug}`}
+                label="Request this vendor"
+                intent="request"
+              />
+            ) : null}
           </div>
         </div>
         <div className="grid grid-cols-2 gap-y-5 border-t border-[#eceef4] px-5 py-5 sm:grid-cols-5 sm:px-7">

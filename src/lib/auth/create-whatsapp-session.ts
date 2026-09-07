@@ -58,17 +58,26 @@ export async function createWhatsAppSession(request: NextRequest, verified: Veri
     return NextResponse.json({ error: "Could not start a session." }, { status: 500 });
   }
 
-  if (link.user?.id && meta.fullName !== "New professional") {
-    await admin.auth.admin.updateUserById(link.user.id, {
-      user_metadata: {
-        full_name: meta.fullName,
-        phone: meta.phone,
-        identity_key: meta.identityKey,
-        auth_provider: meta.authProvider,
-        avatar_url: meta.avatarUrl,
-        tatva_email: meta.tatvaEmail,
-      },
-    });
+  if (link.user?.id) {
+    const profilePatch: Record<string, unknown> = {};
+    if (meta.fullName && meta.fullName !== "New professional") {
+      profilePatch.full_name = meta.fullName;
+    }
+    if (Object.keys(profilePatch).length > 0) {
+      await admin.from("profiles").update(profilePatch).eq("id", link.user.id).eq("full_name", "New professional");
+    }
+    if (meta.fullName !== "New professional") {
+      await admin.auth.admin.updateUserById(link.user.id, {
+        user_metadata: {
+          full_name: meta.fullName,
+          phone: meta.phone,
+          identity_key: meta.identityKey,
+          auth_provider: meta.authProvider,
+          avatar_url: meta.avatarUrl,
+          tatva_email: meta.tatvaEmail,
+        },
+      });
+    }
   }
 
   const body = NextResponse.json({ ok: true, provider: verified.provider });

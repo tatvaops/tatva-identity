@@ -13,6 +13,7 @@ export function InsightsView({
   receivedCount,
   orgViewCount = 0,
   searchAppearanceCount = 0,
+  projectViewCount = 0,
   passport,
   organisations,
 }: {
@@ -24,12 +25,14 @@ export function InsightsView({
   receivedCount: number;
   orgViewCount?: number;
   searchAppearanceCount?: number;
+  projectViewCount?: number;
   passport: PassportStrength;
   organisations: Organisation[];
 }) {
   const metrics = [
     viewCount > 0 ? { label: "Profile views", value: viewCount } : null,
     uniqueViewers > 0 ? { label: "Unique viewers", value: uniqueViewers } : null,
+    projectViewCount > 0 ? { label: "Project views", value: projectViewCount } : null,
     connectionCount > 0 ? { label: "Connections", value: connectionCount } : null,
     followerCount > 0 ? { label: "Followers", value: followerCount } : null,
     applicationCount > 0 ? { label: "Applications you sent", value: applicationCount } : null,

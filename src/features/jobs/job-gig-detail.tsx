@@ -9,8 +9,9 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useSession } from "@/components/providers/session-provider";
 import { applyToGig, applyToJob } from "@/lib/actions/network";
-import { closeGigPost, closeJobPost } from "@/lib/actions/opportunity";
+import { closeGigPost, closeJobPost, reopenGigPost, reopenJobPost } from "@/lib/actions/opportunity";
 import { SaveButton } from "@/components/identity/save-button";
+import { applicationStatusLabel } from "@/lib/domain/application-lifecycle";
 import type { GigPost, JobPost, Organisation } from "@/lib/types/identity";
 
 export function JobDetail({
@@ -19,12 +20,14 @@ export function JobDetail({
   similar,
   saved = false,
   canManage = false,
+  appliedStatus = null,
 }: {
   job: JobPost;
   organisation: Organisation | null;
   similar: JobPost[];
   saved?: boolean;
   canManage?: boolean;
+  appliedStatus?: string | null;
 }) {
   const { userId } = useSession();
   const router = useRouter();
@@ -43,7 +46,14 @@ export function JobDetail({
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           {job.closedAt ? (
-            <p className="text-sm text-muted-foreground">This job is closed.</p>
+            <p className="text-sm text-muted-foreground">This job is closed and is not accepting new applications.</p>
+          ) : appliedStatus && appliedStatus !== "withdrawn" ? (
+            <p className="text-sm text-muted-foreground">
+              You applied. Status: {applicationStatusLabel(appliedStatus)}.{" "}
+              <Link href="/applications" className="text-primary hover:underline">
+                View applications
+              </Link>
+            </p>
           ) : userId ? (
             <Button
               disabled={pending}
@@ -55,7 +65,7 @@ export function JobDetail({
                 })
               }
             >
-              {job.easyApply ? "Easy apply" : "Apply"}
+              {pending ? "Submitting…" : job.easyApply ? "Easy apply" : "Apply"}
             </Button>
           ) : (
             <Button asChild>
@@ -63,6 +73,11 @@ export function JobDetail({
             </Button>
           )}
           {userId ? <SaveButton kind="job" id={job.id} saved={saved} /> : null}
+          {canManage ? (
+            <Button variant="outline" asChild>
+              <Link href={`/jobs/${job.id}/edit`}>Edit job</Link>
+            </Button>
+          ) : null}
           {canManage ? (
             <Button variant="outline" asChild>
               <Link href={`/jobs/${job.id}/applications`}>Applications</Link>
@@ -81,6 +96,21 @@ export function JobDetail({
               }
             >
               Close job
+            </Button>
+          ) : null}
+          {canManage && job.closedAt ? (
+            <Button
+              variant="outline"
+              disabled={pending}
+              onClick={() =>
+                start(async () => {
+                  const result = await reopenJobPost(job.id);
+                  if (!result.ok) setError(result.error);
+                  else router.refresh();
+                })
+              }
+            >
+              Reopen job
             </Button>
           ) : null}
         </div>
@@ -155,11 +185,13 @@ export function GigDetail({
   organisation,
   saved = false,
   canManage = false,
+  appliedStatus = null,
 }: {
   gig: GigPost;
   organisation: Organisation | null;
   saved?: boolean;
   canManage?: boolean;
+  appliedStatus?: string | null;
 }) {
   const { userId } = useSession();
   const router = useRouter();
@@ -199,7 +231,14 @@ export function GigDetail({
       <p className="mt-4 text-sm leading-6">{gig.description}</p>
       <div className="mt-4 flex flex-wrap gap-2">
         {gig.closedAt ? (
-          <p className="text-sm text-muted-foreground">This gig is closed.</p>
+          <p className="text-sm text-muted-foreground">This gig is closed and is not accepting new applications.</p>
+        ) : appliedStatus && appliedStatus !== "withdrawn" ? (
+          <p className="text-sm text-muted-foreground">
+            You applied. Status: {applicationStatusLabel(appliedStatus)}.{" "}
+            <Link href="/applications" className="text-primary hover:underline">
+              View applications
+            </Link>
+          </p>
         ) : userId ? (
           <Button
             className="w-full sm:w-auto"
@@ -212,14 +251,19 @@ export function GigDetail({
               })
             }
           >
-            Accept gig
+            {pending ? "Submitting…" : "Apply"}
           </Button>
         ) : (
           <Button className="w-full sm:w-auto" asChild>
-            <Link href={`/auth/sign-in?next=/gigs/${gig.id}`}>Sign in to accept</Link>
+            <Link href={`/auth/sign-in?next=/gigs/${gig.id}`}>Sign in to apply</Link>
           </Button>
         )}
         {userId ? <SaveButton kind="gig" id={gig.id} saved={saved} /> : null}
+        {canManage ? (
+          <Button variant="outline" asChild>
+            <Link href={`/gigs/${gig.id}/edit`}>Edit gig</Link>
+          </Button>
+        ) : null}
         {canManage ? (
           <Button variant="outline" asChild>
             <Link href={`/gigs/${gig.id}/applications`}>Applications</Link>
@@ -238,6 +282,21 @@ export function GigDetail({
             }
           >
             Close gig
+          </Button>
+        ) : null}
+        {canManage && gig.closedAt ? (
+          <Button
+            variant="outline"
+            disabled={pending}
+            onClick={() =>
+              start(async () => {
+                const result = await reopenGigPost(gig.id);
+                if (!result.ok) setError(result.error);
+                else router.refresh();
+              })
+            }
+          >
+            Reopen gig
           </Button>
         ) : null}
       </div>

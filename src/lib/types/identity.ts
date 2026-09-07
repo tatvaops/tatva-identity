@@ -125,6 +125,15 @@ export type PublicProfile = {
   emailVisibleTo: "none" | "connections" | "recruiters";
   aboutVisibleTo: VisibilityAudience;
   locationVisibleTo: VisibilityAudience;
+  availabilityVisibleTo: VisibilityAudience;
+  connectionsVisibleTo: VisibilityAudience;
+  activityVisibleTo: VisibilityAudience;
+  projectsVisibleTo: VisibilityAudience;
+  experienceVisibleTo: VisibilityAudience;
+  yearsExperience: number | null;
+  specialisation: string | null;
+  industriesServed: string[];
+  professionalInterests: string[];
   identityVerified: boolean;
   employmentVerified: boolean;
   tradeVerified: boolean;
@@ -230,6 +239,7 @@ export type Post = {
   linkedProjectId: string | null;
   linkedJobId: string | null;
   linkedGigId: string | null;
+  mediaPath: string | null;
   createdAt: string;
 };
 
@@ -242,8 +252,21 @@ export type Experience = {
   locationLabel: string | null;
   startDate: string | null;
   endDate: string | null;
+  isCurrent: boolean;
   source: "self_declared" | "organisation_verified";
   responsibilities: string[];
+};
+
+export type EvidenceItem = {
+  id: string;
+  profileId: string;
+  claimKind: "skill" | "experience" | "project" | "certification" | "education" | "service" | "portfolio";
+  claimId: string | null;
+  mediaPath: string | null;
+  note: string | null;
+  verificationState: "self_declared" | "evidence_backed" | "verified";
+  isPublic: boolean;
+  createdAt: string;
 };
 
 export type ProfileSkill = {
@@ -251,6 +274,19 @@ export type ProfileSkill = {
   skillName: string;
   verificationLevel: SkillVerificationLevel;
   rating: number | null;
+  yearsExperience: number | null;
+  category: string | null;
+};
+
+export type ProfileEducation = {
+  id: string;
+  institution: string;
+  qualification: string | null;
+  course: string | null;
+  fieldOfStudy: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  credentialIdPublic: string | null;
 };
 
 export type CredentialCategory =
@@ -289,6 +325,9 @@ export type ConversationSummary = {
   kind: string;
   preview: string | null;
   updatedAt: string;
+  unreadCount: number;
+  peerAvatar: string | null;
+  peerHref: string | null;
 };
 
 export type MessageRow = {
@@ -307,6 +346,8 @@ export type ProfileService = {
   description: string | null;
   locations: string[];
   availabilityLabel: string | null;
+  category: string | null;
+  pricingModel: string | null;
 };
 
 export type ProjectMilestone = {
@@ -384,6 +425,7 @@ export type AuthContext = {
   profile: PublicProfile | null;
   configured: boolean;
   isPlatformAdmin: boolean;
+  unreadNotificationCount: number;
 };
 
 export type PendingConnection = {

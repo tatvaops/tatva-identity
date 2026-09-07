@@ -29,10 +29,17 @@ export default async function AdminOverviewPage() {
         <AdminStat label="Pending verifications" value={stats.pendingVerifications} href="/admin/verifications" tone={stats.pendingVerifications ? "warn" : "ok"} />
         <AdminStat label="Open reports" value={stats.openReports} href="/admin/moderation" tone={stats.openReports ? "warn" : "default"} />
         <AdminStat label="People" value={stats.people} href="/admin/people" />
+        <AdminStat label="Professionals" value={stats.professionals} href="/admin/people" />
+        <AdminStat label="Gig workers" value={stats.gigWorkers} href="/admin/people" />
         <AdminStat label="Organisations" value={stats.organisations} href="/admin/organisations" />
+        <AdminStat label="Projects" value={stats.projects} href="/admin/projects" />
         <AdminStat label="Open jobs" value={stats.openJobs} href="/admin/opportunities" />
         <AdminStat label="Open gigs" value={stats.openGigs} href="/admin/opportunities" />
+        <AdminStat label="Conversations" value={stats.conversations} href="/admin/contacts" />
         <AdminStat label="Visible posts" value={stats.posts} href="/admin/moderation" />
+        <AdminStat label="Vendor contacts" value={stats.vendorContacts} href="/admin/contacts" />
+        <AdminStat label="Job applications" value={stats.jobApplications} href="/admin/contacts" />
+        <AdminStat label="Gig applications" value={stats.gigApplications} href="/admin/contacts" />
         <AdminStat label="Operators" value={stats.operators} href="/admin/settings" />
       </div>
       <div className="mt-6 grid gap-3 lg:grid-cols-3">

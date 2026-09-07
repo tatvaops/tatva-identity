@@ -24,6 +24,9 @@ import { cn } from "@/lib/utils";
 
 const PASSPORT_HREF: Record<string, string> = {
   identity: "/passport?section=identity",
+  headline: "/passport?section=identity",
+  location: "/passport?section=availability",
+  education: "/passport?section=education",
   employment: "/passport?section=employment",
   skills: "/passport?section=skills",
   credentials: "/passport?section=credentials",
@@ -42,7 +45,7 @@ export function PersonCard({
   connectionState = "connect",
 }: {
   profile: PublicProfile;
-  connectionState?: "connect" | "pending" | "connected";
+  connectionState?: "connect" | "pending" | "incoming" | "connected";
   following?: boolean;
 }) {
   const flags = headerFlags(flagsFromProfile(profile));

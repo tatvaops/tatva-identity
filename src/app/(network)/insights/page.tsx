@@ -2,23 +2,25 @@ import { redirect } from "next/navigation";
 import { InsightsView } from "@/features/insights/insights-view";
 import { getAuthContext } from "@/lib/data/query";
 import {
-  countOrganisationViews,
+  countOrganisationViewsForIds,
   countProfileViews,
+  countProjectViewsForProfile,
+  countReceivedApplicationsForOrganisations,
   countUniqueProfileViews,
   listFollowers,
-  listJobApplications,
   listMyJobApplications,
   listOwnedOrganisations,
   listSearchAppearances,
 } from "@/lib/data/workspace";
-import { listConnections, listOrgJobs } from "@/lib/data/network";
-import { listPublicCertifications, listOptedInProjects, listProfileSkills, listRecommendations } from "@/lib/data/profile";
+import { listConnections } from "@/lib/data/network";
+import { listExperiences, listPublicCertifications, listOptedInProjects, listProfileSkills, listRecommendations } from "@/lib/data/profile";
 import { calculatePassportStrength } from "@/lib/domain/passport-strength";
 
 export default async function InsightsPage() {
   const session = await getAuthContext();
-  if (!session.userId || !session.profile) redirect("/auth/sign-in?next=/insights");
-  const [views, uniqueViews, connections, followers, sent, skills, certs, recs, projects, orgs, appearances] =
+  if (!session.userId) redirect("/auth/sign-in?next=/insights");
+  if (!session.profile) redirect("/onboarding");
+  const [views, uniqueViews, connections, followers, sent, skills, certs, recs, projects, experiences, orgs, appearances, projectViews] =
     await Promise.all([
       countProfileViews(session.userId),
       countUniqueProfileViews(session.userId),
@@ -29,20 +31,16 @@ export default async function InsightsPage() {
       listPublicCertifications(session.userId),
       listRecommendations(session.userId),
       listOptedInProjects(session.userId),
+      listExperiences(session.userId),
       listOwnedOrganisations(session.userId),
       listSearchAppearances(session.userId),
+      countProjectViewsForProfile(session.userId),
     ]);
-  let received = 0;
-  let orgViews = 0;
-  for (const org of orgs.data) {
-    const jobs = await listOrgJobs(org.id);
-    for (const job of jobs.data) {
-      const apps = await listJobApplications(job.id);
-      received += apps.data.length;
-    }
-    const viewsForOrg = await countOrganisationViews(org.id);
-    orgViews += viewsForOrg.data ?? 0;
-  }
+  const orgIds = orgs.data.map((org) => org.id);
+  const [received, orgViews] = await Promise.all([
+    countReceivedApplicationsForOrganisations(orgIds),
+    countOrganisationViewsForIds(orgIds),
+  ]);
   const passport = calculatePassportStrength({
     identityVerified: session.profile.identityVerified,
     employmentVerified: session.profile.employmentVerified,
@@ -50,6 +48,11 @@ export default async function InsightsPage() {
     publicCredentialCount: certs.data.length,
     projectCount: projects.data.length,
     recommendationCount: recs.data.length,
+    hasName: Boolean(session.profile.fullName.trim() && session.profile.fullName !== "New professional"),
+    hasPhoto: Boolean(session.profile.avatarPath),
+    hasHeadline: Boolean(session.profile.headline),
+    hasLocation: Boolean(session.profile.city),
+    experienceCount: experiences.data.length,
   });
   return (
     <div className="space-y-4">
@@ -64,6 +67,7 @@ export default async function InsightsPage() {
         receivedCount={received}
         orgViewCount={orgViews}
         searchAppearanceCount={appearances.data.length}
+        projectViewCount={projectViews}
         passport={passport}
         organisations={orgs.data}
       />

@@ -45,6 +45,9 @@ export async function toggleSavedItem(entityKind: string, entityId: string, save
   revalidatePath("/gigs");
   revalidatePath("/service-brands");
   revalidatePath("/product-brands");
+  revalidatePath("/professionals");
+  revalidatePath("/gig-workers");
+  revalidatePath("/projects");
   return { ok: true };
 }
 
@@ -107,6 +110,33 @@ export async function markNotificationRead(id: string): Promise<ActionResult> {
     .eq("profile_id", auth.ctx.userId);
   if (error) return fail(error.message);
   revalidatePath("/notifications");
+  return { ok: true };
+}
+
+export async function markAllNotificationsRead(): Promise<ActionResult> {
+  const auth = await requireUser();
+  if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
+  const { error } = await auth.supabase
+    .from("notifications")
+    .update({ read_at: new Date().toISOString() })
+    .eq("profile_id", auth.ctx.userId)
+    .is("read_at", null);
+  if (error) return fail(error.message);
+  revalidatePath("/notifications");
+  return { ok: true };
+}
+
+export async function recordProjectView(projectId: string): Promise<ActionResult> {
+  const auth = await requireUser();
+  if (!auth.supabase) return { ok: true };
+  if (auth.ctx.userId) {
+    const limited = await limitAction(`project-view:${auth.ctx.userId}`, 60, 60_000);
+    if (limited) return { ok: true };
+  }
+  await auth.supabase.from("project_views").insert({
+    project_id: projectId,
+    viewer_profile_id: auth.ctx.userId,
+  });
   return { ok: true };
 }
 

@@ -2,10 +2,13 @@ export const PASSPORT_WORKSPACE_SECTIONS = [
   "identity",
   "employment",
   "skills",
+  "services",
   "projects",
   "credentials",
+  "education",
   "references",
   "availability",
+  "evidence",
   "documents",
 ] as const;
 

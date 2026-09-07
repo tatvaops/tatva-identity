@@ -7,6 +7,7 @@ import { fail, type ActionResult } from "@/lib/actions/shared";
 import { requirePlatformAdminResult } from "@/lib/admin/access";
 import { alreadyExists, isValidHandle, splitList, suggestedHandle } from "@/lib/admin/create-helpers";
 import { e164India, normalizeIndianMobile, phoneIdentityKey, phoneLoginEmail } from "@/lib/auth/phone";
+import { personPublicHref } from "@/lib/domain/identiti-routes";
 import { slugify } from "@/lib/domain/slug";
 import { organisationTypes } from "@/lib/domain/workspace-schemas";
 
@@ -502,6 +503,61 @@ export async function adminCreateCertification(input: {
   await operatorAudit(gate.auth.admin, gate.actorId, "create_certification", "profile", input.profileId);
   revalidateAdmin();
   return { ok: true, id: created.data.id };
+}
+
+const AVAILABILITY = new Set([
+  "not_looking",
+  "open_to_opportunities",
+  "open_to_jobs",
+  "open_to_gigs",
+  "available_immediately",
+  "engaged",
+  "on_leave",
+]);
+
+export async function adminUpdatePerson(input: {
+  profileId: string;
+  fullName: string;
+  handle?: string;
+  headline?: string;
+  about?: string;
+  city?: string;
+  state?: string;
+  occupationMode?: string;
+  website?: string;
+  availabilityStatus?: string;
+}): Promise<ActionResult> {
+  const gate = await gated();
+  if (!gate.ok) return gate.result;
+  const fullName = input.fullName.trim();
+  if (fullName.length < 2) return fail("Add a full name.");
+  const current = await gate.auth.admin.from("profiles").select("id, handle, occupation_mode").eq("id", input.profileId).maybeSingle();
+  if (!current.data) return fail("That person is no longer available.");
+  const desired = input.handle?.trim() ? suggestedHandle(input.handle) : current.data.handle;
+  if (!isValidHandle(desired)) return fail("Use a simple public handle.");
+  const handle = await uniqueHandle(gate.auth.admin, desired, input.profileId);
+  const occupation = OCCUPATION_MODES.has(input.occupationMode ?? "")
+    ? input.occupationMode
+    : current.data.occupation_mode;
+  const occupationMode = occupation ?? "white_collar";
+  const patch: Record<string, unknown> = {
+    full_name: fullName,
+    handle,
+    headline: input.headline?.trim() || null,
+    about: input.about?.trim() || null,
+    city: input.city?.trim() || null,
+    state: input.state?.trim() || null,
+    occupation_mode: occupationMode,
+    website: input.website?.trim() || null,
+  };
+  if (AVAILABILITY.has(input.availabilityStatus ?? "")) patch.availability_status = input.availabilityStatus;
+  const { error } = await gate.auth.admin.from("profiles").update(patch).eq("id", input.profileId);
+  if (error) return fail(error.message);
+  await operatorAudit(gate.auth.admin, gate.actorId, "update_person", "profile", input.profileId);
+  revalidateAdmin();
+  revalidatePath(personPublicHref(current.data.handle, current.data.occupation_mode));
+  revalidatePath(personPublicHref(handle, occupationMode));
+  return { ok: true, id: input.profileId };
 }
 
 export async function adminCreateOrgCredential(input: {

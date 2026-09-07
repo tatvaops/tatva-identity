@@ -32,6 +32,7 @@ export const organisationSchema = z.object({
   serviceAreas: z.string().trim().max(400).optional(),
   teamSizeLabel: z.string().trim().max(40).optional(),
   state: z.string().trim().max(80).optional(),
+  passportKind: z.enum(["service_brand", "product_brand", "other"]).optional(),
 });
 
 export const orgServiceSchema = z.object({
@@ -87,7 +88,7 @@ export const recommendationSchema = z.object({
 
 export const applicationStatusSchema = z.object({
   id: z.string().uuid(),
-  status: z.enum(["submitted", "shortlisted", "rejected", "hired", "accepted"]),
+  status: z.enum(["submitted", "reviewing", "shortlisted", "interview", "accepted", "rejected", "withdrawn", "hired"]),
 });
 
 export const orgMemberSchema = z.object({

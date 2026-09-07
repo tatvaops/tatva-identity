@@ -45,7 +45,9 @@ export async function uploadPublicImage(formData: FormData): Promise<ActionResul
     }
   }
   revalidatePath("/people");
-  revalidatePath("/companies");
+  revalidatePath("/professionals");
+  revalidatePath("/gig-workers");
+  revalidatePath("/passport");
   return { ok: true, id: path };
 }
 

@@ -5,6 +5,7 @@ export const ADMIN_NAV = [
   { href: "/admin/organisations", label: "Organisations", description: "Add brands, media, products and credentials" },
   { href: "/admin/projects", label: "Projects", description: "Add projects, covers and video" },
   { href: "/admin/opportunities", label: "Jobs & gigs", description: "Publish or close listings" },
+  { href: "/admin/contacts", label: "Contacts", description: "Vendor requests, messages and applications" },
   { href: "/admin/moderation", label: "Moderation", description: "Publish posts, hide rows, reports" },
   { href: "/admin/activity", label: "Activity", description: "First-party events from the last 7 days" },
   { href: "/admin/audit", label: "Audit", description: "What operators changed" },

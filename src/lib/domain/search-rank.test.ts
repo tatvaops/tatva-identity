@@ -34,6 +34,15 @@ const person = (over: Partial<PublicProfile> = {}): PublicProfile => ({
   emailVisibleTo: "none",
   aboutVisibleTo: "public",
   locationVisibleTo: "public",
+  availabilityVisibleTo: "public",
+  connectionsVisibleTo: "public",
+  activityVisibleTo: "public",
+  projectsVisibleTo: "public",
+  experienceVisibleTo: "public",
+  yearsExperience: null,
+  specialisation: null,
+  industriesServed: [],
+  professionalInterests: [],
   identityVerified: true,
   employmentVerified: true,
   tradeVerified: false,
@@ -85,8 +94,13 @@ describe("passport strength", () => {
       publicCredentialCount: 0,
       projectCount: 1,
       recommendationCount: 0,
+      hasPhoto: true,
+      hasHeadline: true,
+      hasLocation: true,
+      experienceCount: 1,
     });
-    assert.equal(result.completeness, 50);
-    assert.equal(result.components.length, 6);
+    assert.equal(result.completeness, 86);
+    assert.ok(result.components.some((item) => item.id === "education"));
+    assert.ok(result.completeness >= 0 && result.completeness <= 100);
   });
 });

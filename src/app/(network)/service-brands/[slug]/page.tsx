@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { ServiceBrandView } from "@/features/identiti/service-brand-view";
 import { QueryNotice } from "@/components/states/empty-state";
 import { getAuthContext } from "@/lib/data/query";
@@ -13,8 +14,23 @@ import {
   recordIdentitiEvent,
 } from "@/lib/data/identiti";
 import { listSavedItems } from "@/lib/data/workspace";
+import { entityMetadata } from "@/lib/domain/seo";
 
-export default async function ServiceBrandPage({ params }: { params: Promise<{ slug: string }> }) {
+type PageProps = { params: Promise<{ slug: string }> };
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const brand = await getIdentitiBrand(slug);
+  if (!brand.data) return { title: "Service brand" };
+  return entityMetadata({
+    title: brand.data.name,
+    description: brand.data.tagline ?? brand.data.about,
+    path: `/service-brands/${brand.data.slug}`,
+    image: brand.data.coverPath ?? brand.data.logoPath,
+  });
+}
+
+export default async function ServiceBrandPage({ params }: PageProps) {
   const { slug } = await params;
   const brand = await getIdentitiBrand(slug);
   if (brand.meta.error) return <QueryNotice configured={brand.meta.configured} error={brand.meta.error} />;

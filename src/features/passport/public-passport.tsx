@@ -18,6 +18,7 @@ import type {
   Experience,
   NetworkProject,
   ProfileCertification,
+  ProfileEducation,
   ProfileSkill,
   PublicProfile,
   RecommendationRow,
@@ -30,7 +31,9 @@ export async function PublicPassportView({
   certifications,
   projects,
   recommendations,
+  education = [],
   origin,
+  showAvailability = true,
 }: {
   profile: PublicProfile;
   experiences: Experience[];
@@ -38,7 +41,9 @@ export async function PublicPassportView({
   certifications: ProfileCertification[];
   projects: NetworkProject[];
   recommendations: RecommendationRow[];
+  education?: ProfileEducation[];
   origin: string;
+  showAvailability?: boolean;
 }) {
   const url = `${origin}/passport/${profile.handle}`;
   const passport = calculatePassportStrength({
@@ -74,9 +79,11 @@ export async function PublicPassportView({
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">{profile.fullName}</h1>
           {profile.headline && <p className="mt-1 text-sm text-foreground">{profile.headline}</p>}
-          <div className="mt-3">
-            <AvailabilityBadge status={profile.availabilityStatus} />
-          </div>
+          {showAvailability ? (
+            <div className="mt-3">
+              <AvailabilityBadge status={profile.availabilityStatus} />
+            </div>
+          ) : null}
           <div className="mt-2 flex flex-wrap gap-1.5">
             {flags.length === 0 ? (
               <p className="text-xs text-muted-foreground">Verification has not been completed yet.</p>
@@ -186,6 +193,20 @@ export async function PublicPassportView({
         )}
       </section>
 
+      {education.length > 0 ? (
+        <section id="education" className="scroll-mt-20">
+          <h2 className="mb-2 text-[15px] font-semibold">Education and training</h2>
+          <div className="space-y-2">
+            {education.map((item) => (
+              <Card key={item.id} className="p-4 text-sm">
+                <p className="font-semibold">{item.institution}</p>
+                <p className="text-muted-foreground">{[item.qualification, item.course, item.fieldOfStudy].filter(Boolean).join(" · ")}</p>
+              </Card>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       <section id="references" className="scroll-mt-20">
         <h2 className="mb-2 text-[15px] font-semibold">References</h2>
         {recommendations.length === 0 ? (
@@ -202,21 +223,23 @@ export async function PublicPassportView({
         )}
       </section>
 
-      <section id="availability" className="scroll-mt-20">
-        <h2 className="mb-2 text-[15px] font-semibold">Availability</h2>
-        <Card className="p-4">
-          <AvailabilityBadge status={profile.availabilityStatus} />
-          {profile.preferredRoles.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-1">
-              {profile.preferredRoles.map((role) => (
-                <Badge key={role} variant="outline">
-                  {role}
-                </Badge>
-              ))}
-            </div>
-          )}
-        </Card>
-      </section>
+      {showAvailability ? (
+        <section id="availability" className="scroll-mt-20">
+          <h2 className="mb-2 text-[15px] font-semibold">Availability</h2>
+          <Card className="p-4">
+            <AvailabilityBadge status={profile.availabilityStatus} />
+            {profile.preferredRoles.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-1">
+                {profile.preferredRoles.map((role) => (
+                  <Badge key={role} variant="outline">
+                    {role}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </Card>
+        </section>
+      ) : null}
     </div>
   );
 }

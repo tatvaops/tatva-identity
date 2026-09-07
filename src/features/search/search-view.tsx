@@ -4,6 +4,8 @@ import { EmptyState, QueryNotice } from "@/components/states/empty-state";
 import { PostCard } from "@/features/feed/feed-ui";
 import { SearchBox } from "@/features/search/search-box";
 import { searchNetwork } from "@/lib/data/discovery";
+import { getAuthContext } from "@/lib/data/query";
+import { getConnectionStates } from "@/lib/data/network";
 import { createServerSupabase } from "@/lib/supabase/server";
 
 const ENTITY_FILTERS = [
@@ -48,6 +50,11 @@ export async function SearchView({
   entity?: SearchEntity;
 }) {
   const results = await searchNetwork(initialQuery);
+  const session = await getAuthContext();
+  const peopleStates = await getConnectionStates(
+    session.userId,
+    results.people.map((person) => person.id),
+  );
   if (initialQuery.trim() && results.people.length > 0) {
     const supabase = await createServerSupabase();
     if (supabase) {
@@ -94,8 +101,12 @@ export async function SearchView({
       <QueryNotice configured={results.meta.configured} error={results.meta.error} />
       {empty ? (
         <EmptyState
-          title="No results"
-          body={initialQuery ? "Nothing matches that search yet." : "Search people, skills, jobs, companies or projects."}
+          title={initialQuery ? "Nothing matches that search yet" : "Search the live network"}
+          body={
+            initialQuery
+              ? "Results only include public people, organisations, projects, jobs and gigs that exist in the database."
+              : "Search professionals, gig workers, organisations, projects, jobs and gigs. Nothing here is decorative."
+          }
         />
       ) : (
         <>
@@ -103,7 +114,7 @@ export async function SearchView({
             <SearchResultGroup title="People" count={results.people.length}>
               <div className="grid gap-3 sm:grid-cols-2">
                 {results.people.map((p) => (
-                  <PersonCard key={p.id} profile={p} />
+                  <PersonCard key={p.id} profile={p} connectionState={peopleStates.get(p.id) ?? "connect"} />
                 ))}
               </div>
             </SearchResultGroup>

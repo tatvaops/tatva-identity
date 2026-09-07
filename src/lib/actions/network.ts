@@ -4,20 +4,69 @@ import { revalidatePath } from "next/cache";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { fail, requireUser, type ActionResult } from "@/lib/actions/shared";
 import { notify, trackEvent, limitAction } from "@/lib/actions/notify";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+async function notifyOrgStaff(
+  supabase: SupabaseClient,
+  organisationId: string | null | undefined,
+  kind: string,
+  title: string,
+  body: string | undefined,
+  href: string,
+) {
+  if (!organisationId) return;
+  const members = await supabase
+    .from("organisation_members")
+    .select("profile_id")
+    .eq("organisation_id", organisationId)
+    .eq("invite_status", "active")
+    .in("org_role", ["owner", "admin", "recruiter"]);
+  const ids = [...new Set((members.data ?? []).map((row) => row.profile_id).filter(Boolean))];
+  for (const id of ids) {
+    await notify(supabase, id, kind, title, body, href);
+  }
+}
 
 export async function requestConnection(addresseeId: string): Promise<ActionResult> {
   const auth = await requireUser();
   if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
   if (auth.ctx.userId === addresseeId) return fail("You cannot connect to yourself.");
-  const { error } = await auth.supabase.from("connections").insert({
-    requester_id: auth.ctx.userId,
-    addressee_id: addresseeId,
-    status: "pending",
-  });
-  if (error) return fail(error.message);
-  await notify(auth.supabase, addresseeId, "connection", "Connection request", "Someone asked to connect.", "/network");
+  const existing = await auth.supabase
+    .from("connections")
+    .select("id, status, requester_id, addressee_id")
+    .or(
+      `and(requester_id.eq.${auth.ctx.userId},addressee_id.eq.${addresseeId}),and(requester_id.eq.${addresseeId},addressee_id.eq.${auth.ctx.userId})`,
+    )
+    .maybeSingle();
+  if (existing.data) {
+    if (existing.data.status === "accepted") return fail("You are already connected.");
+    if (existing.data.status === "pending") {
+      if (existing.data.addressee_id === auth.ctx.userId) {
+        return fail("This person already asked to connect. Open Network to accept.");
+      }
+      return fail("You already sent a connection request.");
+    }
+    const { error } = await auth.supabase
+      .from("connections")
+      .update({ status: "pending", requester_id: auth.ctx.userId, addressee_id: addresseeId })
+      .eq("id", existing.data.id);
+    if (error) return fail(error.message);
+  } else {
+    const { error } = await auth.supabase.from("connections").insert({
+      requester_id: auth.ctx.userId,
+      addressee_id: addresseeId,
+      status: "pending",
+    });
+    if (error) {
+      if (error.code === "23505") return fail("You already sent a connection request.");
+      return fail(error.message);
+    }
+  }
+  await notify(auth.supabase, addresseeId, "connection", "Connection request", "Someone asked to connect.", "/network?tab=pending");
   await trackEvent(auth.supabase, "connection_requested", "profile", addresseeId);
   revalidatePath("/network");
+  revalidatePath("/professionals");
+  revalidatePath("/gig-workers");
   return { ok: true };
 }
 
@@ -65,9 +114,12 @@ export async function toggleFollowPerson(personId: string, following: boolean): 
       person_id: personId,
     });
     if (error) return fail(error.message);
-    await notify(auth.supabase, personId, "follow", "New follower", undefined, "/followers");
+    await notify(auth.supabase, personId, "follow", "New follower", undefined, "/network");
+    await trackEvent(auth.supabase, "follow_created", "profile", personId);
   }
   revalidatePath("/network");
+  revalidatePath("/professionals");
+  revalidatePath("/gig-workers");
   return { ok: true };
 }
 
@@ -92,19 +144,30 @@ export async function toggleFollowOrganisation(organisationId: string, following
   return { ok: true };
 }
 
-export async function createPost(body: string, postType = "update"): Promise<ActionResult> {
+export async function createPost(body: string, postType = "update", mediaPath?: string | null): Promise<ActionResult> {
   const auth = await requireUser();
   if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
   const trimmed = body.trim();
   if (!trimmed) return fail("Write something before posting.");
-  const { error } = await auth.supabase.from("posts").insert({
-    author_profile_id: auth.ctx.userId,
-    body: trimmed,
-    post_type: postType,
-  });
-  if (error) return fail(error.message);
+  const created = await auth.supabase
+    .from("posts")
+    .insert({
+      author_profile_id: auth.ctx.userId,
+      body: trimmed,
+      post_type: postType,
+    })
+    .select("id")
+    .single();
+  if (created.error || !created.data) return fail(created.error?.message ?? "Could not publish that update.");
+  if (mediaPath) {
+    const media = await auth.supabase.from("post_media").insert({
+      post_id: created.data.id,
+      storage_path: mediaPath,
+    });
+    if (media.error) return fail(media.error.message);
+  }
   revalidatePath("/feed");
-  return { ok: true };
+  return { ok: true, id: created.data.id };
 }
 
 export async function applyToJob(jobId: string): Promise<ActionResult> {
@@ -114,15 +177,43 @@ export async function applyToJob(jobId: string): Promise<ActionResult> {
   if (limited) return limited;
   const job = await auth.supabase.from("job_posts").select("id, title, organisation_id, closed_at").eq("id", jobId).maybeSingle();
   if (job.data?.closed_at) return fail("This job is closed.");
-  const { error } = await auth.supabase.from("job_applications").insert({
-    job_id: jobId,
-    profile_id: auth.ctx.userId,
-  });
-  if (error) return fail(error.message);
-  const org = await auth.supabase.from("organisations").select("created_by").eq("id", job.data?.organisation_id ?? "").maybeSingle();
-  await notify(auth.supabase, org.data?.created_by, "application", "New job application", job.data?.title ?? undefined, `/jobs/${jobId}/applications`);
+  const existing = await auth.supabase
+    .from("job_applications")
+    .select("id, status")
+    .eq("job_id", jobId)
+    .eq("profile_id", auth.ctx.userId)
+    .maybeSingle();
+  if (existing.data) {
+    if (existing.data.status === "withdrawn") {
+      const restored = await auth.supabase
+        .from("job_applications")
+        .update({ status: "submitted" })
+        .eq("id", existing.data.id);
+      if (restored.error) return fail(restored.error.message);
+    } else {
+      return fail("You have already applied to this job.");
+    }
+  } else {
+    const { error } = await auth.supabase.from("job_applications").insert({
+      job_id: jobId,
+      profile_id: auth.ctx.userId,
+    });
+    if (error) {
+      if (error.code === "23505") return fail("You have already applied to this job.");
+      return fail(error.message);
+    }
+  }
+  await notifyOrgStaff(
+    auth.supabase,
+    job.data?.organisation_id,
+    "application",
+    "New job application",
+    job.data?.title ?? undefined,
+    `/jobs/${jobId}/applications`,
+  );
   await trackEvent(auth.supabase, "job_applied", "job", jobId);
   revalidatePath(`/jobs/${jobId}`);
+  revalidatePath("/applications");
   return { ok: true };
 }
 
@@ -134,14 +225,43 @@ export async function applyToGig(gigId: string): Promise<ActionResult> {
   const gig = await auth.supabase.from("gig_posts").select("id, title, organisation_id, closed_at, seats").eq("id", gigId).maybeSingle();
   if (gig.data?.closed_at) return fail("This gig is closed.");
   if (gig.data?.seats === 0) return fail("No seats left on this gig.");
-  const { error } = await auth.supabase.from("gig_applications").insert({
-    gig_id: gigId,
-    profile_id: auth.ctx.userId,
-  });
-  if (error) return fail(error.message);
-  const org = await auth.supabase.from("organisations").select("created_by").eq("id", gig.data?.organisation_id ?? "").maybeSingle();
-  await notify(auth.supabase, org.data?.created_by, "application", "New gig application", gig.data?.title ?? undefined, `/gigs/${gigId}/applications`);
+  const existing = await auth.supabase
+    .from("gig_applications")
+    .select("id, status")
+    .eq("gig_id", gigId)
+    .eq("profile_id", auth.ctx.userId)
+    .maybeSingle();
+  if (existing.data) {
+    if (existing.data.status === "withdrawn") {
+      const restored = await auth.supabase
+        .from("gig_applications")
+        .update({ status: "submitted" })
+        .eq("id", existing.data.id);
+      if (restored.error) return fail(restored.error.message);
+    } else {
+      return fail("You have already applied to this gig.");
+    }
+  } else {
+    const { error } = await auth.supabase.from("gig_applications").insert({
+      gig_id: gigId,
+      profile_id: auth.ctx.userId,
+    });
+    if (error) {
+      if (error.code === "23505") return fail("You have already applied to this gig.");
+      return fail(error.message);
+    }
+  }
+  await notifyOrgStaff(
+    auth.supabase,
+    gig.data?.organisation_id,
+    "application",
+    "New gig application",
+    gig.data?.title ?? undefined,
+    `/gigs/${gigId}/applications`,
+  );
+  await trackEvent(auth.supabase, "gig_applied", "gig", gigId);
   revalidatePath(`/gigs/${gigId}`);
+  revalidatePath("/applications");
   return { ok: true };
 }
 
@@ -164,9 +284,11 @@ export async function sendMessage(conversationId: string, body: string): Promise
     .eq("conversation_id", conversationId)
     .neq("profile_id", auth.ctx.userId);
   for (const peer of peers.data ?? []) {
-    await notify(auth.supabase, peer.profile_id, "message", "New message", trimmed.slice(0, 80), "/messages");
+    await notify(auth.supabase, peer.profile_id, "message", "New message", trimmed.slice(0, 80), `/messages?c=${conversationId}`);
   }
+  await trackEvent(auth.supabase, "message_sent", "conversation", conversationId);
   revalidatePath("/messages");
+  revalidatePath("/notifications");
   return { ok: true };
 }
 
@@ -187,7 +309,32 @@ export async function addComment(postId: string, body: string): Promise<ActionRe
   return { ok: true };
 }
 
-export async function reportPost(postId: string, reason: string): Promise<ActionResult> {
+export async function withdrawConnection(otherId: string): Promise<ActionResult> {
+  const auth = await requireUser();
+  if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
+  const { error } = await auth.supabase
+    .from("connections")
+    .delete()
+    .eq("requester_id", auth.ctx.userId)
+    .eq("addressee_id", otherId)
+    .eq("status", "pending");
+  if (error) return fail(error.message);
+  revalidatePath("/network");
+  revalidatePath("/professionals");
+  revalidatePath("/gig-workers");
+  return { ok: true };
+}
+
+export async function deleteOwnPost(postId: string): Promise<ActionResult> {
+  const auth = await requireUser();
+  if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
+  const { error } = await auth.supabase.from("posts").delete().eq("id", postId).eq("author_profile_id", auth.ctx.userId);
+  if (error) return fail(error.message);
+  revalidatePath("/feed");
+  return { ok: true };
+}
+
+export async function reportEntity(entityKind: string, entityId: string, reason: string): Promise<ActionResult> {
   const auth = await requireUser();
   if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
   const trimmed = reason.trim().slice(0, 280);
@@ -196,17 +343,21 @@ export async function reportPost(postId: string, reason: string): Promise<Action
   if (limited) return limited;
   const { error } = await auth.supabase.from("content_reports").insert({
     reporter_id: auth.ctx.userId,
-    entity_kind: "post",
-    entity_id: postId,
+    entity_kind: entityKind,
+    entity_id: entityId,
     reason: trimmed,
     status: "open",
   });
   if (error) {
-    if (error.code === "23505") return fail("You already reported this post.");
+    if (error.code === "23505") return fail("You already reported this.");
     return fail(error.message);
   }
   revalidatePath("/feed");
   return { ok: true };
+}
+
+export async function reportPost(postId: string, reason: string): Promise<ActionResult> {
+  return reportEntity("post", postId, reason);
 }
 
 export async function togglePostReaction(postId: string, reacting: boolean): Promise<ActionResult> {
@@ -226,6 +377,8 @@ export async function togglePostReaction(postId: string, reacting: boolean): Pro
       kind: "like",
     });
     if (error) return fail(error.message);
+    const post = await auth.supabase.from("posts").select("author_profile_id").eq("id", postId).maybeSingle();
+    await notify(auth.supabase, post.data?.author_profile_id, "reaction", "Someone reacted to your post", undefined, "/feed");
   }
   revalidatePath("/feed");
   return { ok: true };

@@ -12,10 +12,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { useSession } from "@/components/providers/session-provider";
 import {
   addCertification,
+  addEducation,
   addExperience,
   addOptedInProject,
   addProfileService,
   addSkill,
+  addSkillFact,
+  addPortfolioItem,
   endorseSkill,
   requestVerification,
   updateAvailability,
@@ -26,9 +29,12 @@ import {
   aboutSchema,
   availabilitySchema,
   certificationSchema,
+  educationSchema,
   experienceSchema,
+  portfolioItemSchema,
   profileServiceSchema,
   projectSchema,
+  skillFactSchema,
   skillSchema,
   verificationRequestSchema,
 } from "@/lib/domain/profile-schemas";
@@ -41,11 +47,14 @@ type Editor =
   | "experience"
   | "skill"
   | "certification"
+  | "education"
   | "project"
   | "availability"
   | "service"
   | "verification"
   | "photo"
+  | "evidence"
+  | "skillFact"
   | null;
 
 export function ProfileEditors({
@@ -117,6 +126,7 @@ export function ProfileSectionEdit({ kind, label }: { kind: Exclude<Editor, "abo
       {kind === "experience" && <ExperienceDialog open={open} onClose={() => setOpen(false)} />}
       {kind === "skill" && <SkillDialog open={open} onClose={() => setOpen(false)} />}
       {kind === "certification" && <CertificationDialog open={open} onClose={() => setOpen(false)} />}
+      {kind === "education" && <EducationDialog open={open} onClose={() => setOpen(false)} />}
       {kind === "project" && <ProjectDialog open={open} onClose={() => setOpen(false)} />}
       {kind === "availability" && (
         <AvailabilityDialog profile={profile} open={open} onClose={() => setOpen(false)} />
@@ -124,6 +134,8 @@ export function ProfileSectionEdit({ kind, label }: { kind: Exclude<Editor, "abo
       {kind === "service" && <ServiceDialog open={open} onClose={() => setOpen(false)} />}
       {kind === "verification" && <VerificationDialog open={open} onClose={() => setOpen(false)} />}
       {kind === "photo" && <PhotoDialog open={open} onClose={() => setOpen(false)} />}
+      {kind === "evidence" && <EvidenceDialog open={open} onClose={() => setOpen(false)} />}
+      {kind === "skillFact" && <SkillFactDialog open={open} onClose={() => setOpen(false)} />}
     </>
   );
 }
@@ -302,6 +314,7 @@ function ExperienceDialog({ open, onClose }: { open: boolean; onClose: () => voi
       startDate: "",
       endDate: "",
       responsibilities: "",
+      isCurrent: true,
     },
   });
   return (
@@ -325,6 +338,10 @@ function ExperienceDialog({ open, onClose }: { open: boolean; onClose: () => voi
           <Input placeholder="Role" {...form.register("title")} />
           <Input placeholder="Organisation name" {...form.register("organisationName")} />
           <Input placeholder="Location" {...form.register("locationLabel")} />
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" {...form.register("isCurrent")} />
+            Current role
+          </label>
           <div className="grid grid-cols-2 gap-2">
             <Input type="date" {...form.register("startDate")} />
             <Input type="date" {...form.register("endDate")} />
@@ -344,7 +361,7 @@ function ExperienceDialog({ open, onClose }: { open: boolean; onClose: () => voi
 function SkillDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
-  const form = useForm({ resolver: zodResolver(skillSchema), defaultValues: { name: "" } });
+  const form = useForm({ resolver: zodResolver(skillSchema), defaultValues: { name: "", category: "", yearsExperience: "" } });
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent>
@@ -364,8 +381,69 @@ function SkillDialog({ open, onClose }: { open: boolean; onClose: () => void }) 
           })}
         >
           <Input placeholder="Skill name" {...form.register("name")} />
+          <Input placeholder="Category, e.g. joinery" {...form.register("category")} />
+          <Input placeholder="Years with this skill" inputMode="numeric" {...form.register("yearsExperience")} />
           <FieldError message={form.formState.errors.name?.message} />
           {serverError && <p className="text-sm text-rose-700">{serverError}</p>}
+          <Button type="submit" disabled={form.formState.isSubmitting}>
+            Save
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EducationDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const router = useRouter();
+  const [serverError, setServerError] = useState<string | null>(null);
+  const form = useForm({
+    resolver: zodResolver(educationSchema),
+    defaultValues: {
+      institution: "",
+      qualification: "",
+      course: "",
+      fieldOfStudy: "",
+      startDate: "",
+      endDate: "",
+      credentialIdPublic: "",
+    },
+  });
+  return (
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent>
+        <DialogTitle>Add education or training</DialogTitle>
+        <DialogDescription>
+          Institution and course records sit on your passport. Certifications can also live under Credentials.
+        </DialogDescription>
+        <form
+          className="mt-4 space-y-3"
+          onSubmit={form.handleSubmit(async (values) => {
+            const result = await addEducation(values);
+            if (!result.ok) {
+              setServerError(result.error);
+              return;
+            }
+            form.reset();
+            onClose();
+            router.refresh();
+          })}
+        >
+          <Input placeholder="Institution" {...form.register("institution")} />
+          <FieldError message={form.formState.errors.institution?.message} />
+          <Input placeholder="Qualification" {...form.register("qualification")} />
+          <Input placeholder="Course" {...form.register("course")} />
+          <Input placeholder="Field of study" {...form.register("fieldOfStudy")} />
+          <label className="block text-xs font-medium text-muted-foreground" htmlFor="edu-start">
+            Start date
+          </label>
+          <Input id="edu-start" type="date" {...form.register("startDate")} />
+          <label className="block text-xs font-medium text-muted-foreground" htmlFor="edu-end">
+            End date
+          </label>
+          <Input id="edu-end" type="date" {...form.register("endDate")} />
+          <Input placeholder="Public credential id (optional)" {...form.register("credentialIdPublic")} />
+          {serverError ? <p className="text-sm text-rose-700">{serverError}</p> : null}
           <Button type="submit" disabled={form.formState.isSubmitting}>
             Save
           </Button>
@@ -682,6 +760,104 @@ function PhotoDialog({ open, onClose }: { open: boolean; onClose: () => void }) 
           </label>
           {serverError && <p className="text-sm text-rose-700">{serverError}</p>}
         </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EvidenceDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const router = useRouter();
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  const form = useForm({
+    resolver: zodResolver(portfolioItemSchema),
+    defaultValues: { imageUrl: "", caption: "", workCategory: "", location: "" },
+  });
+  return (
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent>
+        <DialogTitle>Add claimed work photo</DialogTitle>
+        <DialogDescription>
+          This is claimed evidence, not supervisor verification. JPEG, PNG or WebP, under 5 MB.
+        </DialogDescription>
+        <form
+          className="mt-4 space-y-3"
+          onSubmit={form.handleSubmit(async (values) => {
+            const result = await addPortfolioItem(values);
+            if (!result.ok) {
+              setServerError(result.error);
+              return;
+            }
+            onClose();
+            router.refresh();
+          })}
+        >
+          <Input
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            disabled={pending}
+            onChange={async (event) => {
+              const file = event.target.files?.[0];
+              if (!file) return;
+              setPending(true);
+              const data = new FormData();
+              data.set("file", file);
+              data.set("kind", "portfolio");
+              const uploaded = await uploadPublicImage(data);
+              setPending(false);
+              if (!uploaded.ok) {
+                setServerError(uploaded.error);
+                return;
+              }
+              form.setValue("imageUrl", uploaded.id ?? "");
+            }}
+          />
+          <Input placeholder="Caption" {...form.register("caption")} />
+          <Input placeholder="Work category" {...form.register("workCategory")} />
+          <Input placeholder="Location" {...form.register("location")} />
+          {serverError ? <p className="text-sm text-rose-700">{serverError}</p> : null}
+          <Button type="submit" disabled={form.formState.isSubmitting || pending || !form.watch("imageUrl")}>
+            Save photo
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function SkillFactDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const router = useRouter();
+  const [serverError, setServerError] = useState<string | null>(null);
+  const form = useForm({
+    resolver: zodResolver(skillFactSchema),
+    defaultValues: { skillName: "", yearsExperience: "", tools: "", proficiency: "" },
+  });
+  return (
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent>
+        <DialogTitle>Add a skill fact</DialogTitle>
+        <DialogDescription>Self-declared site capability. Verified project counts stay at zero until an operator confirms them.</DialogDescription>
+        <form
+          className="mt-4 space-y-3"
+          onSubmit={form.handleSubmit(async (values) => {
+            const result = await addSkillFact(values);
+            if (!result.ok) {
+              setServerError(result.error);
+              return;
+            }
+            onClose();
+            router.refresh();
+          })}
+        >
+          <Input placeholder="Skill name" {...form.register("skillName")} />
+          <Input placeholder="Years" {...form.register("yearsExperience")} />
+          <Input placeholder="Tools, comma separated" {...form.register("tools")} />
+          <Input placeholder="Proficiency" {...form.register("proficiency")} />
+          {serverError ? <p className="text-sm text-rose-700">{serverError}</p> : null}
+          <Button type="submit" disabled={form.formState.isSubmitting}>
+            Save
+          </Button>
+        </form>
       </DialogContent>
     </Dialog>
   );

@@ -22,23 +22,53 @@ export function calculatePassportStrength(input: {
   publicCredentialCount: number;
   projectCount: number;
   recommendationCount: number;
+  hasName?: boolean;
+  hasPhoto?: boolean;
+  hasHeadline?: boolean;
+  hasLocation?: boolean;
+  experienceCount?: number;
+  educationCount?: number;
 }): PassportStrength {
   const item = (complete: boolean, verified: boolean): PassportItemStatus =>
     verified ? "verified" : complete ? "present" : "not_provided";
+  const named = input.hasName !== false;
+  const photo = Boolean(input.hasPhoto);
+  const headline = Boolean(input.hasHeadline);
+  const location = Boolean(input.hasLocation);
+  const experienceCount = input.experienceCount ?? 0;
+  const educationCount = input.educationCount ?? 0;
   const components: PassportComponent[] = [
     {
       id: "identity",
       label: "Identity",
-      complete: input.identityVerified,
-      status: item(input.identityVerified, input.identityVerified),
-      detail: input.identityVerified ? "Verified" : "Not provided",
+      complete: named && photo,
+      status: item(named && photo, input.identityVerified),
+      detail: input.identityVerified ? "Verified" : named && photo ? "Name and photograph present" : "Add a name and photograph",
+    },
+    {
+      id: "headline",
+      label: "Headline",
+      complete: headline,
+      status: item(headline, false),
+      detail: headline ? "Present" : "Add what you do",
+    },
+    {
+      id: "location",
+      label: "Location",
+      complete: location,
+      status: item(location, false),
+      detail: location ? "Present" : "Add a work city",
     },
     {
       id: "employment",
-      label: "Employment",
-      complete: input.employmentVerified,
-      status: item(input.employmentVerified, input.employmentVerified),
-      detail: input.employmentVerified ? "Verified" : "Not provided",
+      label: "Experience",
+      complete: experienceCount > 0 || input.employmentVerified,
+      status: item(experienceCount > 0, input.employmentVerified),
+      detail: input.employmentVerified
+        ? "Employer confirmed"
+        : experienceCount > 0
+          ? `${experienceCount} role${experienceCount === 1 ? "" : "s"}`
+          : "Not provided",
     },
     {
       id: "skills",
@@ -48,6 +78,13 @@ export function calculatePassportStrength(input: {
       detail: input.skillCount > 0 ? `${input.skillCount} listed` : "Not provided",
     },
     {
+      id: "projects",
+      label: "Projects",
+      complete: input.projectCount > 0,
+      status: item(input.projectCount > 0, false),
+      detail: input.projectCount > 0 ? `${input.projectCount} opted-in` : "Not provided",
+    },
+    {
       id: "credentials",
       label: "Credentials",
       complete: input.publicCredentialCount > 0,
@@ -55,11 +92,11 @@ export function calculatePassportStrength(input: {
       detail: input.publicCredentialCount > 0 ? `${input.publicCredentialCount} public` : "Not provided",
     },
     {
-      id: "projects",
-      label: "Projects",
-      complete: input.projectCount > 0,
-      status: item(input.projectCount > 0, false),
-      detail: input.projectCount > 0 ? `${input.projectCount} opted-in` : "Not provided",
+      id: "education",
+      label: "Education / training",
+      complete: educationCount > 0,
+      status: item(educationCount > 0, false),
+      detail: educationCount > 0 ? `${educationCount} record${educationCount === 1 ? "" : "s"}` : "Optional",
     },
     {
       id: "references",
@@ -69,7 +106,8 @@ export function calculatePassportStrength(input: {
       detail: input.recommendationCount > 0 ? `${input.recommendationCount}` : "Not provided",
     },
   ];
-  const completeness = Math.round((components.filter((c) => c.complete).length / components.length) * 100);
+  const scored = components.filter((c) => c.id !== "education" && c.id !== "references");
+  const completeness = Math.round((scored.filter((c) => c.complete).length / scored.length) * 100);
   return { completeness, components };
 }
 

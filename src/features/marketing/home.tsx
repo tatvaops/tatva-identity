@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { brandPublicHref, personPublicHref } from "@/lib/domain/identiti-routes";
 import type { IdentitiBrand, IdentitiProject } from "@/lib/data/identiti";
-import type { PublicProfile } from "@/lib/types/identity";
+import type { GigPost, JobPost, Post, PublicProfile } from "@/lib/types/identity";
 
 export function MarketingHome({
   serviceBrands,
@@ -13,12 +13,18 @@ export function MarketingHome({
   professionals,
   gigWorkers,
   projects,
+  jobs = [],
+  gigs = [],
+  posts = [],
 }: {
   serviceBrands: IdentitiBrand[];
   productBrands: IdentitiBrand[];
   professionals: PublicProfile[];
   gigWorkers: PublicProfile[];
   projects: IdentitiProject[];
+  jobs?: JobPost[];
+  gigs?: GigPost[];
+  posts?: Post[];
 }) {
   return (
     <div className="min-h-screen bg-background">
@@ -115,6 +121,52 @@ export function MarketingHome({
           photo: person.avatarPath,
         }))}
       />
+      <LiveStrip
+        title="Open jobs"
+        href="/jobs"
+        empty="No open jobs are published yet."
+        items={jobs.slice(0, 4).map((job) => ({
+          id: job.id,
+          href: `/jobs/${job.id}`,
+          title: job.title,
+          body: [job.city, job.employmentType.replaceAll("_", " ")].filter(Boolean).join(" · "),
+          photo: null,
+        }))}
+      />
+      <LiveStrip
+        title="Open gigs"
+        href="/gigs"
+        empty="No open gigs are published yet."
+        items={gigs.slice(0, 4).map((gig) => ({
+          id: gig.id,
+          href: `/gigs/${gig.id}`,
+          title: gig.title,
+          body: [gig.trade, gig.siteName, gig.payLabel].filter(Boolean).join(" · "),
+          photo: null,
+        }))}
+      />
+      <section className="page-wrap px-4 py-10">
+        <div className="flex items-end justify-between gap-3">
+          <h2 className="text-xl font-semibold">Network activity</h2>
+          <Link href="/feed" className="text-sm text-primary hover:underline">
+            View feed
+          </Link>
+        </div>
+        {posts.length === 0 ? (
+          <p className="mt-3 text-sm text-muted-foreground">
+            No public posts yet. When people publish updates, they appear here from the live feed.
+          </p>
+        ) : (
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            {posts.slice(0, 4).map((post) => (
+              <Card key={post.id} className="p-4">
+                <p className="line-clamp-4 text-sm leading-6">{post.body}</p>
+                <p className="mt-2 text-xs text-muted-foreground">{new Date(post.createdAt).toLocaleDateString()}</p>
+              </Card>
+            ))}
+          </div>
+        )}
+      </section>
       <section className="page-wrap px-4 pb-20">
         <Card className="p-6">
           <h2 className="text-lg font-semibold">Brand forum</h2>

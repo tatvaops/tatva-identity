@@ -17,6 +17,7 @@ import {
   adminCreatePost,
   adminCreateProject,
   adminCreateVerificationRequest,
+  adminUpdatePerson,
 } from "@/lib/admin/create-actions";
 import { organisationTypes } from "@/lib/domain/workspace-schemas";
 import { AdminMediaField } from "@/features/admin/admin-media-field";
@@ -46,14 +47,16 @@ function FieldError({ error }: { error: string | null }) {
 function Select({
   name,
   label,
+  defaultValue,
   children,
 }: {
   name: string;
   label: string;
+  defaultValue?: string;
   children: ReactNode;
 }) {
   return (
-    <select name={name} className="h-10 rounded-lg border border-input bg-white px-2 text-sm" aria-label={label}>
+    <select name={name} defaultValue={defaultValue} className="h-10 rounded-lg border border-input bg-white px-2 text-sm" aria-label={label}>
       {children}
     </select>
   );
@@ -137,6 +140,83 @@ export function AdminCreatePersonForm() {
         </div>
       </form>
     </CreateCard>
+  );
+}
+
+export function AdminEditPersonForm({
+  profile,
+}: {
+  profile: {
+    id: string;
+    full_name: string;
+    handle: string;
+    headline: string | null;
+    about: string | null;
+    city: string | null;
+    state: string | null;
+    occupation_mode: string | null;
+    website: string | null;
+    availability_status?: string | null;
+  };
+}) {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  return (
+    <form
+      className="grid gap-2 md:grid-cols-2"
+      onSubmit={(event) => {
+        event.preventDefault();
+        const form = new FormData(event.currentTarget);
+        submitForm(start, setError, router, () =>
+          adminUpdatePerson({
+            profileId: profile.id,
+            fullName: String(form.get("fullName") ?? ""),
+            handle: String(form.get("handle") ?? ""),
+            headline: String(form.get("headline") ?? ""),
+            about: String(form.get("about") ?? ""),
+            city: String(form.get("city") ?? ""),
+            state: String(form.get("state") ?? ""),
+            occupationMode: String(form.get("occupationMode") ?? ""),
+            website: String(form.get("website") ?? ""),
+            availabilityStatus: String(form.get("availabilityStatus") ?? ""),
+          }),
+        );
+      }}
+    >
+      <Input name="fullName" required defaultValue={profile.full_name} aria-label="Full name" />
+      <Input name="handle" defaultValue={profile.handle} aria-label="Handle" />
+      <Input name="headline" defaultValue={profile.headline ?? ""} placeholder="Headline" aria-label="Headline" />
+      <Input name="website" defaultValue={profile.website ?? ""} placeholder="Website" aria-label="Website" />
+      <Input name="city" defaultValue={profile.city ?? ""} placeholder="City" aria-label="City" />
+      <Input name="state" defaultValue={profile.state ?? ""} placeholder="State" aria-label="State" />
+      <Select name="occupationMode" label="Occupation" defaultValue={profile.occupation_mode ?? "white_collar"}>
+        <option value="white_collar">Professional</option>
+        <option value="freelancer">Freelancer</option>
+        <option value="blue_collar">Gig / site worker</option>
+        <option value="contractor">Contractor</option>
+      </Select>
+      <Select name="availabilityStatus" label="Availability" defaultValue={profile.availability_status ?? "open_to_opportunities"}>
+        <option value="open_to_opportunities">Open to opportunities</option>
+        <option value="open_to_jobs">Open to jobs</option>
+        <option value="open_to_gigs">Open to gigs</option>
+        <option value="available_immediately">Available immediately</option>
+        <option value="not_looking">Not looking</option>
+        <option value="engaged">Engaged</option>
+        <option value="on_leave">On leave</option>
+      </Select>
+      <div className="md:col-span-2">
+        <Textarea name="about" defaultValue={profile.about ?? ""} className="min-h-20" aria-label="About" />
+      </div>
+      <div className="md:col-span-2">
+        <Button type="submit" disabled={pending}>
+          {pending ? "Saving…" : "Save identity"}
+        </Button>
+      </div>
+      <div className="md:col-span-2">
+        <FieldError error={error} />
+      </div>
+    </form>
   );
 }
 

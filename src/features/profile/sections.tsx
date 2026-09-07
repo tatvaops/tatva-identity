@@ -45,7 +45,7 @@ export function ProfileHeader({
   profile: PublicProfile;
   org: Organisation | null;
   flags: VerificationFlag[];
-  connectionState: "connect" | "pending" | "connected";
+  connectionState: "connect" | "pending" | "incoming" | "connected";
   following: boolean;
   hireLabel: string;
   isOwner: boolean;

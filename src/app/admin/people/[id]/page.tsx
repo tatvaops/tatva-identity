@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdminHeader, adminDate } from "@/features/admin/admin-chrome";
 import { AdminActionButton } from "@/features/admin/admin-action";
-import { AdminCreateCertificationForm, AdminCreateExperienceForm } from "@/features/admin/admin-create-forms";
+import { AdminCreateCertificationForm, AdminCreateExperienceForm, AdminEditPersonForm } from "@/features/admin/admin-create-forms";
 import { AdminCertificationState, AdminPortfolioForm, AdminProfileMediaForm, AdminReviewForm, AdminSkillFactForm, AdminSupervisorReviewForm } from "@/features/admin/admin-forms";
 import { personPublicHref } from "@/lib/domain/identiti-routes";
 import { Card } from "@/components/ui/card";
@@ -17,7 +17,7 @@ export default async function AdminPersonPage({ params }: { params: Promise<{ id
   const { id } = await params;
   const data = await getAdminPerson(id);
   if (!data) notFound();
-  const { profile, requests, certifications, projects } = data;
+  const { profile, requests, certifications, projects, jobApplications, gigApplications, posts } = data;
   return (
     <div>
       <AdminHeader
@@ -34,8 +34,10 @@ export default async function AdminPersonPage({ params }: { params: Promise<{ id
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="p-5">
-          <p className="text-sm font-semibold">Passport flags</p>
-          <p className="mt-1 text-sm text-muted-foreground">{profile.headline || profile.about || "No headline yet."}</p>
+          <p className="text-sm font-semibold">Identity</p>
+          <p className="mt-1 mb-3 text-sm text-muted-foreground">Edits write to the public passport immediately. Phone, Aadhaar and bank details stay off this form.</p>
+          <AdminEditPersonForm profile={profile} />
+          <p className="mt-4 text-sm text-muted-foreground">{profile.headline || profile.about || "No headline yet."}</p>
           <p className="mt-2 text-xs text-muted-foreground">
             {profile.city}
             {profile.state ? `, ${profile.state}` : ""} · {profile.occupation_mode ?? "—"} · joined {adminDate(profile.created_at)}
@@ -139,6 +141,42 @@ export default async function AdminPersonPage({ params }: { params: Promise<{ id
           </ul>
         )}
       </Card>
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <Card className="p-5">
+          <p className="text-sm font-semibold">Applications</p>
+          {jobApplications.length + gigApplications.length === 0 ? (
+            <p className="mt-2 text-sm text-muted-foreground">This person has not applied to a job or gig yet.</p>
+          ) : (
+            <ul className="mt-3 space-y-2 text-sm">
+              {jobApplications.map((row) => (
+                <li key={row.id}>
+                  Job · {row.status} · {adminDate(row.created_at)}
+                </li>
+              ))}
+              {gigApplications.map((row) => (
+                <li key={row.id}>
+                  Gig · {row.status} · {adminDate(row.created_at)}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+        <Card className="p-5">
+          <p className="text-sm font-semibold">Posts</p>
+          {posts.length === 0 ? (
+            <p className="mt-2 text-sm text-muted-foreground">No posts from this person yet.</p>
+          ) : (
+            <ul className="mt-3 space-y-2 text-sm">
+              {posts.map((post) => (
+                <li key={post.id} className="line-clamp-3">
+                  {post.hidden_at ? "(hidden) " : ""}
+                  {post.body}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      </div>
     </div>
   );
 }

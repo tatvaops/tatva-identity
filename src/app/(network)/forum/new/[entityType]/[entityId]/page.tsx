@@ -27,17 +27,31 @@ export default async function ForumNewPage({
     returnUrl: `${appOrigin()}${target.returnPath}`,
   });
   if ("url" in started) redirect(started.url);
+  const missingKey = /signing key is not configured/i.test(started.error);
   return (
     <Card className="mx-auto max-w-xl p-6">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Vantage Forums</p>
       <h1 className="mt-2 text-2xl font-semibold">Cannot start this discussion yet</h1>
       <p className="mt-3 text-sm text-muted-foreground">
-        {started.error} IDENTITI will not invent a live Vantage thread. Set the forum signing key, then try again. This
-        never auto-publishes a post.
+        {started.error} IDENTITI does not host the forum and will not invent a live Vantage thread.
       </p>
-      <Button className="mt-6" variant="outline" asChild>
-        <Link href={target.returnPath}>Back to profile</Link>
-      </Button>
+      {missingKey ? (
+        <p className="mt-3 text-sm text-muted-foreground">
+          Set <code className="rounded bg-muted px-1">IDENTITI_FORUM_PRIVATE_KEY</code> in the Vercel project environment
+          (Production), give Vantage the same value as their public HMAC, then redeploy. Status is shown in Admin →
+          Settings. This never auto-publishes a post.
+        </p>
+      ) : (
+        <p className="mt-3 text-sm text-muted-foreground">Set the forum signing key, then try again. This never auto-publishes a post.</p>
+      )}
+      <div className="mt-6 flex flex-wrap gap-3">
+        <Button variant="outline" asChild>
+          <Link href={target.returnPath}>Back to profile</Link>
+        </Button>
+        <Button variant="outline" asChild>
+          <Link href="/admin/settings">Open forum settings</Link>
+        </Button>
+      </div>
     </Card>
   );
 }

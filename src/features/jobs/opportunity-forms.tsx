@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { createGigPost, createJobPost } from "@/lib/actions/opportunity";
-import type { NetworkProject, Organisation } from "@/lib/types/identity";
+import { createGigPost, createJobPost, updateGigPost, updateJobPost } from "@/lib/actions/opportunity";
+import type { GigPost, JobPost, NetworkProject, Organisation } from "@/lib/types/identity";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -20,9 +20,11 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 export function JobCreateForm({
   organisations,
   defaultOrganisationId,
+  job,
 }: {
   organisations: Organisation[];
   defaultOrganisationId?: string;
+  job?: JobPost;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -41,7 +43,7 @@ export function JobCreateForm({
           event.preventDefault();
           const form = new FormData(event.currentTarget);
           start(async () => {
-            const result = await createJobPost({
+            const payload = {
               organisationId: String(form.get("organisationId") ?? ""),
               title: String(form.get("title") ?? ""),
               city: String(form.get("city") ?? ""),
@@ -53,7 +55,9 @@ export function JobCreateForm({
               responsibilities: String(form.get("responsibilities") ?? ""),
               requirements: String(form.get("requirements") ?? ""),
               easyApply: form.get("easyApply") === "on",
-            });
+              jobId: job?.id,
+            };
+            const result = job ? await updateJobPost(payload) : await createJobPost(payload);
             if (!result.ok) setError(result.error);
           });
         }}
@@ -72,13 +76,17 @@ export function JobCreateForm({
           </select>
         </Field>
         <Field label="Job title">
-          <Input name="title" required />
+          <Input name="title" required defaultValue={job?.title} />
         </Field>
         <Field label="City">
-          <Input name="city" />
+          <Input name="city" defaultValue={job?.city ?? ""} />
         </Field>
         <Field label="Employment type">
-          <select name="employmentType" className="h-10 w-full rounded-lg border border-input bg-white px-3 text-sm">
+          <select
+            name="employmentType"
+            defaultValue={job?.employmentType ?? "permanent"}
+            className="h-10 w-full rounded-lg border border-input bg-white px-3 text-sm"
+          >
             <option value="permanent">Permanent</option>
             <option value="contract">Contract</option>
             <option value="part_time">Part time</option>
@@ -87,25 +95,35 @@ export function JobCreateForm({
           </select>
         </Field>
         <Field label="Experience">
-          <Input name="experienceLabel" />
+          <Input name="experienceLabel" defaultValue={job?.experienceLabel ?? ""} />
         </Field>
         <Field label="Compensation label">
-          <Input name="salaryLabel" placeholder="Public range only. Do not add payroll data." />
+          <Input name="salaryLabel" defaultValue={job?.salaryLabel ?? ""} placeholder="Public range only. Do not add payroll data." />
         </Field>
         <Field label="Skills">
-          <Input name="skills" placeholder="Comma separated" />
+          <Input name="skills" defaultValue={job?.skills.join(", ") ?? ""} placeholder="Comma separated" />
         </Field>
         <Field label="Overview">
-          <Textarea name="description" rows={6} />
+          <Textarea name="description" rows={6} defaultValue={job?.description ?? ""} />
         </Field>
         <Field label="Responsibilities">
-          <Textarea name="responsibilities" rows={4} placeholder="One per line or comma separated" />
+          <Textarea
+            name="responsibilities"
+            rows={4}
+            defaultValue={job?.responsibilities.join("\n") ?? ""}
+            placeholder="One per line or comma separated"
+          />
         </Field>
         <Field label="Requirements">
-          <Textarea name="requirements" rows={4} placeholder="One per line or comma separated" />
+          <Textarea
+            name="requirements"
+            rows={4}
+            defaultValue={job?.requirements.join("\n") ?? ""}
+            placeholder="One per line or comma separated"
+          />
         </Field>
         <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" name="easyApply" />
+          <input type="checkbox" name="easyApply" defaultChecked={job?.easyApply} />
           Easy apply
         </label>
         {error ? (
@@ -114,7 +132,7 @@ export function JobCreateForm({
           </p>
         ) : null}
         <Button type="submit" disabled={pending}>
-          Publish job
+          Publish {job ? "changes" : "job"}
         </Button>
       </form>
     </Card>
@@ -125,10 +143,12 @@ export function GigCreateForm({
   organisations,
   defaultOrganisationId,
   projects = [],
+  gig,
 }: {
   organisations: Organisation[];
   defaultOrganisationId?: string;
   projects?: NetworkProject[];
+  gig?: GigPost;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -139,6 +159,9 @@ export function GigCreateForm({
       </Card>
     );
   }
+  const duration = ["4_hours", "1_shift", "1_day", "3_days", "1_week", "project"].includes(gig?.duration ?? "")
+    ? gig!.duration!
+    : "1_shift";
   return (
     <Card className="mx-auto max-w-xl space-y-4 p-5">
       <form
@@ -147,7 +170,7 @@ export function GigCreateForm({
           event.preventDefault();
           const form = new FormData(event.currentTarget);
           start(async () => {
-            const result = await createGigPost({
+            const payload = {
               organisationId: String(form.get("organisationId") ?? ""),
               title: String(form.get("title") ?? ""),
               siteName: String(form.get("siteName") ?? ""),
@@ -160,7 +183,9 @@ export function GigCreateForm({
               description: String(form.get("description") ?? ""),
               projectId: String(form.get("projectId") ?? ""),
               distanceKm: String(form.get("distanceKm") ?? ""),
-            });
+              gigId: gig?.id,
+            };
+            const result = gig ? await updateGigPost(payload) : await createGigPost(payload);
             if (!result.ok) setError(result.error);
           });
         }}
@@ -179,14 +204,18 @@ export function GigCreateForm({
           </select>
         </Field>
         <Field label="Gig title">
-          <Input name="title" required />
+          <Input name="title" required defaultValue={gig?.title} />
         </Field>
         <Field label="Site or city">
-          <Input name="siteName" />
+          <Input name="siteName" defaultValue={gig?.siteName ?? ""} />
         </Field>
         {projects.length > 0 ? (
           <Field label="Linked project (optional)">
-            <select name="projectId" className="h-10 w-full rounded-lg border border-input bg-white px-3 text-sm">
+            <select
+              name="projectId"
+              defaultValue={gig?.projectId ?? ""}
+              className="h-10 w-full rounded-lg border border-input bg-white px-3 text-sm"
+            >
               <option value="">None</option>
               {projects.map((project) => (
                 <option key={project.id} value={project.id}>
@@ -197,29 +226,29 @@ export function GigCreateForm({
           </Field>
         ) : null}
         <Field label="Distance (km)">
-          <Input name="distanceKm" inputMode="decimal" />
+          <Input name="distanceKm" inputMode="decimal" defaultValue={gig?.distanceKm ?? ""} />
         </Field>
         <Field label="Trade">
-          <Input name="trade" />
+          <Input name="trade" defaultValue={gig?.trade ?? ""} />
         </Field>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="When">
-            <Input name="startLabel" placeholder="Tomorrow, 8am" />
+            <Input name="startLabel" placeholder="Tomorrow, 8am" defaultValue={gig?.startLabel ?? ""} />
           </Field>
           <Field label="Shift">
-            <Input name="shiftLabel" />
+            <Input name="shiftLabel" defaultValue={gig?.shiftLabel ?? ""} />
           </Field>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Pay label">
-            <Input name="payLabel" />
+            <Input name="payLabel" defaultValue={gig?.payLabel ?? ""} />
           </Field>
           <Field label="Seats">
-            <Input name="seats" inputMode="numeric" />
+            <Input name="seats" inputMode="numeric" defaultValue={gig?.seats ?? ""} />
           </Field>
         </div>
         <Field label="Duration">
-          <select name="duration" className="h-10 w-full rounded-lg border border-input bg-white px-3 text-sm">
+          <select name="duration" defaultValue={duration} className="h-10 w-full rounded-lg border border-input bg-white px-3 text-sm">
             <option value="4_hours">4 hours</option>
             <option value="1_shift">1 shift</option>
             <option value="1_day">1 day</option>
@@ -229,7 +258,7 @@ export function GigCreateForm({
           </select>
         </Field>
         <Field label="Details">
-          <Textarea name="description" rows={5} />
+          <Textarea name="description" rows={5} defaultValue={gig?.description ?? ""} />
         </Field>
         {error ? (
           <p className="text-sm text-rose-700" role="alert">
@@ -237,7 +266,7 @@ export function GigCreateForm({
           </p>
         ) : null}
         <Button type="submit" disabled={pending}>
-          Publish gig
+          Publish {gig ? "changes" : "gig"}
         </Button>
       </form>
     </Card>

@@ -45,6 +45,7 @@ export function OrganisationForm({ org }: { org?: Organisation }) {
             serviceAreas: String(form.get("serviceAreas") ?? ""),
             teamSizeLabel: String(form.get("teamSizeLabel") ?? ""),
             state: String(form.get("state") ?? ""),
+            passportKind: String(form.get("passportKind") ?? "other"),
           };
           start(async () => {
             const result = org ? await updateOrganisation(org.slug, input) : await createOrganisation(input);
@@ -68,6 +69,13 @@ export function OrganisationForm({ org }: { org?: Organisation }) {
                 {type.replaceAll("_", " ")}
               </option>
             ))}
+          </select>
+        </Field>
+        <Field label="Public identity">
+          <select name="passportKind" defaultValue={org?.passportKind ?? "other"} className="h-10 w-full rounded-lg border border-input bg-white px-3 text-sm">
+            <option value="other">Company</option>
+            <option value="service_brand">Service brand</option>
+            <option value="product_brand">Product brand</option>
           </select>
         </Field>
         <Field label="Industry">

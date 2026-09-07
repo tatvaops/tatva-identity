@@ -27,6 +27,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         profile: auth.ctx.profile,
         configured: true,
         isPlatformAdmin: true,
+        unreadNotificationCount: auth.ctx.unreadNotificationCount,
       }}
     >
       <AdminShell profile={auth.ctx.profile}>

@@ -1,35 +1,52 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { Bookmark, FolderKanban, Users } from "lucide-react";
-import { ProfileMiniCard } from "@/components/cards/entity-cards";
+import { CompanyCard, GigCard, JobCard, PersonCard, ProfileMiniCard } from "@/components/cards/entity-cards";
 import { DesktopSidebar } from "@/components/layout/app-shell";
+import { PageNav } from "@/components/layout/page-nav";
 import { EmptyState, QueryNotice } from "@/components/states/empty-state";
 import { PostCard, PostComposer } from "@/features/feed/feed-ui";
 import { Card } from "@/components/ui/card";
 import { getAuthContext } from "@/lib/data/query";
-import { getProfileById, getOrganisationById, listCommentsForPosts, listFeedPosts, listJobs, listGigs, listOrganisations, listPublicProfiles } from "@/lib/data/network";
-import { JobCard, GigCard, CompanyCard, PersonCard } from "@/components/cards/entity-cards";
+import {
+  getConnectionStates,
+  getOrganisationsByIds,
+  getProfilesByIds,
+  listCommentsForPosts,
+  listFeedPosts,
+  listGigs,
+  listJobs,
+  listOrganisations,
+  listPostReactionState,
+  listPublicProfiles,
+} from "@/lib/data/network";
 
-export async function FeedView({ compose = false }: { compose?: boolean }) {
+const PAGE_SIZE = 20;
+
+export async function FeedView({ compose = false, page = 1 }: { compose?: boolean; page?: number }) {
   const session = await getAuthContext();
-  const posts = await listFeedPosts();
-  const people = await listPublicProfiles();
-  const companies = await listOrganisations();
-  const jobs = await listJobs();
-  const gigs = await listGigs();
-
-  const authors = await Promise.all(
-    posts.data.map((p) => (p.authorProfileId ? getProfileById(p.authorProfileId) : Promise.resolve({ data: null }))),
-  );
-  const orgs = await Promise.all(
-    posts.data.map((p) =>
-      p.authorOrganisationId ? getOrganisationById(p.authorOrganisationId) : Promise.resolve({ data: null }),
+  const currentPage = Math.max(1, page);
+  const posts = await listFeedPosts({ viewerId: session.userId, page: currentPage, pageSize: PAGE_SIZE });
+  const [reactions, people, companies, jobs, gigs] = await Promise.all([
+    listPostReactionState(
+      posts.data.map((post) => post.id),
+      session.userId,
     ),
-  );
+    listPublicProfiles({}, { pageSize: 6 }),
+    listOrganisations(undefined, undefined, { pageSize: 2 }),
+    listJobs({}, { pageSize: 2 }),
+    listGigs({}, { pageSize: 2 }),
+  ]);
+
+  const authorIds = [...new Set(posts.data.map((post) => post.authorProfileId).filter((id): id is string => Boolean(id)))];
+  const orgIds = [...new Set(posts.data.map((post) => post.authorOrganisationId).filter((id): id is string => Boolean(id)))];
+  const authors = await getProfilesByIds(authorIds);
+  const authorById = new Map(authors.map((person) => [person.id, person]));
+  const orgs = await getOrganisationsByIds(orgIds);
+  const orgById = new Map(orgs.map((org) => [org.id, org] as const));
   const comments = await listCommentsForPosts(posts.data.map((post) => post.id));
-  const commentAuthorIds = [...new Set(comments.data.map((comment) => comment.authorId))];
-  const commentAuthorRows = await Promise.all(commentAuthorIds.map((id) => getProfileById(id)));
-  const commentAuthors = commentAuthorRows.map((row) => row.data).filter((row): row is NonNullable<typeof row> => Boolean(row));
+  const commentAuthors = await getProfilesByIds([...new Set(comments.data.map((comment) => comment.authorId))]);
+  const railStates = await getConnectionStates(session.userId, people.data.slice(0, 3).map((person) => person.id));
 
   return (
     <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,640px)_300px] lg:justify-center">
@@ -70,22 +87,31 @@ export async function FeedView({ compose = false }: { compose?: boolean }) {
             body="When professionals and organisations publish updates, they will appear here."
           />
         ) : (
-          posts.data.map((post, i) => (
+          posts.data.map((post) => (
             <PostCard
               key={post.id}
               post={post}
-              author={authors[i]?.data}
-              organisationName={orgs[i]?.data?.name}
+              author={post.authorProfileId ? authorById.get(post.authorProfileId) ?? null : null}
+              organisationName={post.authorOrganisationId ? orgById.get(post.authorOrganisationId)?.name ?? null : null}
               comments={comments.data.filter((comment) => comment.postId === post.id)}
               commentAuthors={commentAuthors}
+              liked={reactions.liked.has(post.id)}
+              likeCount={reactions.counts.get(post.id) ?? 0}
             />
           ))
         )}
+        <PageNav
+          path="/feed"
+          page={currentPage}
+          hasMore={posts.data.length === PAGE_SIZE}
+          total={posts.total}
+          params={compose ? { compose: "1" } : undefined}
+        />
       </section>
       <aside className="hidden space-y-4 xl:block">
         <Rail title="People">
           {people.data.slice(0, 3).map((p) => (
-            <PersonCard key={p.id} profile={p} />
+            <PersonCard key={p.id} profile={p} connectionState={railStates.get(p.id) ?? "connect"} />
           ))}
           {people.data.length === 0 && <p className="text-sm text-muted-foreground">No professionals yet.</p>}
         </Rail>

@@ -6,6 +6,7 @@ import { BadgeCheck, CirclePlay } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PhotoFrame } from "@/components/identity/media-photo";
 import { SaveButton } from "@/components/identity/save-button";
+import { VendorContactForm } from "@/features/company/vendor-contact-form";
 import { PersonCard } from "@/components/cards/entity-cards";
 import { presentAiReview } from "@/lib/domain/ai-review";
 import type { IdentitiBrand, IdentitiProject } from "@/lib/data/identiti";
@@ -94,6 +95,17 @@ export function ProductBrandView({
             <Button asChild className="rounded-xl px-5 py-3 font-bold">
               <Link href={discuss}>Ask the community</Link>
             </Button>
+            {!brand.isOwner ? (
+              <VendorContactForm
+                organisationId={brand.id}
+                organisationName={brand.name}
+                signedIn={signedIn}
+                signInHref={`/auth/sign-in?next=/product-brands/${brand.slug}`}
+                label="Contact this brand"
+                intent="contact"
+                variant="outline"
+              />
+            ) : null}
             {brand.website ? (
               <Button asChild variant="outline" className="rounded-xl px-5 py-3 font-bold">
                 <a href={brand.website} target="_blank" rel="noreferrer">

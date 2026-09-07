@@ -11,7 +11,7 @@ export function SaveButton({
   id,
   saved,
 }: {
-  kind: "job" | "gig" | "organisation";
+  kind: "job" | "gig" | "organisation" | "profile" | "project";
   id: string;
   saved: boolean;
 }) {

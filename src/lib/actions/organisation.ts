@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { z } from "zod";
 import { fail, requireUser, type ActionResult } from "@/lib/actions/shared";
 import { slugify } from "@/lib/domain/slug";
 import { organisationSchema, orgCredentialSchema, orgMemberSchema, orgServiceSchema, reviewSchema } from "@/lib/domain/workspace-schemas";
@@ -55,6 +56,8 @@ export async function createOrganisation(input: unknown): Promise<ActionResult> 
     await auth.supabase.from("profiles").update({ current_organisation_id: org.data.id }).eq("id", auth.ctx.userId);
   }
   revalidatePath("/companies");
+  revalidatePath("/service-brands");
+  revalidatePath("/product-brands");
   redirect(`/companies/${slug}`);
 }
 
@@ -64,6 +67,10 @@ export async function updateOrganisation(slug: string, input: unknown): Promise<
   const auth = await requireUser();
   if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
   const foundedYear = parsed.data.foundedYear ? Number.parseInt(parsed.data.foundedYear, 10) : null;
+  const existing = await auth.supabase.from("organisations").select("id").eq("slug", slug).maybeSingle();
+  if (!existing.data) return fail("Organisation not found.");
+  const staff = await auth.supabase.rpc("is_org_staff", { org_id: existing.data.id });
+  if (!staff.data) return fail("Only organisation owners, admins or recruiters can edit this page.");
   const { error } = await auth.supabase
     .from("organisations")
     .update({
@@ -82,12 +89,14 @@ export async function updateOrganisation(slug: string, input: unknown): Promise<
       service_areas: splitList(parsed.data.serviceAreas ?? ""),
       team_size_label: parsed.data.teamSizeLabel || null,
       state: parsed.data.state || null,
+      passport_kind: parsed.data.passportKind || undefined,
     })
-    .eq("slug", slug)
-    .eq("created_by", auth.ctx.userId);
+    .eq("slug", slug);
   if (error) return fail(error.message);
   revalidatePath(`/companies/${slug}`);
   revalidatePath(`/org/${slug}`);
+  revalidatePath("/service-brands");
+  revalidatePath("/product-brands");
   return { ok: true };
 }
 
@@ -144,8 +153,55 @@ export async function inviteOrganisationMember(input: unknown): Promise<ActionRe
     member_kind: parsed.data.orgRole === "admin" ? "leadership" : "employee",
   });
   if (error) return fail(error.message);
-  await notify(auth.supabase, person.data.id, "org_invite", "Organisation invitation", parsed.data.roleTitle || "You've been invited to an organisation.", `/people/${person.data.handle}`);
+  await notify(
+    auth.supabase,
+    person.data.id,
+    "org_invite",
+    "Organisation invitation",
+    parsed.data.roleTitle || "You've been invited to an organisation.",
+    "/network?tab=invites",
+  );
   revalidatePath("/companies");
+  revalidatePath("/network");
+  return { ok: true };
+}
+
+export async function respondToOrganisationInvite(input: unknown): Promise<ActionResult> {
+  const parsed = z
+    .object({
+      membershipId: z.string().uuid(),
+      accept: z.boolean(),
+    })
+    .safeParse(input);
+  if (!parsed.success) return fail("Choose an invitation to respond to.");
+  const auth = await requireUser();
+  if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
+  const row = await auth.supabase
+    .from("organisation_members")
+    .select("id, organisation_id, invite_status")
+    .eq("id", parsed.data.membershipId)
+    .eq("profile_id", auth.ctx.userId)
+    .maybeSingle();
+  if (!row.data || row.data.invite_status !== "invited") return fail("That invitation is no longer pending.");
+  if (parsed.data.accept) {
+    const { error } = await auth.supabase
+      .from("organisation_members")
+      .update({ invite_status: "active" })
+      .eq("id", parsed.data.membershipId)
+      .eq("profile_id", auth.ctx.userId);
+    if (error) return fail(error.message);
+    await auth.supabase.from("profiles").update({ current_organisation_id: row.data.organisation_id }).eq("id", auth.ctx.userId);
+  } else {
+    const { error } = await auth.supabase
+      .from("organisation_members")
+      .delete()
+      .eq("id", parsed.data.membershipId)
+      .eq("profile_id", auth.ctx.userId);
+    if (error) return fail(error.message);
+  }
+  revalidatePath("/network");
+  revalidatePath("/companies");
+  revalidatePath("/notifications");
   return { ok: true };
 }
 

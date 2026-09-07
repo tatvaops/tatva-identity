@@ -8,6 +8,7 @@ const SessionContext = createContext<AuthContext>({
   profile: null,
   configured: false,
   isPlatformAdmin: false,
+  unreadNotificationCount: 0,
 });
 
 export function SessionProvider({ value, children }: { value: AuthContext; children: ReactNode }) {

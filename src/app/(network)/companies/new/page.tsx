@@ -5,6 +5,7 @@ import { getAuthContext } from "@/lib/data/query";
 export default async function NewCompanyPage() {
   const session = await getAuthContext();
   if (!session.userId) redirect("/auth/sign-in?next=/companies/new");
+  if (!session.profile) redirect("/onboarding");
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-semibold">Create organisation</h1>

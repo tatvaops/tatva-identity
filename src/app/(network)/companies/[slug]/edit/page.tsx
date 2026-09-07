@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { OrganisationCatalogueForms, OrganisationForm, OrganisationInviteForm, OrganisationReviewForm } from "@/features/company/org-forms";
 import { getOrganisationBySlug } from "@/lib/data/organisation";
 import { getAuthContext } from "@/lib/data/query";
+import { userCanManageOrganisation } from "@/lib/data/workspace";
 import { QueryNotice } from "@/components/states/empty-state";
 
 export default async function EditCompanyPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -11,7 +12,7 @@ export default async function EditCompanyPage({ params }: { params: Promise<{ sl
   const org = await getOrganisationBySlug(slug);
   if (org.meta.error) return <QueryNotice configured={org.meta.configured} error={org.meta.error} />;
   if (!org.data) notFound();
-  if (org.data.createdBy !== session.userId) redirect(`/companies/${slug}`);
+  if (!(await userCanManageOrganisation(session.userId, org.data.id))) redirect(`/companies/${slug}`);
   return (
     <div className="space-y-6">
       <h1 className="text-xl font-semibold">Edit {org.data.name}</h1>

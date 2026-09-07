@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { CompanyCard, PersonCard } from "@/components/cards/entity-cards";
 import { PhotoFrame } from "@/components/identity/media-photo";
+import { SaveButton } from "@/components/identity/save-button";
+import { ReportEntityButton } from "@/components/identity/safety-actions";
 import { VerificationBadge } from "@/components/identity/verification";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -24,6 +26,8 @@ export function ProjectProfileView({
   updates,
   gallery,
   products,
+  saved = false,
+  signedIn = false,
 }: {
   project: NetworkProject;
   client: Organisation | null;
@@ -39,6 +43,8 @@ export function ProjectProfileView({
     product: { id: string; slug: string; name: string } | null;
     brand: IdentitiBrand | null;
   }[];
+  saved?: boolean;
+  signedIn?: boolean;
 }) {
   const photos = gallery.filter((item) => Boolean(item.storagePath));
   const cover = project.coverImageUrl ?? photos[0]?.storagePath ?? null;
@@ -67,6 +73,10 @@ export function ProjectProfileView({
           <p className="mt-1 text-sm text-muted-foreground">
             {[project.locality, project.city].filter(Boolean).join(", ")}
           </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {signedIn ? <SaveButton kind="project" id={project.id} saved={saved} /> : null}
+            {signedIn ? <ReportEntityButton entityKind="project" entityId={project.id} /> : null}
+          </div>
           <p className="mt-3 max-w-3xl text-sm leading-6">{project.summary}</p>
           <p className="mt-3 text-sm">
             {client && (

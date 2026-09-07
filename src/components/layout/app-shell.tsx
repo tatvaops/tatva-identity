@@ -40,13 +40,15 @@ export function Wordmark({ compact = false }: { compact?: boolean }) {
 export function GlobalHeader() {
   const pathname = usePathname();
   const router = useRouter();
-  const { profile, userId, isPlatformAdmin } = useSession();
+  const { profile, userId, isPlatformAdmin, unreadNotificationCount } = useSession();
   const copy = useDictionary();
   const profileHref = profile
     ? profile.occupationMode === "blue_collar" || profile.occupationMode === "contractor"
       ? `/gig-workers/${profile.handle}`
       : `/professionals/${profile.handle}`
-    : "/auth/sign-in";
+    : userId
+      ? "/onboarding"
+      : "/auth/sign-in";
   const profileActive = Boolean(profile && (pathname.startsWith("/professionals/") || pathname.startsWith("/gig-workers/") || pathname === `/people/${profile.handle}`));
   const items = [
     { href: "/service-brands", label: "Service brand" },
@@ -97,8 +99,13 @@ export function GlobalHeader() {
         <Link href="/search" className="grid size-9 place-items-center rounded-lg border border-[#e1e4ed] text-[#68708b]" aria-label={copy.search}>
           <Search className="size-4" />
         </Link>
-        <Link href="/notifications" className="grid size-9 place-items-center rounded-lg border border-[#e1e4ed] text-[#68708b] md:hidden" aria-label={copy.notifications}>
+        <Link href="/notifications" className="relative grid size-9 place-items-center rounded-lg border border-[#e1e4ed] text-[#68708b]" aria-label={copy.notifications}>
           <Bell className="size-4" />
+          {unreadNotificationCount > 0 ? (
+            <span className="absolute -right-1 -top-1 grid min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
+              {unreadNotificationCount > 9 ? "9+" : unreadNotificationCount}
+            </span>
+          ) : null}
         </Link>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -134,7 +141,7 @@ export function GlobalHeader() {
         {userId && profile ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="hidden md:block" aria-label="Account menu">
+              <button aria-label="Account menu">
                 <InitialsAvatar initials={initialsFromName(profile.fullName)} hue={hueFromId(profile.id)} size={32} />
               </button>
             </DropdownMenuTrigger>
@@ -144,7 +151,17 @@ export function GlobalHeader() {
                 <Link href={profileHref}>View profile</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/saved">Saved</Link>
+                <Link href="/notifications" className="flex items-center justify-between gap-3">
+                  Notifications
+                  {unreadNotificationCount > 0 ? (
+                    <span className="rounded-full bg-primary px-1.5 text-[10px] font-bold text-white">
+                      {unreadNotificationCount > 9 ? "9+" : unreadNotificationCount}
+                    </span>
+                  ) : null}
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/network">Network</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/passport">Professional passport</Link>

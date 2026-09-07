@@ -9,8 +9,10 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useSession } from "@/components/providers/session-provider";
-import { addComment, createPost, reportPost, togglePostReaction } from "@/lib/actions/network";
+import { addComment, createPost, deleteOwnPost, reportPost, togglePostReaction } from "@/lib/actions/network";
 import { uploadPublicImage } from "@/lib/actions/media";
+import { PhotoFrame } from "@/components/identity/media-photo";
+import { personPublicHref } from "@/lib/domain/identiti-routes";
 import { hueFromId, initialsFromName } from "@/lib/domain/passport-strength";
 import type { Post, PostComment, PublicProfile } from "@/lib/types/identity";
 import Link from "next/link";
@@ -98,7 +100,19 @@ export function PostComposer({ openOnMount = false }: { openOnMount?: boolean })
               size="sm"
               onClick={() => {
                 if (label === "Photo") photoInput.current?.click();
-                else setOpen(true);
+                else if (label === "Project") {
+                  setPostType("project_completion");
+                  setOpen(true);
+                } else if (label === "Job") {
+                  setPostType("job_vacancy");
+                  setOpen(true);
+                } else if (label === "Credential") {
+                  setPostType("certification");
+                  setOpen(true);
+                } else if (label === "Video") {
+                  setPostType("site_progress");
+                  setOpen(true);
+                } else setOpen(true);
               }}
             >
               <Icon />
@@ -153,14 +167,14 @@ export function PostComposer({ openOnMount = false }: { openOnMount?: boolean })
             placeholder="What did you complete, hire for, or verify?"
             className="mt-3 min-h-32"
           />
-          {photoPath ? <p className="mt-2 text-xs text-muted-foreground">Photo attached.</p> : null}
+          {photoPath ? <p className="mt-2 text-xs text-muted-foreground">Photo attached and will publish with this update.</p> : null}
           {error && <p className="mt-2 text-sm text-rose-700">{error}</p>}
           <div className="mt-4 flex justify-end">
             <Button
               disabled={pending}
               onClick={() =>
                 start(async () => {
-                  const result = await createPost(body, postType);
+                  const result = await createPost(body, postType, photoPath);
                   if (!result.ok) {
                     setError(result.error);
                     return;
@@ -187,19 +201,24 @@ export function PostCard({
   organisationName,
   comments = [],
   commentAuthors = [],
+  liked = false,
+  likeCount = 0,
 }: {
   post: Post;
   author?: PublicProfile | null;
   organisationName?: string | null;
   comments?: PostComment[];
   commentAuthors?: PublicProfile[];
+  liked?: boolean;
+  likeCount?: number;
 }) {
   const name = author?.fullName ?? organisationName ?? "Member";
-  const href = author ? `/people/${author.handle}` : "#";
+  const href = author ? personPublicHref(author.handle, author.occupationMode) : "#";
   const router = useRouter();
   const { userId } = useSession();
   const [comment, setComment] = useState("");
-  const [liked, setLiked] = useState(false);
+  const [likedState, setLiked] = useState(liked);
+  const [count, setCount] = useState(likeCount);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   return (
@@ -227,6 +246,8 @@ export function PostCard({
             {POST_TYPE_LABEL[post.postType] ?? post.postType.replaceAll("_", " ")}
           </Badge>
           <p className="mt-3 text-sm leading-6">{post.body}</p>
+          {post.mediaPath ? <PhotoFrame src={post.mediaPath} alt="" className="mt-3 h-56 rounded-xl" /> : null}
+          {post.mediaPath ? <PhotoFrame src={post.mediaPath} alt="" className="mt-3 h-56 rounded-xl" /> : null}
           {comments.length > 0 ? (
             <ul className="mt-4 space-y-3 border-t border-border pt-3">
               {comments.map((comment) => {
@@ -234,7 +255,7 @@ export function PostCard({
                 return (
                   <li key={comment.id} className="text-sm">
                     {commentAuthor ? (
-                      <Link href={`/people/${commentAuthor.handle}`} className="font-medium hover:text-primary">
+                      <Link href={personPublicHref(commentAuthor.handle, commentAuthor.occupationMode)} className="font-medium hover:text-primary">
                         {commentAuthor.fullName}
                       </Link>
                     ) : (
@@ -250,22 +271,41 @@ export function PostCard({
             <Button
               type="button"
               size="sm"
-              variant={liked ? "secondary" : "outline"}
+              variant={likedState ? "secondary" : "outline"}
               disabled={!userId || pending}
               onClick={() =>
                 start(async () => {
-                  const result = await togglePostReaction(post.id, liked);
+                  const result = await togglePostReaction(post.id, likedState);
                   if (!result.ok) {
                     setError(result.error);
                     return;
                   }
-                  setLiked(!liked);
+                  setLiked(!likedState);
+                  setCount((value) => Math.max(0, value + (likedState ? -1 : 1)));
                   router.refresh();
                 })
               }
             >
-              {liked ? "Liked" : "Like"}
+              {likedState ? "Liked" : "Like"}
+              {count > 0 ? ` · ${count}` : ""}
             </Button>
+            {userId === post.authorProfileId ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                disabled={pending}
+                onClick={() =>
+                  start(async () => {
+                    const result = await deleteOwnPost(post.id);
+                    if (!result.ok) setError(result.error);
+                    else router.refresh();
+                  })
+                }
+              >
+                Delete
+              </Button>
+            ) : null}
             {userId ? (
               <Button
                 type="button"

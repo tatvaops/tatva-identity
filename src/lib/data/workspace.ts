@@ -8,11 +8,13 @@ import type {
   OpportunityApplication,
   Organisation,
   PendingConnection,
+  ProfileEducation,
   ProfileService,
   ProjectMedia,
   ProjectMilestone,
   PublicProfile,
   SavedItem,
+  EvidenceItem,
 } from "@/lib/types/identity";
 import { listConnections, listOptedInProjects, listOrgPeople, listPublicProfiles } from "@/lib/data/network";
 
@@ -202,6 +204,30 @@ export async function listGigApplications(gigId: string): Promise<ListResult<Opp
   );
 }
 
+export async function getMyJobApplication(profileId: string, jobId: string) {
+  const supabase = await createServerSupabase();
+  if (!supabase) return null;
+  const { data } = await supabase
+    .from("job_applications")
+    .select("id, status")
+    .eq("profile_id", profileId)
+    .eq("job_id", jobId)
+    .maybeSingle();
+  return data;
+}
+
+export async function getMyGigApplication(profileId: string, gigId: string) {
+  const supabase = await createServerSupabase();
+  if (!supabase) return null;
+  const { data } = await supabase
+    .from("gig_applications")
+    .select("id, status")
+    .eq("profile_id", profileId)
+    .eq("gig_id", gigId)
+    .maybeSingle();
+  return data;
+}
+
 export async function listMyJobApplications(profileId: string): Promise<ListResult<OpportunityApplication>> {
   const supabase = await createServerSupabase();
   if (!supabase) return unconfiguredList();
@@ -306,6 +332,8 @@ export async function listProfileServices(profileId: string): Promise<ListResult
       description: row.description,
       locations: row.locations ?? [],
       availabilityLabel: row.availability_label,
+      category: row.category ?? null,
+      pricingModel: row.pricing_model ?? null,
     })),
   );
 }
@@ -472,6 +500,13 @@ export async function hydrateSavedGigs(items: SavedItem[]): Promise<GigPost[]> {
   return (data ?? []).map(mapGig);
 }
 
+export async function hydrateSavedPeople(items: SavedItem[]): Promise<PublicProfile[]> {
+  const ids = items.filter((item) => item.entityKind === "profile").map((item) => item.entityId);
+  if (ids.length === 0) return [];
+  const people = await profilesByIds(ids);
+  return people.data;
+}
+
 export async function hydrateSavedOrgs(items: SavedItem[]): Promise<Organisation[]> {
   const ids = items.filter((item) => item.entityKind === "organisation").map((item) => item.entityId);
   if (ids.length === 0) return [];
@@ -508,10 +543,241 @@ export async function getWorkGraph(profileId: string) {
 }
 
 export async function discoverPeople(profileId: string): Promise<ListResult<PublicProfile>> {
-  const [connections, directory] = await Promise.all([
+  const supabase = await createServerSupabase();
+  if (!supabase) return unconfiguredList();
+  const [connections, directory, viewer, skills] = await Promise.all([
     listConnections(profileId),
-    listPublicProfiles({}, { pageSize: 24 }),
+    listPublicProfiles({}, { pageSize: 40 }),
+    supabase.from("public_profiles").select("*").eq("id", profileId).maybeSingle(),
+    supabase.from("profile_skills").select("skill_id").eq("profile_id", profileId),
   ]);
+  const viewerProfile = viewer.data ? mapPublicProfile(viewer.data) : null;
   const hidden = new Set([profileId, ...connections.data.map((profile) => profile.id)]);
-  return listOk(directory.data.filter((profile) => !hidden.has(profile.id)).slice(0, 12));
+  const mySkills = new Set((skills.data ?? []).map((row) => row.skill_id));
+  const candidates = directory.data.filter((profile) => !hidden.has(profile.id));
+  if (!viewerProfile || candidates.length === 0) return listOk(candidates.slice(0, 8));
+  const otherSkills = await supabase
+    .from("profile_skills")
+    .select("profile_id, skill_id")
+    .in(
+      "profile_id",
+      candidates.map((row) => row.id),
+    );
+  const skillCounts = new Map<string, number>();
+  for (const row of otherSkills.data ?? []) {
+    if (mySkills.has(row.skill_id)) skillCounts.set(row.profile_id, (skillCounts.get(row.profile_id) ?? 0) + 1);
+  }
+  const { relevanceScore, rankSuggestions } = await import("@/lib/domain/recommendations");
+  const scored = candidates.map((person) => ({
+    person,
+    score: relevanceScore(viewerProfile, person, {
+      sharedSkillCount: skillCounts.get(person.id) ?? 0,
+      mutualConnectionCount: 0,
+      sharedOrganisation: Boolean(
+        viewerProfile.currentOrganisationId && viewerProfile.currentOrganisationId === person.currentOrganisationId,
+      ),
+    }),
+  }));
+  return listOk(rankSuggestions(scored, 8).map((row) => row.person));
+}
+
+export async function listEducation(profileId: string): Promise<ListResult<ProfileEducation>> {
+  const supabase = await createServerSupabase();
+  if (!supabase) return unconfiguredList();
+  const { data, error } = await supabase
+    .from("profile_education")
+    .select("*")
+    .eq("profile_id", profileId)
+    .order("start_date", { ascending: false });
+  if (error) return listFail(error.message);
+  return listOk(
+    (data ?? []).map((row) => ({
+      id: row.id,
+      institution: row.institution,
+      qualification: row.qualification,
+      course: row.course,
+      fieldOfStudy: row.field_of_study,
+      startDate: row.start_date,
+      endDate: row.end_date,
+      credentialIdPublic: row.credential_id_public,
+    })),
+  );
+}
+
+export async function listEvidence(profileId: string): Promise<ListResult<EvidenceItem>> {
+  const supabase = await createServerSupabase();
+  if (!supabase) return unconfiguredList();
+  const { data, error } = await supabase
+    .from("evidence_items")
+    .select("id, profile_id, claim_kind, claim_id, media_path, note, verification_state, is_public, created_at")
+    .eq("profile_id", profileId)
+    .order("created_at", { ascending: false });
+  if (error) return listFail(error.message);
+  return listOk(
+    (data ?? []).map((row) => ({
+      id: row.id,
+      profileId: row.profile_id,
+      claimKind: row.claim_kind,
+      claimId: row.claim_id,
+      mediaPath: row.media_path,
+      note: row.note,
+      verificationState: row.verification_state,
+      isPublic: row.is_public ?? true,
+      createdAt: row.created_at,
+    })),
+  );
+}
+
+export async function getOnboardingStep(profileId: string) {
+  const supabase = await createServerSupabase();
+  if (!supabase) return 0;
+  const { data } = await supabase.from("profiles").select("onboarding_step").eq("id", profileId).maybeSingle();
+  return typeof data?.onboarding_step === "number" ? data.onboarding_step : 0;
+}
+
+export async function countReceivedApplicationsForOrganisations(organisationIds: string[]): Promise<number> {
+  const unique = [...new Set(organisationIds.filter(Boolean))];
+  if (unique.length === 0) return 0;
+  const supabase = await createServerSupabase();
+  if (!supabase) return 0;
+  const [{ data: jobs }, { data: gigs }] = await Promise.all([
+    supabase.from("job_posts").select("id").in("organisation_id", unique),
+    supabase.from("gig_posts").select("id").in("organisation_id", unique),
+  ]);
+  const jobIds = (jobs ?? []).map((row) => row.id as string);
+  const gigIds = (gigs ?? []).map((row) => row.id as string);
+  const [jobCount, gigCount] = await Promise.all([
+    jobIds.length
+      ? supabase.from("job_applications").select("id", { count: "exact", head: true }).in("job_id", jobIds)
+      : Promise.resolve({ count: 0 }),
+    gigIds.length
+      ? supabase.from("gig_applications").select("id", { count: "exact", head: true }).in("gig_id", gigIds)
+      : Promise.resolve({ count: 0 }),
+  ]);
+  return (jobCount.count ?? 0) + (gigCount.count ?? 0);
+}
+
+export async function countOrganisationViewsForIds(organisationIds: string[]): Promise<number> {
+  const unique = [...new Set(organisationIds.filter(Boolean))];
+  if (unique.length === 0) return 0;
+  const supabase = await createServerSupabase();
+  if (!supabase) return 0;
+  const { count } = await supabase
+    .from("organisation_views")
+    .select("id", { count: "exact", head: true })
+    .in("organisation_id", unique);
+  return count ?? 0;
+}
+
+export async function countProjectViewsForProfile(profileId: string): Promise<number> {
+  const supabase = await createServerSupabase();
+  if (!supabase) return 0;
+  const { data } = await supabase
+    .from("project_contributors")
+    .select("project_id")
+    .eq("profile_id", profileId)
+    .eq("opted_in", true);
+  const ids = [...new Set((data ?? []).map((row) => row.project_id as string))];
+  if (ids.length === 0) return 0;
+  const { count } = await supabase.from("project_views").select("id", { count: "exact", head: true }).in("project_id", ids);
+  return count ?? 0;
+}
+
+export async function listBlockedPeople(profileId: string): Promise<ListResult<PublicProfile>> {
+  const supabase = await createServerSupabase();
+  if (!supabase) return unconfiguredList();
+  const { data, error } = await supabase.from("profile_blocks").select("blocked_id").eq("blocker_id", profileId);
+  if (error) return listFail(error.message);
+  return profilesByIds((data ?? []).map((row) => row.blocked_id));
+}
+
+export async function hydrateSavedProjects(items: SavedItem[]): Promise<NetworkProject[]> {
+  const ids = items.filter((item) => item.entityKind === "project").map((item) => item.entityId);
+  if (ids.length === 0) return [];
+  const supabase = await createServerSupabase();
+  if (!supabase) return [];
+  const { data } = await supabase.from("network_projects").select("*").in("id", ids);
+  const { mapProject } = await import("@/lib/data/mappers");
+  return (data ?? []).map(mapProject);
+}
+
+export async function loadNotificationPrefs(profileId: string) {
+  const supabase = await createServerSupabase();
+  if (!supabase) {
+    return {
+      notifyConnections: true,
+      notifyMessages: true,
+      notifyApplications: true,
+      notifySocial: true,
+      notifyOrganisation: true,
+    };
+  }
+  const { data } = await supabase
+    .from("profiles")
+    .select("notify_connections, notify_messages, notify_applications, notify_social, notify_organisation")
+    .eq("id", profileId)
+    .maybeSingle();
+  return {
+    notifyConnections: data?.notify_connections ?? true,
+    notifyMessages: data?.notify_messages ?? true,
+    notifyApplications: data?.notify_applications ?? true,
+    notifySocial: data?.notify_social ?? true,
+    notifyOrganisation: data?.notify_organisation ?? true,
+  };
+}
+
+export async function listMyOrganisationInvites(
+  profileId: string,
+): Promise<ListResult<{ id: string; roleTitle: string | null; organisation: Organisation }>> {
+  const supabase = await createServerSupabase();
+  if (!supabase) return unconfiguredList();
+  const { data, error } = await supabase
+    .from("organisation_members")
+    .select(`id, role_title, organisations(${ORGANISATION_SAFE_COLUMNS})`)
+    .eq("profile_id", profileId)
+    .eq("invite_status", "invited");
+  if (error) return listFail(error.message);
+  const rows: { id: string; roleTitle: string | null; organisation: Organisation }[] = [];
+  for (const row of data ?? []) {
+    const org = row.organisations as unknown;
+    if (!org || typeof org !== "object") continue;
+    rows.push({
+      id: String(row.id),
+      roleTitle: (row.role_title as string | null) ?? null,
+      organisation: mapOrganisation(org as Parameters<typeof mapOrganisation>[0]),
+    });
+  }
+  return listOk(rows);
+}
+
+export async function userCanManageOrganisation(userId: string | null, organisationId: string) {
+  if (!userId) return false;
+  const supabase = await createServerSupabase();
+  if (!supabase) return false;
+  const { data } = await supabase.rpc("is_org_staff", { org_id: organisationId });
+  return Boolean(data);
+}
+
+export async function isPersonMuted(muterId: string, mutedId: string) {
+  const supabase = await createServerSupabase();
+  if (!supabase) return false;
+  const { data } = await supabase
+    .from("profile_mutes")
+    .select("muted_id")
+    .eq("muter_id", muterId)
+    .eq("muted_id", mutedId)
+    .maybeSingle();
+  return Boolean(data);
+}
+
+export async function isPersonBlocked(blockerId: string, blockedId: string) {
+  const supabase = await createServerSupabase();
+  if (!supabase) return false;
+  const { data } = await supabase
+    .from("profile_blocks")
+    .select("blocked_id")
+    .eq("blocker_id", blockerId)
+    .eq("blocked_id", blockedId)
+    .maybeSingle();
+  return Boolean(data);
 }

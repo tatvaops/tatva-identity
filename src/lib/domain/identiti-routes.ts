@@ -11,6 +11,11 @@ export function personPublicHref(handle: string, occupationMode?: OccupationMode
   return isGigOccupation(occupationMode) ? `/gig-workers/${handle}` : `/professionals/${handle}`;
 }
 
+export function personMessageHref(profileId: string, signedIn: boolean, nextPath: string) {
+  if (signedIn) return `/messages?person=${profileId}`;
+  return `/auth/sign-in?next=${encodeURIComponent(nextPath)}`;
+}
+
 export function brandPublicHref(kind: "service_brand" | "product_brand" | "other", slug: string) {
   if (kind === "service_brand") return `/service-brands/${slug}`;
   if (kind === "product_brand") return `/product-brands/${slug}`;

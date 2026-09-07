@@ -2,6 +2,7 @@ import { createServerSupabase } from "@/lib/supabase/server";
 import { getAuthContext, itemFail, itemOk, listFail, listOk, unconfiguredItem, unconfiguredList, type ItemResult, type ListResult } from "@/lib/data/query";
 import { mapOrganisation, mapPublicProfile, ORGANISATION_GRANTED_COLUMNS, ORGANISATION_SAFE_COLUMNS } from "@/lib/data/mappers";
 import { trackEvent } from "@/lib/actions/notify";
+import { listPublicProfiles } from "@/lib/data/network";
 import type { Organisation, PublicProfile } from "@/lib/types/identity";
 import type { AiReviewRecord, AiReviewSource } from "@/lib/domain/ai-review";
 import type { ForumEntityType } from "@/lib/domain/forum";
@@ -234,20 +235,24 @@ export async function getBrandProduct(organisationId: string, productSlug: strin
   return data;
 }
 
-export async function listProfessionals() {
-  const supabase = await createServerSupabase();
-  if (!supabase) return unconfiguredList<PublicProfile>();
-  const { data, error } = await supabase.from("public_profiles").select("*").in("occupation_mode", ["white_collar", "freelancer"]).order("full_name");
-  if (error) return listFail<PublicProfile>();
-  return listOk((data ?? []).map(mapPublicProfile));
+export async function listProfessionals(filters: { query?: string; city?: string; availability?: string; skill?: string } = {}) {
+  return listPublicProfiles(
+    { ...filters, query: filters.query },
+    { pageSize: 60 },
+  ).then((result) => ({
+    ...result,
+    data: result.data.filter((person) => person.occupationMode === "white_collar" || person.occupationMode === "freelancer"),
+  }));
 }
 
-export async function listGigWorkers() {
-  const supabase = await createServerSupabase();
-  if (!supabase) return unconfiguredList<PublicProfile>();
-  const { data, error } = await supabase.from("public_profiles").select("*").in("occupation_mode", ["blue_collar", "contractor"]).order("full_name");
-  if (error) return listFail<PublicProfile>();
-  return listOk((data ?? []).map(mapPublicProfile));
+export async function listGigWorkers(filters: { query?: string; city?: string; availability?: string; skill?: string } = {}) {
+  return listPublicProfiles(
+    { ...filters, query: filters.query, trade: filters.skill },
+    { pageSize: 60 },
+  ).then((result) => ({
+    ...result,
+    data: result.data.filter((person) => person.occupationMode === "blue_collar" || person.occupationMode === "contractor"),
+  }));
 }
 
 export async function listBrandPeople(organisationId: string): Promise<PublicProfile[]> {
@@ -327,18 +332,56 @@ export async function listProductProjectUses(organisationId: string) {
 }
 
 export async function listPortfolio(profileId: string) {
+  const grouped = await listPortfoliosForProfiles([profileId]);
+  return grouped[profileId] ?? [];
+}
+
+export async function listPortfoliosForProfiles(profileIds: string[]) {
   const supabase = await createServerSupabase();
-  if (!supabase) return [];
-  const { data } = await supabase.from("work_portfolio_items").select("*").eq("profile_id", profileId).order("created_at", { ascending: false });
+  if (!supabase || profileIds.length === 0) return {} as Record<string, Array<{
+    id: string;
+    profile_id: string;
+    kind: string;
+    image_url: string;
+    caption: string | null;
+    work_category: string | null;
+    location: string | null;
+    product_used: string | null;
+    supervisor_verified: boolean;
+    brand_verified: boolean;
+    project?: { slug: string; name: string } | null;
+  }>>;
+  const { data } = await supabase
+    .from("work_portfolio_items")
+    .select("*")
+    .in("profile_id", profileIds)
+    .order("created_at", { ascending: false });
   const projectIds = [...new Set((data ?? []).map((row) => row.project_id).filter(Boolean))];
   const projects = projectIds.length
     ? await supabase.from("network_projects").select("id, slug, name").in("id", projectIds)
     : { data: [] };
   const byId = new Map((projects.data ?? []).map((row) => [row.id, row]));
-  return (data ?? []).map((row) => ({
-    ...row,
-    project: row.project_id ? byId.get(row.project_id) ?? null : null,
-  }));
+  const grouped: Record<string, Array<{
+    id: string;
+    profile_id: string;
+    kind: string;
+    image_url: string;
+    caption: string | null;
+    work_category: string | null;
+    location: string | null;
+    product_used: string | null;
+    supervisor_verified: boolean;
+    brand_verified: boolean;
+    project?: { slug: string; name: string } | null;
+  }>> = {};
+  for (const row of data ?? []) {
+    const item = {
+      ...row,
+      project: row.project_id ? byId.get(row.project_id) ?? null : null,
+    };
+    (grouped[row.profile_id] ??= []).push(item);
+  }
+  return grouped;
 }
 
 export async function listSupervisorReviews(profileId: string) {

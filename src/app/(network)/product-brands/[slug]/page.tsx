@@ -1,11 +1,27 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { ProductBrandView } from "@/features/identiti/product-brand-view";
 import { QueryNotice } from "@/components/states/empty-state";
 import { getAuthContext } from "@/lib/data/query";
 import { getBrandAi, getIdentitiBrand, listBrandPeople, listBrandProducts, listBrandVideos, listIdentitiProjects, listProductProjectUses, recordIdentitiEvent } from "@/lib/data/identiti";
 import { listSavedItems } from "@/lib/data/workspace";
+import { entityMetadata } from "@/lib/domain/seo";
 
-export default async function ProductBrandPage({ params }: { params: Promise<{ slug: string }> }) {
+type PageProps = { params: Promise<{ slug: string }> };
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const brand = await getIdentitiBrand(slug);
+  if (!brand.data) return { title: "Product brand" };
+  return entityMetadata({
+    title: brand.data.name,
+    description: brand.data.tagline ?? brand.data.about,
+    path: `/product-brands/${brand.data.slug}`,
+    image: brand.data.coverPath ?? brand.data.logoPath,
+  });
+}
+
+export default async function ProductBrandPage({ params }: PageProps) {
   const { slug } = await params;
   const brand = await getIdentitiBrand(slug);
   if (brand.meta.error) return <QueryNotice configured={brand.meta.configured} error={brand.meta.error} />;

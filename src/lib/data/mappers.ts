@@ -62,6 +62,15 @@ type ProfileRow = {
   email_visible_to?: string | null;
   about_visible_to?: string | null;
   location_visible_to?: string | null;
+  availability_visible_to?: string | null;
+  connections_visible_to?: string | null;
+  activity_visible_to?: string | null;
+  projects_visible_to?: string | null;
+  experience_visible_to?: string | null;
+  years_experience?: number | null;
+  specialisation?: string | null;
+  industries_served?: string[] | null;
+  professional_interests?: string[] | null;
   identity_verified: boolean;
   employment_verified: boolean;
   trade_verified: boolean;
@@ -98,6 +107,15 @@ export function mapPublicProfile(row: ProfileRow): PublicProfile {
     emailVisibleTo: (row.email_visible_to as PublicProfile["emailVisibleTo"]) || "none",
     aboutVisibleTo: (row.about_visible_to as VisibilityAudience) || "public",
     locationVisibleTo: (row.location_visible_to as VisibilityAudience) || "public",
+    availabilityVisibleTo: (row.availability_visible_to as VisibilityAudience) || "public",
+    connectionsVisibleTo: (row.connections_visible_to as VisibilityAudience) || "public",
+    activityVisibleTo: (row.activity_visible_to as VisibilityAudience) || "public",
+    projectsVisibleTo: (row.projects_visible_to as VisibilityAudience) || "public",
+    experienceVisibleTo: (row.experience_visible_to as VisibilityAudience) || "public",
+    yearsExperience: row.years_experience ?? null,
+    specialisation: row.specialisation ?? null,
+    industriesServed: row.industries_served ?? [],
+    professionalInterests: row.professional_interests ?? [],
     identityVerified: row.identity_verified,
     employmentVerified: row.employment_verified,
     tradeVerified: row.trade_verified,
@@ -281,7 +299,9 @@ export function mapPost(row: {
   linked_job_id: string | null;
   linked_gig_id: string | null;
   created_at: string;
+  post_media?: { storage_path: string }[] | { storage_path: string } | null;
 }): Post {
+  const media = Array.isArray(row.post_media) ? row.post_media[0] : row.post_media;
   return {
     id: row.id,
     postType: row.post_type,
@@ -291,6 +311,7 @@ export function mapPost(row: {
     linkedProjectId: row.linked_project_id,
     linkedJobId: row.linked_job_id,
     linkedGigId: row.linked_gig_id,
+    mediaPath: media?.storage_path ?? null,
     createdAt: row.created_at,
   };
 }
@@ -304,6 +325,7 @@ export function mapExperience(row: {
   location_label: string | null;
   start_date: string | null;
   end_date: string | null;
+  is_current?: boolean | null;
   source: string;
   responsibilities: string[] | null;
 }): Experience {
@@ -316,6 +338,7 @@ export function mapExperience(row: {
     locationLabel: row.location_label,
     startDate: row.start_date,
     endDate: row.end_date,
+    isCurrent: Boolean(row.is_current) || (!row.end_date && Boolean(row.start_date)),
     source: row.source as Experience["source"],
     responsibilities: row.responsibilities ?? [],
   };
@@ -325,6 +348,8 @@ export function mapSkill(row: {
   id: string;
   verification_level: string;
   rating: number | null;
+  years_experience?: number | null;
+  category?: string | null;
   skills: { name: string } | { name: string }[] | null;
 }): ProfileSkill {
   const skill = Array.isArray(row.skills) ? row.skills[0] : row.skills;
@@ -333,6 +358,8 @@ export function mapSkill(row: {
     skillName: skill?.name ?? "Skill",
     verificationLevel: row.verification_level as SkillVerificationLevel,
     rating: row.rating,
+    yearsExperience: row.years_experience ?? null,
+    category: row.category ?? null,
   };
 }
 

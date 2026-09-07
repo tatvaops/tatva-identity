@@ -4,8 +4,12 @@ import { Button } from "@/components/ui/button";
 import { PhotoFrame } from "@/components/identity/media-photo";
 import { InitialsAvatar } from "@/components/identity/visuals";
 import { hueFromId, initialsFromName } from "@/lib/domain/passport-strength";
+import { IdentitiNetworkBar } from "@/features/identiti/identiti-network-bar";
 import { IdentitiChip, IdentitiSection } from "@/features/identiti/identiti-chrome";
-import type { Experience, PublicProfile } from "@/lib/types/identity";
+import { availabilityLabel } from "@/lib/domain/availability";
+import { showAvailability, viewerFromNetwork } from "@/lib/domain/visibility";
+import type { Experience, Post, ProfileService, ProfileSkill, PublicProfile } from "@/lib/types/identity";
+import { SKILL_LEVEL_LABEL } from "@/lib/domain/verification";
 
 type PortfolioItem = {
   id: string;
@@ -45,13 +49,35 @@ export function GigWorkerView({
   reviews,
   facts,
   experiences,
+  posts = [],
+  skills = [],
+  services = [],
+  connectionState = "connect",
+  following = false,
+  signedIn = false,
+  isOwner = false,
+  isRecruiter = false,
+  saved = false,
+  blocked = false,
 }: {
   profile: PublicProfile;
   portfolio: PortfolioItem[];
   reviews: SupervisorReview[];
   facts: SkillFact[];
   experiences: Experience[];
+  posts?: Post[];
+  skills?: ProfileSkill[];
+  services?: ProfileService[];
+  connectionState?: "connect" | "pending" | "incoming" | "connected";
+  following?: boolean;
+  signedIn?: boolean;
+  isOwner?: boolean;
+  isRecruiter?: boolean;
+  saved?: boolean;
+  blocked?: boolean;
 }) {
+  const viewer = viewerFromNetwork({ isOwner, connectionState, isRecruiter });
+  const availability = showAvailability(profile, viewer) ? availabilityLabel(profile.availabilityStatus) : null;
   const rating =
     reviews.filter((item) => item.quality_rating != null).reduce((sum, item) => sum + (item.quality_rating ?? 0), 0) /
     Math.max(1, reviews.filter((item) => item.quality_rating != null).length);
@@ -76,21 +102,36 @@ export function GigWorkerView({
               </div>
               <h1 className="mt-3 text-4xl font-black tracking-tight">{profile.fullName}</h1>
               <p className="mt-2 text-white/80">{profile.headline}</p>
-              <p className="mt-1 text-sm text-white/60">{[profile.preferredRoles[0] ?? "Site installation", profile.city].filter(Boolean).join(" · ")}</p>
+              <p className="mt-1 text-sm text-white/60">
+                {[profile.preferredRoles[0] ?? "Site installation", profile.city, availability]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
               <p className="mt-4 max-w-3xl text-white/90">{profile.about}</p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <Button asChild variant="secondary" className="rounded-xl font-bold">
                   <Link href={`/passport/${profile.handle}`}>Skill passport</Link>
                 </Button>
-                <Button asChild className="rounded-xl bg-white font-bold text-[#111a42] hover:bg-white/90">
-                  <Link href={`/messages?to=${profile.handle}`}>Check availability</Link>
-                </Button>
+                {isOwner ? (
+                  <Button asChild className="rounded-xl bg-white font-bold text-[#111a42] hover:bg-white/90">
+                    <Link href="/passport">Edit passport</Link>
+                  </Button>
+                ) : null}
+                <IdentitiNetworkBar
+                  profile={profile}
+                  connectionState={connectionState}
+                  following={following}
+                  signedIn={signedIn}
+                  isOwner={isOwner}
+                  saved={saved}
+                  blocked={blocked}
+                />
               </div>
             </div>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-y-5 px-5 py-5 sm:grid-cols-3 sm:px-7">
-          <Stat value={String(portfolio.filter((item) => item.supervisor_verified || item.brand_verified).length || portfolio.length)} label="Verified projects" />
+          <Stat value={String(portfolio.filter((item) => item.supervisor_verified || item.brand_verified).length)} label="Supervisor-verified photos" />
           <Stat value={hasRating ? `${rating.toFixed(1)}/5` : "—"} label="Supervisor rating" />
           <Stat value={String(portfolio.length)} label="Photo portfolio" />
         </div>
@@ -99,10 +140,18 @@ export function GigWorkerView({
       <IdentitiSection
         eyebrow="Photo portfolio"
         title="What this person has actually built"
-        action={portfolio.length > 6 ? <span className="text-sm font-semibold text-[#2437d4]">View all {portfolio.length} uploads</span> : null}
       >
         {portfolio.length === 0 ? (
-          <p className="text-sm text-[#747a95]">No public work photos yet.</p>
+          <p className="text-sm text-[#747a95]">
+            No public work photos yet.{" "}
+            {isOwner ? (
+              <Link href="/passport?section=evidence" className="font-semibold text-[#2437d4]">
+                Upload claimed work photos from your passport
+              </Link>
+            ) : (
+              "This space stays empty until real photos exist. Supervisor-verified photos are labelled separately."
+            )}
+          </p>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {portfolio.map((item) => (
@@ -120,7 +169,9 @@ export function GigWorkerView({
                     <p className="mt-1 text-xs font-semibold text-emerald-700">
                       {item.supervisor_verified ? "Supervisor verified" : "Brand verified"}
                     </p>
-                  ) : null}
+                  ) : (
+                    <p className="mt-1 text-xs text-[#7a7f99]">Claimed work photo</p>
+                  )}
                 </figcaption>
               </figure>
             ))}
@@ -137,11 +188,36 @@ export function GigWorkerView({
                 <p className="text-sm text-[#747a95]">{item.organisationNameText}</p>
                 <p className="mt-1 text-xs text-[#7a7f99]">
                   {[item.startDate, item.endDate ?? "Present"].filter(Boolean).join(" — ")}
-                  {item.source === "organisation_verified" ? " · Employer confirmed" : ""}
+                  {item.source === "organisation_verified" ? " · Employer confirmed" : " · Self declared"}
                 </p>
               </li>
             ))}
           </ol>
+        </IdentitiSection>
+      ) : null}
+
+      {skills.length > 0 ? (
+        <IdentitiSection title="Listed skills">
+          <div className="flex flex-wrap gap-2">
+            {skills.map((skill) => (
+              <IdentitiChip key={skill.id}>
+                {skill.skillName} · {SKILL_LEVEL_LABEL[skill.verificationLevel]}
+              </IdentitiChip>
+            ))}
+          </div>
+        </IdentitiSection>
+      ) : null}
+
+      {services.length > 0 ? (
+        <IdentitiSection title="Services">
+          <div className="grid gap-3 md:grid-cols-2">
+            {services.map((service) => (
+              <div key={service.id} className="rounded-xl border border-[#eceef4] p-4">
+                <p className="font-bold text-[#111a42]">{service.name}</p>
+                {service.description ? <p className="mt-1 text-sm text-[#747a95]">{service.description}</p> : null}
+              </div>
+            ))}
+          </div>
         </IdentitiSection>
       ) : null}
 
@@ -191,6 +267,23 @@ export function GigWorkerView({
           ) : null}
         </IdentitiSection>
       ) : null}
+
+      <IdentitiSection eyebrow="Activity" title="Recent posts">
+        {posts.length === 0 ? (
+          <p className="text-sm text-[#747a95]">
+            No public posts yet. Updates this person publishes will appear here from the live feed.
+          </p>
+        ) : (
+          <ul className="space-y-3">
+            {posts.slice(0, 6).map((post) => (
+              <li key={post.id} className="rounded-xl border border-[#eceef4] p-4">
+                <p className="text-sm leading-6 text-[#303757]">{post.body}</p>
+                <p className="mt-2 text-xs text-[#7a7f99]">{new Date(post.createdAt).toLocaleDateString()}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </IdentitiSection>
     </div>
   );
 }

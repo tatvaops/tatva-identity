@@ -16,6 +16,7 @@ import {
 import { organisationMetrics } from "@/lib/domain/org-metrics";
 import { getAuthContext } from "@/lib/data/query";
 import { isFollowing } from "@/lib/data/network";
+import { isSaved, userCanManageOrganisation } from "@/lib/data/workspace";
 import type {
   GigPost,
   JobPost,
@@ -55,7 +56,8 @@ export async function CompanyProfileView({
 }) {
   const session = await getAuthContext();
   const following = session.userId ? await isFollowing(session.userId, { organisationId: org.id }) : false;
-  const canEdit = Boolean(session.userId && org.createdBy === session.userId);
+  const saved = session.userId ? await isSaved(session.userId, "organisation", org.id) : false;
+  const canEdit = await userCanManageOrganisation(session.userId, org.id);
   const verifiedCredential = credentials.some((c) => c.verificationState === "verified");
   const metrics = organisationMetrics({
     peopleCount: people.length,
@@ -73,6 +75,7 @@ export async function CompanyProfileView({
         signedIn={Boolean(session.userId)}
         canEdit={canEdit}
         verifiedCredential={verifiedCredential}
+        saved={saved}
       />
       <OrganisationMetricStrip metrics={metrics} />
 
@@ -106,7 +109,14 @@ export async function CompanyProfileView({
               <p>{org.about ?? "No about copy yet."}</p>
             </TabsContent>
             <TabsContent value="services" className="px-3 pb-5">
-              <ServiceCatalogue services={services} />
+              <ServiceCatalogue
+                services={services}
+                canEdit={canEdit}
+                organisationId={org.id}
+                organisationName={org.name}
+                signedIn={Boolean(session.userId)}
+                slug={org.slug}
+              />
             </TabsContent>
             <TabsContent value="projects" className="px-3 pb-5">
               <OrganisationProjectGrid projects={projects} />
@@ -125,7 +135,7 @@ export async function CompanyProfileView({
             </TabsContent>
           </Tabs>
         </Card>
-        <OrganisationContact org={org} similar={similar} />
+        <OrganisationContact org={org} similar={similar} signedIn={Boolean(session.userId)} />
       </div>
     </div>
   );

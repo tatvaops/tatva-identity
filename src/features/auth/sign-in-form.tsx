@@ -16,12 +16,15 @@ function extractOtp(raw: string) {
 
 export function SignInForm() {
   const router = useRouter();
-  const next = safeNextPath(useSearchParams().get("next"));
+  const search = useSearchParams();
+  const next = safeNextPath(search.get("next"));
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [step, setStep] = useState<"phone" | "code">("phone");
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    search.get("error") === "link" ? "That sign-in link is invalid or expired. Request a WhatsApp code instead." : null,
+  );
   const [devOtp, setDevOtp] = useState<string | null>(null);
 
   let submitLabel = "Sign in";
@@ -84,7 +87,7 @@ export function SignInForm() {
               setError(payload?.error || "That code is wrong or expired.");
               return;
             }
-            router.replace(next);
+            router.replace(`/onboarding?next=${encodeURIComponent(next)}`);
             router.refresh();
           } catch {
             setError("Sign-in timed out. Wait a moment and try again.");

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { OrganisationReviewForm } from "@/features/company/org-forms";
 import { QuoteBoundary } from "@/features/company/quote-boundary";
+import { VendorContactForm } from "@/features/company/vendor-contact-form";
 import { CompanyActionBar } from "@/features/company/company-actions";
 import { hueFromId, initialsFromName } from "@/lib/domain/passport-strength";
 import type {
@@ -29,12 +30,14 @@ export function CompanyHeader({
   signedIn,
   canEdit,
   verifiedCredential,
+  saved = false,
 }: {
   org: Organisation;
   following: boolean;
   signedIn: boolean;
   canEdit: boolean;
   verifiedCredential: boolean;
+  saved?: boolean;
 }) {
   return (
     <Card className="overflow-hidden">
@@ -58,11 +61,13 @@ export function CompanyHeader({
             ) : null}
             <CompanyActionBar
               organisationId={org.id}
+              organisationName={org.name}
               slug={org.slug}
               createdBy={org.createdBy}
               following={following}
               signedIn={signedIn}
               type={org.type}
+              saved={saved}
             />
           </div>
         </div>
@@ -96,7 +101,21 @@ export function CompanyHeader({
   );
 }
 
-export function ServiceCatalogue({ services, canEdit, organisationId }: { services: OrgService[]; canEdit?: boolean; organisationId?: string }) {
+export function ServiceCatalogue({
+  services,
+  canEdit,
+  organisationId,
+  organisationName,
+  signedIn,
+  slug,
+}: {
+  services: OrgService[];
+  canEdit?: boolean;
+  organisationId?: string;
+  organisationName?: string;
+  signedIn?: boolean;
+  slug?: string;
+}) {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       {services.length === 0 && (
@@ -107,7 +126,7 @@ export function ServiceCatalogue({ services, canEdit, organisationId }: { servic
             action={
               canEdit && organisationId ? (
                 <Button asChild>
-                  <Link href={`/companies/${organisationId}`}>Add a service from edit</Link>
+                  <Link href={`/companies/${slug}/edit`}>Add a service from edit</Link>
                 </Button>
               ) : undefined
             }
@@ -118,7 +137,20 @@ export function ServiceCatalogue({ services, canEdit, organisationId }: { servic
         <div key={s.id} className="flex h-full flex-col">
           <ServiceCard service={s} />
           <div className="mt-2">
-            <QuoteBoundary label="Request quote" variant="outline" fullWidth />
+            {organisationId && organisationName && slug ? (
+              <VendorContactForm
+                organisationId={organisationId}
+                organisationName={organisationName}
+                signedIn={Boolean(signedIn)}
+                signInHref={`/auth/sign-in?next=${encodeURIComponent(`/companies/${slug}`)}`}
+                label="Request this vendor"
+                intent="request"
+                variant="outline"
+                fullWidth
+              />
+            ) : (
+              <QuoteBoundary label="Request quote" variant="outline" fullWidth />
+            )}
           </div>
         </div>
       ))}
@@ -222,7 +254,15 @@ export function OrganisationJobs({ jobs, gigs, orgName }: { jobs: JobPost[]; gig
   );
 }
 
-export function OrganisationContact({ org, similar }: { org: Organisation; similar: Organisation[] }) {
+export function OrganisationContact({
+  org,
+  similar,
+  signedIn,
+}: {
+  org: Organisation;
+  similar: Organisation[];
+  signedIn: boolean;
+}) {
   return (
     <aside className="hidden space-y-4 lg:block">
       <Card className="p-4">
@@ -234,7 +274,16 @@ export function OrganisationContact({ org, similar }: { org: Organisation; simil
         )}
         <p className="mt-2 text-sm text-muted-foreground">{[org.locality, org.city].filter(Boolean).join(", ")}</p>
         <div className="mt-3">
-          <QuoteBoundary label="Enquire" variant="outline" fullWidth />
+          <VendorContactForm
+            organisationId={org.id}
+            organisationName={org.name}
+            signedIn={signedIn}
+            signInHref={`/auth/sign-in?next=${encodeURIComponent(`/companies/${org.slug}`)}`}
+            label="Contact this vendor"
+            intent="contact"
+            variant="outline"
+            fullWidth
+          />
         </div>
       </Card>
       <div>

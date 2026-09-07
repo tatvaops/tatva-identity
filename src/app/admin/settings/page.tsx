@@ -65,6 +65,12 @@ export default async function AdminSettingsPage() {
             {forum.webhookPath}
           </li>
         </ul>
+        {!forum.signingKey ? (
+          <p className="mt-3 text-sm text-amber-800">
+            Discuss is blocked until this key is set on the Vercel deployment. Generate one with openssl rand -base64 48,
+            add it as IDENTITI_FORUM_PRIVATE_KEY, and give Vantage the same value. IDENTITI never invents a live thread.
+          </p>
+        ) : null}
       </Card>
       <Card className="mt-4 p-5">
         <p className="text-sm font-semibold">Grant an operator</p>

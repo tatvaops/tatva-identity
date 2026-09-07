@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { fail, requireUser, type ActionResult } from "@/lib/actions/shared";
 import { applicationStatusSchema, gigPostSchema, jobPostSchema } from "@/lib/domain/workspace-schemas";
+import { applicationStatusLabel } from "@/lib/domain/application-lifecycle";
+import { notify } from "@/lib/actions/notify";
 
 function splitList(value: string) {
   return value
@@ -74,9 +76,25 @@ export async function updateJobApplicationStatus(input: unknown): Promise<Action
   if (!parsed.success) return fail("Choose a valid application status.");
   const auth = await requireUser();
   if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
-  const { error } = await auth.supabase.from("job_applications").update({ status: parsed.data.status }).eq("id", parsed.data.id);
+  const status = parsed.data.status === "hired" ? "accepted" : parsed.data.status;
+  const current = await auth.supabase
+    .from("job_applications")
+    .select("id, profile_id, job_id, job_posts(title)")
+    .eq("id", parsed.data.id)
+    .maybeSingle();
+  const { error } = await auth.supabase.from("job_applications").update({ status }).eq("id", parsed.data.id);
   if (error) return fail(error.message);
+  const job = current.data?.job_posts as unknown as { title?: string } | null;
+  await notify(
+    auth.supabase,
+    current.data?.profile_id,
+    "application",
+    "Job application updated",
+    `${job?.title ?? "A job"} is now ${applicationStatusLabel(status)}.`,
+    "/applications",
+  );
   revalidatePath("/jobs");
+  revalidatePath("/applications");
   return { ok: true };
 }
 
@@ -85,8 +103,36 @@ export async function updateGigApplicationStatus(input: unknown): Promise<Action
   if (!parsed.success) return fail("Choose a valid application status.");
   const auth = await requireUser();
   if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
-  const { error } = await auth.supabase.from("gig_applications").update({ status: parsed.data.status }).eq("id", parsed.data.id);
+  const status = parsed.data.status === "hired" ? "accepted" : parsed.data.status;
+  const current = await auth.supabase
+    .from("gig_applications")
+    .select("id, profile_id, gig_id, gig_posts(title)")
+    .eq("id", parsed.data.id)
+    .maybeSingle();
+  const { error } = await auth.supabase.from("gig_applications").update({ status }).eq("id", parsed.data.id);
   if (error) return fail(error.message);
+  const gig = current.data?.gig_posts as unknown as { title?: string } | null;
+  await notify(
+    auth.supabase,
+    current.data?.profile_id,
+    "application",
+    "Gig application updated",
+    `${gig?.title ?? "A gig"} is now ${applicationStatusLabel(status)}.`,
+    "/applications",
+  );
+  revalidatePath("/gigs");
+  revalidatePath("/applications");
+  return { ok: true };
+}
+
+export async function withdrawApplication(kind: "job" | "gig", id: string): Promise<ActionResult> {
+  const auth = await requireUser();
+  if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
+  const table = kind === "job" ? "job_applications" : "gig_applications";
+  const { error } = await auth.supabase.from(table).update({ status: "withdrawn" }).eq("id", id).eq("profile_id", auth.ctx.userId);
+  if (error) return fail(error.message);
+  revalidatePath("/applications");
+  revalidatePath("/jobs");
   revalidatePath("/gigs");
   return { ok: true };
 }
@@ -113,7 +159,7 @@ export async function updateJobPost(input: unknown): Promise<ActionResult> {
     .eq("id", parsed.data.jobId);
   if (error) return fail(error.message);
   revalidatePath(`/jobs/${parsed.data.jobId}`);
-  return { ok: true };
+  redirect(`/jobs/${parsed.data.jobId}`);
 }
 
 export async function closeJobPost(jobId: string): Promise<ActionResult> {
@@ -122,6 +168,17 @@ export async function closeJobPost(jobId: string): Promise<ActionResult> {
   const { error } = await auth.supabase.from("job_posts").update({ closed_at: new Date().toISOString() }).eq("id", jobId);
   if (error) return fail(error.message);
   revalidatePath("/jobs");
+  revalidatePath(`/jobs/${jobId}`);
+  return { ok: true };
+}
+
+export async function reopenJobPost(jobId: string): Promise<ActionResult> {
+  const auth = await requireUser();
+  if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
+  const { error } = await auth.supabase.from("job_posts").update({ closed_at: null }).eq("id", jobId);
+  if (error) return fail(error.message);
+  revalidatePath("/jobs");
+  revalidatePath(`/jobs/${jobId}`);
   return { ok: true };
 }
 
@@ -131,5 +188,44 @@ export async function closeGigPost(gigId: string): Promise<ActionResult> {
   const { error } = await auth.supabase.from("gig_posts").update({ closed_at: new Date().toISOString() }).eq("id", gigId);
   if (error) return fail(error.message);
   revalidatePath("/gigs");
+  revalidatePath(`/gigs/${gigId}`);
   return { ok: true };
 }
+
+export async function reopenGigPost(gigId: string): Promise<ActionResult> {
+  const auth = await requireUser();
+  if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
+  const { error } = await auth.supabase.from("gig_posts").update({ closed_at: null }).eq("id", gigId);
+  if (error) return fail(error.message);
+  revalidatePath("/gigs");
+  revalidatePath(`/gigs/${gigId}`);
+  return { ok: true };
+}
+
+export async function updateGigPost(input: unknown): Promise<ActionResult> {
+  const parsed = gigPostSchema.safeParse(input);
+  if (!parsed.success || !parsed.data.gigId) return fail("Save the gig details, then try again.");
+  const auth = await requireUser();
+  if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
+  const seats = parsed.data.seats ? Number.parseInt(parsed.data.seats, 10) : null;
+  const { error } = await auth.supabase
+    .from("gig_posts")
+    .update({
+      title: parsed.data.title,
+      site_name: parsed.data.siteName || null,
+      trade: parsed.data.trade || null,
+      shift_label: parsed.data.shiftLabel || null,
+      pay_label: parsed.data.payLabel || null,
+      start_label: parsed.data.startLabel || null,
+      seats: Number.isFinite(seats) ? seats : null,
+      duration: parsed.data.duration,
+      description: parsed.data.description || null,
+      project_id: parsed.data.projectId || null,
+      distance_km: parsed.data.distanceKm ? Number.parseFloat(parsed.data.distanceKm) : null,
+    })
+    .eq("id", parsed.data.gigId);
+  if (error) return fail(error.message);
+  revalidatePath(`/gigs/${parsed.data.gigId}`);
+  redirect(`/gigs/${parsed.data.gigId}`);
+}
+
