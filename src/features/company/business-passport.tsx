@@ -10,14 +10,14 @@ import type { OrgCredential, Organisation, VerificationState } from "@/lib/types
 export function OrganisationMetricStrip({ metrics }: { metrics: { id: string; label: string; value: string }[] }) {
   if (metrics.length === 0) return null;
   return (
-    <Card className="grid grid-cols-2 gap-px overflow-hidden bg-border sm:grid-cols-3 lg:grid-cols-6">
+    <dl className="grid grid-cols-2 gap-px overflow-hidden border border-border bg-border sm:grid-cols-3 lg:grid-cols-6">
       {metrics.map((metric) => (
-        <div key={metric.id} className="bg-white px-4 py-3">
-          <p className="text-lg font-semibold tabular-nums">{metric.value}</p>
-          <p className="text-xs text-muted-foreground">{metric.label}</p>
+        <div key={metric.id} className="bg-white px-4 py-4">
+          <dt className="type-micro">{metric.label}</dt>
+          <dd className="mt-1.5 text-lg font-semibold tabular-nums">{metric.value}</dd>
         </div>
       ))}
-    </Card>
+    </dl>
   );
 }
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CompanyCard, PersonCard } from "@/components/cards/entity-cards";
 import { PhotoFrame } from "@/components/identity/media-photo";
+import { YoutubeEmbed } from "@/components/identity/youtube-embed";
 import { SaveButton } from "@/components/identity/save-button";
 import { ReportEntityButton } from "@/components/identity/safety-actions";
 import { VerificationBadge } from "@/components/identity/verification";
@@ -49,40 +50,35 @@ export function ProjectProfileView({
   const photos = gallery.filter((item) => Boolean(item.storagePath));
   const cover = project.coverImageUrl ?? photos[0]?.storagePath ?? null;
   return (
-    <div className="space-y-4">
-      <Card className="overflow-hidden">
-        <PhotoFrame src={cover} alt="" className="h-56 md:h-72" />
-        <div className="p-5">
-          <div className="flex flex-wrap gap-2">
+    <div className="space-y-8">
+      <section>
+        <PhotoFrame src={cover} alt={project.name} className="h-64 md:h-[28rem]" />
+        <div className="mt-5">
+          <div className="flex flex-wrap gap-1.5">
             {project.verified && (
               <VerificationBadge
                 flag={{
                   kind: "project",
                   state: "verified",
-                  label: "Project verified",
+                  label: "Verified project",
                   explanation: "Scope, companies and opted-in contributors are evidenced.",
                 }}
               />
             )}
-            <Badge>{project.status.replace("_", " ")}</Badge>
+            <Badge variant="outline">{project.status.replace("_", " ")}</Badge>
             {project.type && <Badge variant="outline">{project.type}</Badge>}
             {project.valueLabel ? <Badge variant="outline">{project.valueLabel}</Badge> : null}
             {project.durationLabel ? <Badge variant="outline">{project.durationLabel}</Badge> : null}
           </div>
-          <h1 className="mt-3 text-2xl font-semibold tracking-tight">{project.name}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <h1 className="type-display mt-3 text-4xl">{project.name}</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
             {[project.locality, project.city].filter(Boolean).join(", ")}
           </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {signedIn ? <SaveButton kind="project" id={project.id} saved={saved} /> : null}
-            {signedIn ? <ReportEntityButton entityKind="project" entityId={project.id} /> : null}
-          </div>
-          <p className="mt-3 max-w-3xl text-sm leading-6">{project.summary}</p>
           <p className="mt-3 text-sm">
             {client && (
               <>
                 Client:{" "}
-                <Link className="text-primary" href={orgHref(client)}>
+                <Link className="font-medium text-brand hover:underline" href={orgHref(client)}>
                   {client.name}
                 </Link>
               </>
@@ -90,21 +86,20 @@ export function ProjectProfileView({
             {main && (
               <>
                 {" · "}Main contractor:{" "}
-                <Link className="text-primary" href={orgHref(main)}>
+                <Link className="font-medium text-brand hover:underline" href={orgHref(main)}>
                   {main.name}
                 </Link>
               </>
             )}
           </p>
-          {project.youtubeUrl ? (
-            <p className="mt-3 text-sm">
-              <a href={project.youtubeUrl} target="_blank" rel="noreferrer" className="text-primary underline">
-                Watch project walkthrough
-              </a>
-            </p>
-          ) : null}
+          <div className="mt-4 flex flex-wrap gap-2">
+            {signedIn ? <SaveButton kind="project" id={project.id} saved={saved} /> : null}
+            {signedIn ? <ReportEntityButton entityKind="project" entityId={project.id} /> : null}
+          </div>
+          {project.summary ? <p className="mt-5 max-w-3xl text-[17px] leading-8 text-text-secondary">{project.summary}</p> : null}
+          {project.youtubeUrl ? <div className="mt-6"><YoutubeEmbed url={project.youtubeUrl} title={`${project.name} walkthrough`} /></div> : null}
         </div>
-      </Card>
+      </section>
       <Tabs defaultValue="overview">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -193,12 +188,12 @@ export function ProjectProfileView({
             <EmptyState title="No gallery yet" body="Project photos appear here when contributors opt them in. Sensitive site data stays private." />
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
-              {cover ? <PhotoFrame src={cover} alt="" className="h-52 rounded-2xl" /> : null}
+              {cover ? <PhotoFrame src={cover} alt="" className="h-64" /> : null}
               {photos
                 .filter((item) => item.storagePath !== cover)
                 .map((item) => (
-                  <figure key={item.id} className="overflow-hidden rounded-2xl border border-border">
-                    <PhotoFrame src={item.storagePath} alt="" className="h-52" />
+                  <figure key={item.id} className="overflow-hidden border border-border">
+                    <PhotoFrame src={item.storagePath} alt="" className="h-64" />
                     {item.caption ? <figcaption className="p-3 text-sm text-muted-foreground">{item.caption}</figcaption> : null}
                   </figure>
                 ))}

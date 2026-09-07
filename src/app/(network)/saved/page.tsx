@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { CompanyCard, GigCard, JobCard, PersonCard, ProjectCard } from "@/components/cards/entity-cards";
 import { EmptyState } from "@/components/states/empty-state";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PageHeader } from "@/components/ui/section";
 import { getAuthContext } from "@/lib/data/query";
 import { hydrateSavedGigs, hydrateSavedJobs, hydrateSavedOrgs, hydrateSavedPeople, hydrateSavedProjects, listSavedItems } from "@/lib/data/workspace";
 
@@ -18,13 +19,12 @@ export default async function SavedPage() {
   ]);
   const empty = jobs.length === 0 && gigs.length === 0 && orgs.length === 0 && people.length === 0 && projects.length === 0;
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-semibold">Saved</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          People, organisations, projects, jobs and gigs you bookmark stay on this account.
-        </p>
-      </div>
+    <div>
+      <PageHeader
+        eyebrow="Workspace"
+        title="Saved"
+        body="People, organisations, projects, jobs and gigs you bookmark stay on this account."
+      />
       {empty ? (
         <EmptyState
           title="Nothing saved yet"

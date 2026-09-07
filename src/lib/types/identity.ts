@@ -240,6 +240,7 @@ export type Post = {
   linkedJobId: string | null;
   linkedGigId: string | null;
   mediaPath: string | null;
+  youtubeUrl: string | null;
   createdAt: string;
 };
 

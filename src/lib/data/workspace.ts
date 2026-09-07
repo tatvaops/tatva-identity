@@ -115,6 +115,31 @@ export async function listMemberOrganisations(profileId: string): Promise<ListRe
   return listOk(orgs);
 }
 
+export async function listStaffOrganisations(profileId: string): Promise<ListResult<Organisation>> {
+  const supabase = await createServerSupabase();
+  if (!supabase) return unconfiguredList();
+  const [{ data, error }, owned] = await Promise.all([
+    supabase
+      .from("organisation_members")
+      .select(`org_role, invite_status, organisations(${ORGANISATION_SAFE_COLUMNS})`)
+      .eq("profile_id", profileId)
+      .eq("invite_status", "active")
+      .in("org_role", ["owner", "admin", "recruiter"]),
+    listOwnedOrganisations(profileId),
+  ]);
+  if (error) return listFail(error.message);
+  const byId = new Map<string, Organisation>();
+  for (const org of owned.data) byId.set(org.id, org);
+  for (const row of data ?? []) {
+    const org = row.organisations as unknown;
+    if (org && typeof org === "object") {
+      const mapped = mapOrganisation(org as Parameters<typeof mapOrganisation>[0]);
+      byId.set(mapped.id, mapped);
+    }
+  }
+  return listOk([...byId.values()].sort((a, b) => a.name.localeCompare(b.name)));
+}
+
 export async function listProjectPeople(projectId: string): Promise<ListResult<PublicProfile>> {
   const supabase = await createServerSupabase();
   if (!supabase) return unconfiguredList();
@@ -446,10 +471,11 @@ export async function recordProfileView(viewedProfileId: string, viewerProfileId
   if (viewerProfileId && viewerProfileId === viewedProfileId) return;
   const supabase = await createServerSupabase();
   if (!supabase) return;
-  await supabase.from("profile_views").insert({
+  const { error } = await supabase.from("profile_views").insert({
     viewed_profile_id: viewedProfileId,
     viewer_profile_id: viewerProfileId,
   });
+  if (error && error.code !== "23505") return;
 }
 
 export async function isSaved(profileId: string, entityKind: string, entityId: string) {
@@ -632,10 +658,22 @@ export async function listEvidence(profileId: string): Promise<ListResult<Eviden
 }
 
 export async function getOnboardingStep(profileId: string) {
+  const progress = await getOnboardingProgress(profileId);
+  return progress.step;
+}
+
+export async function getOnboardingProgress(profileId: string) {
   const supabase = await createServerSupabase();
-  if (!supabase) return 0;
-  const { data } = await supabase.from("profiles").select("onboarding_step").eq("id", profileId).maybeSingle();
-  return typeof data?.onboarding_step === "number" ? data.onboarding_step : 0;
+  if (!supabase) return { step: 0, completed: false };
+  const { data } = await supabase
+    .from("profiles")
+    .select("onboarding_step, onboarding_completed_at")
+    .eq("id", profileId)
+    .maybeSingle();
+  return {
+    step: typeof data?.onboarding_step === "number" ? data.onboarding_step : 0,
+    completed: Boolean(data?.onboarding_completed_at),
+  };
 }
 
 export async function countReceivedApplicationsForOrganisations(organisationIds: string[]): Promise<number> {

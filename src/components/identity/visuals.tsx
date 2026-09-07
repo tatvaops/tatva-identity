@@ -4,15 +4,15 @@ import { cn } from "@/lib/utils";
 import { publicMediaUrl } from "@/lib/media/public-url";
 
 const tones: Record<string, string> = {
-  site: "from-indigo-800 via-slate-700 to-slate-800",
-  studio: "from-indigo-900 via-violet-800 to-stone-600",
-  office: "from-slate-800 via-indigo-900 to-slate-700",
-  workshop: "from-stone-700 via-amber-900 to-slate-800",
-  plant: "from-zinc-800 via-slate-700 to-cyan-900",
-  tower: "from-slate-800 via-sky-900 to-stone-700",
-  metro: "from-zinc-900 via-slate-700 to-indigo-900",
-  campus: "from-emerald-950 via-slate-800 to-stone-700",
-  warehouse: "from-neutral-800 via-slate-700 to-amber-950",
+  site: "from-slate-800 via-slate-700 to-[#111a42]",
+  studio: "from-[#111a42] via-slate-800 to-stone-700",
+  office: "from-[#111a42] via-slate-800 to-slate-700",
+  workshop: "from-stone-800 via-amber-950 to-slate-800",
+  plant: "from-zinc-800 via-slate-700 to-slate-900",
+  tower: "from-slate-800 via-[#111a42] to-stone-800",
+  metro: "from-zinc-900 via-slate-800 to-[#111a42]",
+  campus: "from-emerald-950 via-slate-800 to-stone-800",
+  warehouse: "from-neutral-800 via-slate-800 to-stone-900",
 };
 
 export function CoverBand({
@@ -32,7 +32,14 @@ export function CoverBand({
       {image ? (
         <SafeMediaImg src={image} alt="" className="absolute inset-0 h-full w-full object-cover" />
       ) : (
-        <div className="absolute inset-0 opacity-30" style={{ backgroundImage: "radial-gradient(circle at 20% 20%, white, transparent 40%)" }} />
+        <div
+          className="absolute inset-0 opacity-40"
+          style={{
+            backgroundImage:
+              "linear-gradient(to right, rgba(255,255,255,.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,.06) 1px, transparent 1px)",
+            backgroundSize: "28px 28px",
+          }}
+        />
       )}
       {children}
     </div>
@@ -63,7 +70,7 @@ export function InitialsAvatar({
         width: size,
         height: size,
         fontSize: size * 0.32,
-        background: `hsl(${hue} 42% 38%)`,
+        background: `hsl(${hue} 28% 32%)`,
       }}
       aria-hidden
     >

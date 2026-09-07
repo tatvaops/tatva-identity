@@ -21,12 +21,17 @@ export default async function MessagesPage({
   }
   if (org) {
     const organisation = await getOrganisationBySlug(org);
-    const started = await startOrGetOrgConversation(organisation.data?.id ?? org, organisation.data?.createdBy ?? null);
-    if (started.ok && started.id) redirect(`/messages?c=${started.id}`);
-    startError = started.ok ? startError : started.error;
+    if (!organisation.data) {
+      startError = "That organisation is no longer available.";
+    } else {
+      const started = await startOrGetOrgConversation(organisation.data.id);
+      if (started.ok && started.id) redirect(`/messages?c=${started.id}`);
+      startError = started.ok ? startError : started.error;
+    }
   }
   const convos = await listConversations(session.userId);
-  const activeId = c ?? convos.data[0]?.id ?? null;
+  const requested = c && convos.data.some((row) => row.id === c) ? c : null;
+  const activeId = requested ?? convos.data[0]?.id ?? null;
   const messages = activeId ? await listMessages(activeId) : { data: [] };
   const people = q ? await listPublicProfiles({ query: q }, { pageSize: 8 }) : { data: [] };
   return (

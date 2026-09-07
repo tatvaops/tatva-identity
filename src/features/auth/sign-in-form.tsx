@@ -87,7 +87,7 @@ export function SignInForm() {
               setError(payload?.error || "That code is wrong or expired.");
               return;
             }
-            router.replace(`/onboarding?next=${encodeURIComponent(next)}`);
+            router.replace(next);
             router.refresh();
           } catch {
             setError("Sign-in timed out. Wait a moment and try again.");

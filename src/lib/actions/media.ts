@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { fail, requireUser, type ActionResult } from "@/lib/actions/shared";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 const PUBLIC_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 const PRIVATE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
@@ -12,6 +13,14 @@ function extensionFor(type: string) {
   if (type === "image/gif") return "gif";
   if (type === "application/pdf") return "pdf";
   return "jpg";
+}
+
+async function organisationIdIfStaff(supabase: SupabaseClient, slug: string, userId: string) {
+  const org = await supabase.from("organisations").select("id, created_by").eq("slug", slug).maybeSingle();
+  if (!org.data) return null;
+  if (org.data.created_by === userId) return org.data.id as string;
+  const staff = await supabase.rpc("is_org_staff", { org_id: org.data.id });
+  return staff.data ? (org.data.id as string) : null;
 }
 
 export async function uploadPublicImage(formData: FormData): Promise<ActionResult> {
@@ -36,18 +45,20 @@ export async function uploadPublicImage(formData: FormData): Promise<ActionResul
   }
   if (kind === "org-logo" || kind === "org-cover") {
     const slug = String(formData.get("slug") ?? "");
-    if (slug) {
-      await auth.supabase
-        .from("organisations")
-        .update(kind === "org-logo" ? { logo_path: path } : { cover_path: path })
-        .eq("slug", slug)
-        .eq("created_by", auth.ctx.userId);
-    }
+    if (!slug) return fail("Choose the organisation first.");
+    const organisationId = await organisationIdIfStaff(auth.supabase, slug, auth.ctx.userId);
+    if (!organisationId) return fail("You cannot update this organisation.");
+    const updated = await auth.supabase
+      .from("organisations")
+      .update(kind === "org-logo" ? { logo_path: path } : { cover_path: path })
+      .eq("id", organisationId);
+    if (updated.error) return fail(updated.error.message);
   }
   revalidatePath("/people");
   revalidatePath("/professionals");
   revalidatePath("/gig-workers");
   revalidatePath("/passport");
+  revalidatePath("/companies");
   return { ok: true, id: path };
 }
 
@@ -70,6 +81,37 @@ export async function uploadPrivateDocument(formData: FormData): Promise<ActionR
     label,
     storage_path: path,
   });
+  if (error) return fail(error.message);
+  revalidatePath("/passport");
+  revalidatePath("/passport/documents");
+  return { ok: true };
+}
+
+export async function createPrivateDocumentUrl(documentId: string): Promise<ActionResult> {
+  const auth = await requireUser();
+  if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
+  const document = await auth.supabase
+    .from("profile_documents")
+    .select("id, storage_path, profile_id")
+    .eq("id", documentId)
+    .maybeSingle();
+  if (!document.data || document.data.profile_id !== auth.ctx.userId) return fail("Document not found.");
+  const signed = await auth.supabase.storage.from("identity-private").createSignedUrl(document.data.storage_path, 60);
+  if (signed.error || !signed.data?.signedUrl) return fail("Could not open that document.");
+  return { ok: true, id: signed.data.signedUrl };
+}
+
+export async function deletePrivateDocument(documentId: string): Promise<ActionResult> {
+  const auth = await requireUser();
+  if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
+  const document = await auth.supabase
+    .from("profile_documents")
+    .select("id, storage_path, profile_id")
+    .eq("id", documentId)
+    .maybeSingle();
+  if (!document.data || document.data.profile_id !== auth.ctx.userId) return fail("Document not found.");
+  await auth.supabase.storage.from("identity-private").remove([document.data.storage_path]);
+  const { error } = await auth.supabase.from("profile_documents").delete().eq("id", documentId).eq("profile_id", auth.ctx.userId);
   if (error) return fail(error.message);
   revalidatePath("/passport");
   revalidatePath("/passport/documents");

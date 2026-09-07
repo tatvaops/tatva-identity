@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { applyProfilePrivacy, audienceAllows, publicViewer, showActivity, showExperience, showProjects, viewerFromNetwork } from "@/lib/domain/visibility";
+import { applyProfilePrivacy, audienceAllows, publicViewer, showActivity, showConnections, showExperience, showProjects, viewerFromNetwork } from "@/lib/domain/visibility";
 import type { PublicProfile } from "@/lib/types/identity";
 
 describe("visibility audiences", () => {
@@ -40,6 +40,15 @@ describe("passport section visibility", () => {
   it("shows connection-only experience to accepted connections", () => {
     const connected = viewerFromNetwork({ isOwner: false, connectionState: "connected" });
     assert.equal(showExperience(profile, connected), true);
+  });
+
+  it("keeps the connection list private unless the audience allows it", () => {
+    const hidden = { connectionsVisibleTo: "private" } as PublicProfile;
+    assert.equal(showConnections(hidden, publicViewer()), false);
+    assert.equal(
+      showConnections(hidden, viewerFromNetwork({ isOwner: true, connectionState: "connected" })),
+      true,
+    );
   });
 });
 

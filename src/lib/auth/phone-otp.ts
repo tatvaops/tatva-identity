@@ -10,6 +10,12 @@ import {
 
 export async function sendPhoneOtp(digits: string) {
   if (!visionOtpEnabled()) {
+    if (process.env.NODE_ENV === "production" && !process.env.OTP_HMAC_SECRET?.trim() && !process.env.REDIS_URL?.trim()) {
+      return {
+        ok: false as const,
+        error: "Local sign-in codes are not configured for this deployment.",
+      };
+    }
     const otp = await issueLocalOtp(digits);
     const showDev = process.env.NODE_ENV !== "production";
     return {

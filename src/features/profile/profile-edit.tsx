@@ -769,6 +769,7 @@ function EvidenceDialog({ open, onClose }: { open: boolean; onClose: () => void 
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [hasImage, setHasImage] = useState(false);
   const form = useForm({
     resolver: zodResolver(portfolioItemSchema),
     defaultValues: { imageUrl: "", caption: "", workCategory: "", location: "" },
@@ -810,13 +811,14 @@ function EvidenceDialog({ open, onClose }: { open: boolean; onClose: () => void 
                 return;
               }
               form.setValue("imageUrl", uploaded.id ?? "");
+              setHasImage(Boolean(uploaded.id));
             }}
           />
           <Input placeholder="Caption" {...form.register("caption")} />
           <Input placeholder="Work category" {...form.register("workCategory")} />
           <Input placeholder="Location" {...form.register("location")} />
           {serverError ? <p className="text-sm text-rose-700">{serverError}</p> : null}
-          <Button type="submit" disabled={form.formState.isSubmitting || pending || !form.watch("imageUrl")}>
+          <Button type="submit" disabled={form.formState.isSubmitting || pending || !hasImage}>
             Save photo
           </Button>
         </form>

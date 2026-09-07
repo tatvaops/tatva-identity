@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { fail, requireUser, type ActionResult } from "@/lib/actions/shared";
 import { applicationStatusSchema, gigPostSchema, jobPostSchema } from "@/lib/domain/workspace-schemas";
-import { applicationStatusLabel } from "@/lib/domain/application-lifecycle";
+import { applicationStatusLabel, canApplicantWithdraw, canOperatorTransition } from "@/lib/domain/application-lifecycle";
 import { notify } from "@/lib/actions/notify";
 
 function splitList(value: string) {
@@ -19,6 +19,8 @@ export async function createJobPost(input: unknown): Promise<ActionResult> {
   if (!parsed.success) return fail("Add a job title before publishing.");
   const auth = await requireUser();
   if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
+  const staff = await auth.supabase.rpc("is_org_staff", { org_id: parsed.data.organisationId });
+  if (!staff.data) return fail("You cannot post jobs for this organisation.");
   const created = await auth.supabase
     .from("job_posts")
     .insert({
@@ -47,6 +49,8 @@ export async function createGigPost(input: unknown): Promise<ActionResult> {
   if (!parsed.success) return fail("Add a gig title before publishing.");
   const auth = await requireUser();
   if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
+  const staff = await auth.supabase.rpc("is_org_staff", { org_id: parsed.data.organisationId });
+  if (!staff.data) return fail("You cannot post gigs for this organisation.");
   const seats = parsed.data.seats ? Number.parseInt(parsed.data.seats, 10) : null;
   const created = await auth.supabase
     .from("gig_posts")
@@ -79,9 +83,13 @@ export async function updateJobApplicationStatus(input: unknown): Promise<Action
   const status = parsed.data.status === "hired" ? "accepted" : parsed.data.status;
   const current = await auth.supabase
     .from("job_applications")
-    .select("id, profile_id, job_id, job_posts(title)")
+    .select("id, profile_id, status, job_id, job_posts(title)")
     .eq("id", parsed.data.id)
     .maybeSingle();
+  if (!current.data) return fail("That application is no longer available.");
+  if (!canOperatorTransition(String(current.data.status ?? "submitted"), status)) {
+    return fail("That application can no longer change status.");
+  }
   const { error } = await auth.supabase.from("job_applications").update({ status }).eq("id", parsed.data.id);
   if (error) return fail(error.message);
   const job = current.data?.job_posts as unknown as { title?: string } | null;
@@ -106,9 +114,13 @@ export async function updateGigApplicationStatus(input: unknown): Promise<Action
   const status = parsed.data.status === "hired" ? "accepted" : parsed.data.status;
   const current = await auth.supabase
     .from("gig_applications")
-    .select("id, profile_id, gig_id, gig_posts(title)")
+    .select("id, profile_id, status, gig_id, gig_posts(title)")
     .eq("id", parsed.data.id)
     .maybeSingle();
+  if (!current.data) return fail("That application is no longer available.");
+  if (!canOperatorTransition(String(current.data.status ?? "submitted"), status)) {
+    return fail("That application can no longer change status.");
+  }
   const { error } = await auth.supabase.from("gig_applications").update({ status }).eq("id", parsed.data.id);
   if (error) return fail(error.message);
   const gig = current.data?.gig_posts as unknown as { title?: string } | null;
@@ -128,7 +140,13 @@ export async function updateGigApplicationStatus(input: unknown): Promise<Action
 export async function withdrawApplication(kind: "job" | "gig", id: string): Promise<ActionResult> {
   const auth = await requireUser();
   if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return fail("That application is no longer available.");
   const table = kind === "job" ? "job_applications" : "gig_applications";
+  const existing = await auth.supabase.from(table).select("id, status").eq("id", id).eq("profile_id", auth.ctx.userId).maybeSingle();
+  if (!existing.data) return fail("That application is no longer available.");
+  if (!canApplicantWithdraw(String(existing.data.status ?? "submitted"))) {
+    return fail("This application can no longer be withdrawn.");
+  }
   const { error } = await auth.supabase.from(table).update({ status: "withdrawn" }).eq("id", id).eq("profile_id", auth.ctx.userId);
   if (error) return fail(error.message);
   revalidatePath("/applications");

@@ -5,6 +5,7 @@ import { getAuthContext } from "@/lib/data/query";
 import { getGig, getJob } from "@/lib/data/network";
 import { listMyGigApplications, listMyJobApplications } from "@/lib/data/workspace";
 import Link from "next/link";
+import { PageHeader } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
 
 export default async function ApplicationsPage() {

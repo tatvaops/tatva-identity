@@ -7,6 +7,7 @@ import { searchNetwork } from "@/lib/data/discovery";
 import { getAuthContext } from "@/lib/data/query";
 import { getConnectionStates } from "@/lib/data/network";
 import { createServerSupabase } from "@/lib/supabase/server";
+import { searchAppearanceProfileIds } from "@/lib/domain/search-appearances";
 
 const ENTITY_FILTERS = [
   ["all", "All"],
@@ -57,13 +58,16 @@ export async function SearchView({
   );
   if (initialQuery.trim() && results.people.length > 0) {
     const supabase = await createServerSupabase();
-    if (supabase) {
-      await supabase.from("search_appearances").insert(
-        results.people.slice(0, 12).map((person) => ({
-          profile_id: person.id,
-          query: initialQuery.trim(),
-        })),
-      );
+    const ids = searchAppearanceProfileIds(
+      results.people.map((person) => person.id),
+      session.userId,
+      initialQuery,
+    );
+    if (supabase && ids.length > 0) {
+      await supabase.rpc("record_search_appearances", {
+        profile_ids: ids,
+        search_query: initialQuery.trim(),
+      });
     }
   }
   const show = (kind: SearchEntity) => entity === "all" || entity === kind;

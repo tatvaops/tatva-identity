@@ -1,4 +1,5 @@
 import { SearchView, type SearchEntity } from "@/features/search/search-view";
+import { PageHeader } from "@/components/ui/section";
 
 export default async function SearchPage({
   searchParams,
@@ -20,7 +21,11 @@ export default async function SearchPage({
   const entity = allowed.includes(type as SearchEntity) ? (type as SearchEntity) : "all";
   return (
     <div>
-      <h1 className="mb-4 text-xl font-semibold">Search</h1>
+      <PageHeader
+        eyebrow="Discover"
+        title="Search"
+        body="People, companies, service brands, product brands, projects, jobs, gigs and services."
+      />
       <SearchView initialQuery={q ?? ""} entity={entity} />
     </div>
   );

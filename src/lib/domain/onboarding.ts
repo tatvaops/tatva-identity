@@ -73,18 +73,10 @@ export function profileNeedsPublicHandle(profile: Pick<PublicProfile, "handle"> 
 export const ONBOARDING_STEPS = [
   { id: "identity", label: "Identity", required: true },
   { id: "type", label: "Type", required: true },
-  { id: "handle", label: "Handle", required: false },
-  { id: "headline", label: "Headline", required: false },
-  { id: "category", label: "Category", required: false },
-  { id: "skills", label: "Skills", required: false },
-  { id: "services", label: "Services", required: false },
-  { id: "location", label: "Location", required: false },
-  { id: "photo", label: "Photograph", required: false },
-  { id: "experience", label: "Experience", required: false },
-  { id: "project", label: "Project", required: false },
-  { id: "evidence", label: "Evidence", required: false },
+  { id: "presence", label: "Presence", required: false },
+  { id: "craft", label: "Craft", required: false },
+  { id: "proof", label: "Proof", required: false },
   { id: "availability", label: "Availability", required: false },
-  { id: "review", label: "Review", required: false },
   { id: "publish", label: "Publish", required: true },
 ] as const;
 
@@ -109,6 +101,13 @@ export function occupationFromTitle(title?: string | null): OccupationMode {
 
 export function defaultHandleFromName(name: string) {
   return suggestedHandle(name, "person");
+}
+
+export function shouldClaimOnboardingHandle(handle?: string | null, skipHandle?: boolean) {
+  if (skipHandle) return false;
+  const normalised = normalizeHandle(handle ?? "");
+  if (!normalised || handleIsGenerated(normalised) || handleIsReserved(normalised)) return false;
+  return isValidHandle(normalised);
 }
 
 export { isValidHandle, personPublicHref };

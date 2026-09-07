@@ -35,6 +35,7 @@ function revalidateAdmin() {
   revalidatePath("/gigs");
   revalidatePath("/projects");
   revalidatePath("/forums");
+  revalidatePath("/search");
 }
 
 function optionalMediaRef(value: string): { ok: true; value: string | null } | { ok: false; error: string } {

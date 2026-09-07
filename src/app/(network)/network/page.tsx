@@ -1,4 +1,5 @@
 import { NetworkView } from "@/features/network/network-view";
+import { PageHeader } from "@/components/ui/section";
 
 export default async function NetworkPage({
   searchParams,
@@ -8,7 +9,11 @@ export default async function NetworkPage({
   const { tab } = await searchParams;
   return (
     <div>
-      <h1 className="mb-4 text-xl font-semibold">My network</h1>
+      <PageHeader
+        eyebrow="Network"
+        title="My network"
+        body="Connections, requests, followers and people you have worked with."
+      />
       <NetworkView focus={tab} />
     </div>
   );

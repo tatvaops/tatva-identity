@@ -5,6 +5,7 @@ import { PassportStrength, ProjectCard } from "@/components/cards/entity-cards";
 import { CredentialCard } from "@/components/identity/credential-card";
 import { EmptyState } from "@/components/states/empty-state";
 import { ProfileSectionEdit } from "@/features/profile/profile-edit";
+import { AskRecommendationForm } from "@/features/profile/recommend-request";
 import { OwnerDeleteButton } from "@/components/identity/owner-delete-button";
 import { PhotoFrame } from "@/components/identity/media-photo";
 import {
@@ -339,7 +340,7 @@ export function PassportView({
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             {recommendations.length === 0 ? (
-              <p className="text-muted-foreground">No references yet.</p>
+              <p className="text-muted-foreground">No references yet. Ask someone you have worked with.</p>
             ) : (
               recommendations.map((r) => (
                 <blockquote key={r.id} className="border-l-2 border-primary/30 pl-3">
@@ -348,6 +349,7 @@ export function PassportView({
                 </blockquote>
               ))
             )}
+            <AskRecommendationForm />
           </CardContent>
         </Card>
       )}

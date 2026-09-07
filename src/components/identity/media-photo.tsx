@@ -40,25 +40,40 @@ export function PhotoFrame({
   alt,
   className,
   imgClassName,
+  fallback = true,
 }: {
   src?: string | null;
   alt: string;
   className?: string;
   imgClassName?: string;
+  fallback?: boolean;
 }) {
   const url = publicMediaUrl(src);
   const [failed, setFailed] = useState(false);
-  if (!url || failed) return null;
+  const show = Boolean(url) && !failed;
+  if (!show && !fallback) return null;
   return (
-    <div className={cn("overflow-hidden", className)}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={url}
-        alt={alt}
-        referrerPolicy="no-referrer"
-        className={cn("h-full w-full object-cover", imgClassName)}
-        onError={() => setFailed(true)}
-      />
+    <div className={cn("relative overflow-hidden bg-[#eceef4]", className)}>
+      {show ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={url!}
+          alt={alt}
+          referrerPolicy="no-referrer"
+          className={cn("media-hover-img h-full w-full object-cover", imgClassName)}
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              "linear-gradient(to right, rgba(17,26,66,.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(17,26,66,.05) 1px, transparent 1px)",
+            backgroundSize: "20px 20px",
+          }}
+          aria-hidden
+        />
+      )}
     </div>
   );
 }
@@ -73,7 +88,9 @@ export function SafePhotoStrip({
   const resolved = urls.map((url) => publicMediaUrl(url)).filter((url): url is string => Boolean(url));
   const [failed, setFailed] = useState<string[]>([]);
   const visible = resolved.filter((url) => !failed.includes(url));
-  if (visible.length === 0) return null;
+  if (visible.length === 0) {
+    return <PhotoFrame src={null} alt="" className={className} />;
+  }
   const cols = ["grid-cols-1", "grid-cols-2", "grid-cols-3"][Math.min(visible.length, 3) - 1];
   return (
     <div className={cn("grid gap-px bg-border", cols)}>

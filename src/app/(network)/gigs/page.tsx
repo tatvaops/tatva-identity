@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { GigsView } from "@/features/jobs/jobs-gigs";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/section";
 
 export default async function GigsPage({
   searchParams,
@@ -10,17 +11,16 @@ export default async function GigsPage({
   const { city, trade, page } = await searchParams;
   return (
     <div>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold">Gigs</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Immediate work — date, shift, location and pay first. Not a job listing.
-          </p>
-        </div>
-        <Button asChild>
-          <Link href="/gigs/create">Post a gig</Link>
-        </Button>
-      </div>
+      <PageHeader
+        eyebrow="Opportunity"
+        title="Gigs"
+        body="Immediate work — trade, date, shift, location, seats and rate first."
+        action={
+          <Button asChild>
+            <Link href="/gigs/create">Post a gig</Link>
+          </Button>
+        }
+      />
       <GigsView city={city} trade={trade} page={Number.parseInt(page ?? "1", 10) || 1} />
     </div>
   );

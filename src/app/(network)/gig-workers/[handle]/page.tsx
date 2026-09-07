@@ -4,7 +4,7 @@ import { GigWorkerView } from "@/features/identiti/gig-worker-view";
 import { QueryNotice } from "@/components/states/empty-state";
 import { getProfileByHandle } from "@/lib/data/profile";
 import { listPortfolio, listSkillFacts, listSupervisorReviews, recordIdentitiEvent } from "@/lib/data/identiti";
-import { getConnectionState, isFollowing, listExperiences, listPostsByAuthor, listProfileSkills } from "@/lib/data/network";
+import { getConnectionState, isFollowing, listExperiences, listPostsByAuthor, listProfileSkills, listRecommendations } from "@/lib/data/network";
 import { getAuthContext } from "@/lib/data/query";
 import { viewerIsRecruiter } from "@/lib/data/privacy";
 import { applyProfilePrivacy, showActivity, showExperience, viewerFromNetwork } from "@/lib/domain/visibility";
@@ -38,7 +38,7 @@ export default async function GigWorkerPage({ params }: PageProps) {
     redirect(personPublicHref(profile.data.handle, profile.data.occupationMode));
   }
   const session = await getAuthContext();
-  const [portfolio, reviews, facts, experiences, posts, skills, services, connectionState, following, saved, blocked] = await Promise.all([
+  const [portfolio, reviews, facts, experiences, posts, skills, services, recommendations, connectionState, following, saved, blocked] = await Promise.all([
     listPortfolio(profile.data.id),
     listSupervisorReviews(profile.data.id),
     listSkillFacts(profile.data.id),
@@ -46,6 +46,7 @@ export default async function GigWorkerPage({ params }: PageProps) {
     listPostsByAuthor(profile.data.id),
     listProfileSkills(profile.data.id),
     listProfileServices(profile.data.id),
+    listRecommendations(profile.data.id),
     session.userId ? getConnectionState(session.userId, profile.data.id) : Promise.resolve("connect" as const),
     session.userId ? isFollowing(session.userId, { personId: profile.data.id }) : Promise.resolve(false),
     session.userId ? isSaved(session.userId, "profile", profile.data.id) : Promise.resolve(false),
@@ -66,6 +67,7 @@ export default async function GigWorkerPage({ params }: PageProps) {
       posts={showActivity(profile.data, relation) ? posts.data : []}
       skills={skills.data}
       services={services.data}
+      recommendations={recommendations.data}
       connectionState={connectionState}
       following={following}
       signedIn={Boolean(session.userId)}

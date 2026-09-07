@@ -298,6 +298,7 @@ export function mapPost(row: {
   linked_project_id: string | null;
   linked_job_id: string | null;
   linked_gig_id: string | null;
+  youtube_url?: string | null;
   created_at: string;
   post_media?: { storage_path: string }[] | { storage_path: string } | null;
 }): Post {
@@ -312,6 +313,7 @@ export function mapPost(row: {
     linkedJobId: row.linked_job_id,
     linkedGigId: row.linked_gig_id,
     mediaPath: media?.storage_path ?? null,
+    youtubeUrl: row.youtube_url ?? null,
     createdAt: row.created_at,
   };
 }

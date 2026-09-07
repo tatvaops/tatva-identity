@@ -25,7 +25,8 @@ import {
 import { notify } from "@/lib/actions/notify";
 import { slugify } from "@/lib/domain/slug";
 import { personPublicHref } from "@/lib/domain/identiti-routes";
-import { handleIsGenerated, handleIsReserved, normalizeHandle } from "@/lib/domain/onboarding";
+import { handleIsGenerated, handleIsReserved, normalizeHandle, ONBOARDING_STEPS, shouldClaimOnboardingHandle } from "@/lib/domain/onboarding";
+import { updateOwnProfile } from "@/lib/data/profile-write";
 import type { OccupationMode } from "@/lib/types/identity";
 
 function revalidateProfile(handle: string | undefined, occupationMode?: OccupationMode | string | null) {
@@ -141,7 +142,10 @@ export async function addSkill(input: unknown): Promise<ActionResult> {
     category: parsed.data.category || null,
     years_experience: parsed.data.yearsExperience ? Number.parseFloat(parsed.data.yearsExperience) : null,
   });
-  if (error) return fail(error.message);
+  if (error) {
+    if (error.code === "23505") return fail("You already listed that skill.");
+    return fail(error.message);
+  }
   revalidateProfile(auth.ctx.profile?.handle, auth.ctx.profile?.occupationMode);
   return { ok: true };
 }
@@ -282,10 +286,7 @@ export async function endorseSkill(input: unknown): Promise<ActionResult> {
     explanation: "Community endorsement.",
   });
   if (skill.data.verification_level === "self_declared") {
-    await auth.supabase
-      .from("profile_skills")
-      .update({ verification_level: "community_endorsed" })
-      .eq("id", parsed.data.profileSkillId);
+    await auth.supabase.rpc("apply_community_endorsement", { skill_row_id: parsed.data.profileSkillId });
   }
   const person = await auth.supabase
     .from("public_profiles")
@@ -322,16 +323,16 @@ function onboardingUpdates(parsed: {
 }) {
   const updates: Record<string, unknown> = {
     full_name: parsed.fullName,
-    headline: parsed.headline || null,
-    about: parsed.about || null,
-    city: parsed.city || null,
-    state: parsed.state || null,
     occupation_mode: parsed.occupationMode,
   };
+  if (parsed.headline) updates.headline = parsed.headline;
+  if (parsed.about) updates.about = parsed.about;
+  if (parsed.city) updates.city = parsed.city;
+  if (parsed.state) updates.state = parsed.state;
   if (parsed.languages !== undefined) {
     updates.languages = parsed.languages.split(/[,;\n]/).map((item) => item.trim()).filter(Boolean);
   }
-  if (parsed.specialisation !== undefined) updates.specialisation = parsed.specialisation || null;
+  if (parsed.specialisation) updates.specialisation = parsed.specialisation;
   if (parsed.professionalTitle) updates.professional_title = parsed.professionalTitle;
   if (parsed.availabilityStatus) updates.availability_status = parsed.availabilityStatus;
   if (typeof parsed.step === "number") updates.onboarding_step = parsed.step;
@@ -339,18 +340,24 @@ function onboardingUpdates(parsed: {
   return updates;
 }
 
-export async function saveOnboardingProgress(input: unknown): Promise<ActionResult> {
+async function persistOnboarding(
+  input: unknown,
+  markComplete: boolean,
+): Promise<ActionResult> {
   const parsed = onboardingSchema.safeParse(input);
   if (!parsed.success) return fail("Add your name and professional category to continue.");
   const auth = await requireUser();
   if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
-  const updates = onboardingUpdates({ ...parsed.data, markComplete: false });
-  if (!parsed.data.skipHandle && parsed.data.handle) {
-    const claimed = await claimHandle(auth.supabase, auth.ctx.userId, parsed.data.handle);
+  const updates = onboardingUpdates({
+    ...parsed.data,
+    markComplete: markComplete || parsed.data.markComplete === true,
+  });
+  if (shouldClaimOnboardingHandle(parsed.data.handle, parsed.data.skipHandle)) {
+    const claimed = await claimHandle(auth.supabase, auth.ctx.userId, parsed.data.handle ?? "");
     if (claimed.error || !claimed.handle) return fail(claimed.error ?? "That handle is not available.");
     updates.handle = claimed.handle;
   }
-  const { error } = await auth.supabase.from("profiles").update(updates).eq("id", auth.ctx.userId);
+  const { error } = await updateOwnProfile(auth.supabase, auth.ctx.userId, updates);
   if (error) return fail(error.message);
   const nextHandle = typeof updates.handle === "string" ? updates.handle : auth.ctx.profile?.handle;
   revalidateProfile(nextHandle, parsed.data.occupationMode);
@@ -358,23 +365,12 @@ export async function saveOnboardingProgress(input: unknown): Promise<ActionResu
   return { ok: true };
 }
 
+export async function saveOnboardingProgress(input: unknown): Promise<ActionResult> {
+  return persistOnboarding(input, false);
+}
+
 export async function completeOnboarding(input: unknown): Promise<ActionResult> {
-  const parsed = onboardingSchema.safeParse(input);
-  if (!parsed.success) return fail("Add your name and professional category to continue.");
-  const auth = await requireUser();
-  if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
-  const updates = onboardingUpdates({ ...parsed.data, markComplete: parsed.data.markComplete !== false });
-  if (!parsed.data.skipHandle && parsed.data.handle) {
-    const claimed = await claimHandle(auth.supabase, auth.ctx.userId, parsed.data.handle);
-    if (claimed.error || !claimed.handle) return fail(claimed.error ?? "That handle is not available.");
-    updates.handle = claimed.handle;
-  }
-  const { error } = await auth.supabase.from("profiles").update(updates).eq("id", auth.ctx.userId);
-  if (error) return fail(error.message);
-  const nextHandle = typeof updates.handle === "string" ? updates.handle : auth.ctx.profile?.handle;
-  revalidateProfile(nextHandle, parsed.data.occupationMode);
-  revalidatePath("/onboarding");
-  return { ok: true };
+  return persistOnboarding(input, true);
 }
 
 export async function bootstrapOwnProfile(): Promise<ActionResult> {
@@ -610,19 +606,16 @@ export async function updatePrivacy(input: unknown): Promise<ActionResult> {
   if (!parsed.success) return fail("Choose valid visibility settings.");
   const auth = await requireUser();
   if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
-  const { error } = await auth.supabase
-    .from("profiles")
-    .update({
-      about_visible_to: parsed.data.aboutVisibleTo,
-      location_visible_to: parsed.data.locationVisibleTo,
-      email_visible_to: parsed.data.emailVisibleTo,
-      availability_visible_to: parsed.data.availabilityVisibleTo,
-      connections_visible_to: parsed.data.connectionsVisibleTo,
-      activity_visible_to: parsed.data.activityVisibleTo,
-      projects_visible_to: parsed.data.projectsVisibleTo,
-      experience_visible_to: parsed.data.experienceVisibleTo,
-    })
-    .eq("id", auth.ctx.userId);
+  const { error } = await updateOwnProfile(auth.supabase, auth.ctx.userId, {
+    about_visible_to: parsed.data.aboutVisibleTo,
+    location_visible_to: parsed.data.locationVisibleTo,
+    email_visible_to: parsed.data.emailVisibleTo,
+    availability_visible_to: parsed.data.availabilityVisibleTo,
+    connections_visible_to: parsed.data.connectionsVisibleTo,
+    activity_visible_to: parsed.data.activityVisibleTo,
+    projects_visible_to: parsed.data.projectsVisibleTo,
+    experience_visible_to: parsed.data.experienceVisibleTo,
+  });
   if (error) return fail(error.message);
   revalidatePath("/settings");
   revalidateProfile(auth.ctx.profile?.handle, auth.ctx.profile?.occupationMode);
@@ -634,16 +627,13 @@ export async function updateNotificationPrefs(input: unknown): Promise<ActionRes
   if (!parsed.success) return fail("Save notification preferences, then try again.");
   const auth = await requireUser();
   if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
-  const { error } = await auth.supabase
-    .from("profiles")
-    .update({
-      notify_connections: parsed.data.notifyConnections,
-      notify_messages: parsed.data.notifyMessages,
-      notify_applications: parsed.data.notifyApplications,
-      notify_social: parsed.data.notifySocial,
-      notify_organisation: parsed.data.notifyOrganisation,
-    })
-    .eq("id", auth.ctx.userId);
+  const { error } = await updateOwnProfile(auth.supabase, auth.ctx.userId, {
+    notify_connections: parsed.data.notifyConnections,
+    notify_messages: parsed.data.notifyMessages,
+    notify_applications: parsed.data.notifyApplications,
+    notify_social: parsed.data.notifySocial,
+    notify_organisation: parsed.data.notifyOrganisation,
+  });
   if (error) return fail(error.message);
   revalidatePath("/settings");
   return { ok: true };
@@ -652,16 +642,13 @@ export async function updateNotificationPrefs(input: unknown): Promise<ActionRes
 export async function skipRemainingOnboarding(): Promise<ActionResult> {
   const auth = await requireUser();
   if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
-  const name = auth.ctx.profile?.fullName?.trim();
+  const latest = await auth.supabase.from("profiles").select("full_name").eq("id", auth.ctx.userId).maybeSingle();
+  const name = latest.data?.full_name?.trim() || auth.ctx.profile?.fullName?.trim();
   if (!name || name === "New professional") return fail("Add your name before leaving onboarding.");
-  const { error } = await auth.supabase
-    .from("profiles")
-    .update({
-      onboarding_completed_at: new Date().toISOString(),
-      onboarding_step: 14,
-    })
-    .eq("id", auth.ctx.userId);
-  if (error) return fail(error.message);
+  await updateOwnProfile(auth.supabase, auth.ctx.userId, {
+    onboarding_completed_at: new Date().toISOString(),
+    onboarding_step: ONBOARDING_STEPS.length - 1,
+  });
   revalidatePath("/onboarding");
   revalidatePath("/feed");
   return { ok: true };

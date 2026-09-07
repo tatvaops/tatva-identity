@@ -7,11 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useSession } from "@/components/providers/session-provider";
 import { addComment, createPost, deleteOwnPost, reportPost, togglePostReaction } from "@/lib/actions/network";
 import { uploadPublicImage } from "@/lib/actions/media";
 import { PhotoFrame } from "@/components/identity/media-photo";
+import { YoutubeEmbed } from "@/components/identity/youtube-embed";
 import { personPublicHref } from "@/lib/domain/identiti-routes";
 import { hueFromId, initialsFromName } from "@/lib/domain/passport-strength";
 import type { Post, PostComment, PublicProfile } from "@/lib/types/identity";
@@ -62,6 +64,7 @@ export function PostComposer({ openOnMount = false }: { openOnMount?: boolean })
   const [pending, start] = useTransition();
   const photoInput = useRef<HTMLInputElement>(null);
   const [photoPath, setPhotoPath] = useState<string | null>(null);
+  const [youtubeUrl, setYoutubeUrl] = useState("");
 
   if (!profile) {
     return (
@@ -167,6 +170,16 @@ export function PostComposer({ openOnMount = false }: { openOnMount?: boolean })
             placeholder="What did you complete, hire for, or verify?"
             className="mt-3 min-h-32"
           />
+          <label className="mt-3 block text-sm font-medium" htmlFor="post-video">
+            YouTube video (optional)
+          </label>
+          <Input
+            id="post-video"
+            value={youtubeUrl}
+            onChange={(event) => setYoutubeUrl(event.target.value)}
+            placeholder="https://www.youtube.com/watch?v=…"
+            className="mt-1"
+          />
           {photoPath ? <p className="mt-2 text-xs text-muted-foreground">Photo attached and will publish with this update.</p> : null}
           {error && <p className="mt-2 text-sm text-rose-700">{error}</p>}
           <div className="mt-4 flex justify-end">
@@ -174,13 +187,14 @@ export function PostComposer({ openOnMount = false }: { openOnMount?: boolean })
               disabled={pending}
               onClick={() =>
                 start(async () => {
-                  const result = await createPost(body, postType, photoPath);
+                  const result = await createPost(body, postType, photoPath, youtubeUrl);
                   if (!result.ok) {
                     setError(result.error);
                     return;
                   }
                   setBody("");
                   setPhotoPath(null);
+                  setYoutubeUrl("");
                   setOpen(false);
                   router.refresh();
                 })
@@ -247,7 +261,7 @@ export function PostCard({
           </Badge>
           <p className="mt-3 text-sm leading-6">{post.body}</p>
           {post.mediaPath ? <PhotoFrame src={post.mediaPath} alt="" className="mt-3 h-56 rounded-xl" /> : null}
-          {post.mediaPath ? <PhotoFrame src={post.mediaPath} alt="" className="mt-3 h-56 rounded-xl" /> : null}
+          <YoutubeEmbed url={post.youtubeUrl} title={`${name} video`} />
           {comments.length > 0 ? (
             <ul className="mt-4 space-y-3 border-t border-border pt-3">
               {comments.map((comment) => {

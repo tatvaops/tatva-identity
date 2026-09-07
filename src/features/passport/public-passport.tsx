@@ -53,6 +53,12 @@ export async function PublicPassportView({
     publicCredentialCount: certifications.length,
     projectCount: projects.length,
     recommendationCount: recommendations.length,
+    hasName: Boolean(profile.fullName.trim() && profile.fullName !== "New professional"),
+    hasPhoto: Boolean(profile.avatarPath),
+    hasHeadline: Boolean(profile.headline),
+    hasLocation: Boolean(profile.city),
+    experienceCount: experiences.length,
+    educationCount: education.length,
   });
   const flags = headerFlags(flagsFromEvidence({ profile, skills, certifications, projects }));
   const verifiedExperience = experiences.filter((e) => e.source === "organisation_verified");
@@ -79,6 +85,13 @@ export async function PublicPassportView({
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">{profile.fullName}</h1>
           {profile.headline && <p className="mt-1 text-sm text-foreground">{profile.headline}</p>}
+          {profile.city || profile.languages.length > 0 || profile.specialisation ? (
+            <p className="mt-1 text-sm text-muted-foreground">
+              {[profile.city, profile.specialisation, profile.languages.length > 0 ? profile.languages.join(", ") : null]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          ) : null}
           {showAvailability ? (
             <div className="mt-3">
               <AvailabilityBadge status={profile.availabilityStatus} />
@@ -115,9 +128,12 @@ export async function PublicPassportView({
       <section id="identity" className="scroll-mt-20">
         <h2 className="mb-2 text-[15px] font-semibold">Identity</h2>
         <Card className="p-4 text-sm">
-          {profile.identityVerified
-            ? "Identity is verified. Document numbers stay private."
-            : "Identity is not verified yet."}
+          <p>
+            {profile.identityVerified
+              ? "Identity is verified. Document numbers stay private."
+              : "Identity is not verified yet."}
+          </p>
+          {profile.about ? <p className="mt-2 text-muted-foreground">{profile.about}</p> : null}
         </Card>
       </section>
 
@@ -132,6 +148,7 @@ export async function PublicPassportView({
                 <p className="text-sm font-semibold">{exp.title}</p>
                 <p className="text-sm text-muted-foreground">{exp.organisationNameText}</p>
                 <p className="mt-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                  {exp.isCurrent ? "Current · " : ""}
                   {exp.source === "organisation_verified" ? "Organisation verified" : "Self declared"}
                 </p>
               </Card>

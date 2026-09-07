@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { ApplicationsView } from "@/features/jobs/applications-view";
-import { getGig, getOrganisationById } from "@/lib/data/network";
+import { getGig } from "@/lib/data/network";
 import { listGigApplications, userCanManageOrganisation } from "@/lib/data/workspace";
 import { getAuthContext } from "@/lib/data/query";
 import { QueryNotice } from "@/components/states/empty-state";
@@ -12,7 +12,6 @@ export default async function GigApplicationsPage({ params }: { params: Promise<
   const gig = await getGig(id);
   if (gig.meta.error) return <QueryNotice configured={gig.meta.configured} error={gig.meta.error} />;
   if (!gig.data) notFound();
-  const org = await getOrganisationById(gig.data.organisationId);
   if (!(await userCanManageOrganisation(session.userId, gig.data.organisationId))) redirect(`/gigs/${id}`);
   const applications = await listGigApplications(id);
   return (

@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { JobCreateForm } from "@/features/jobs/opportunity-forms";
 import { getJob } from "@/lib/data/network";
 import { getAuthContext } from "@/lib/data/query";
-import { listOwnedOrganisations, userCanManageOrganisation } from "@/lib/data/workspace";
+import { listStaffOrganisations, userCanManageOrganisation } from "@/lib/data/workspace";
 
 export default async function EditJobPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -12,7 +12,7 @@ export default async function EditJobPage({ params }: { params: Promise<{ id: st
   if (!job.data) notFound();
   const canManage = await userCanManageOrganisation(session.userId, job.data.organisationId);
   if (!canManage) notFound();
-  const orgs = await listOwnedOrganisations(session.userId);
+  const orgs = await listStaffOrganisations(session.userId);
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-semibold">Edit job</h1>

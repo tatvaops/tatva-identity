@@ -1,14 +1,27 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search } from "lucide-react";
+import { Building2, Briefcase, Hammer, Search, UserRound } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { searchPlaceholder } from "@/lib/config";
 import { cn } from "@/lib/utils";
+import type { SearchDiscovery } from "@/lib/data/discovery";
 
 const STORAGE_KEY = "tatva-recent-searches";
 const MAX_RECENT = 6;
+
+const CATEGORIES = [
+  { href: "/search?type=people", label: "People", icon: UserRound },
+  { href: "/companies", label: "Companies", icon: Building2 },
+  { href: "/service-brands", label: "Service brands", icon: Building2 },
+  { href: "/product-brands", label: "Product brands", icon: Briefcase },
+  { href: "/projects", label: "Projects", icon: Hammer },
+  { href: "/jobs", label: "Jobs", icon: Briefcase },
+  { href: "/gigs", label: "Gigs", icon: Hammer },
+  { href: "/services", label: "Services", icon: Search },
+] as const;
 
 function readRecent(): string[] {
   if (typeof window === "undefined") return [];
@@ -39,6 +52,7 @@ export function SearchBox({
   const [q, setQ] = useState(initialQuery);
   const [open, setOpen] = useState(false);
   const [recent, setRecent] = useState<string[]>([]);
+  const [discovery, setDiscovery] = useState<SearchDiscovery | null>(null);
   const listId = useId();
   const wrapRef = useRef<HTMLDivElement>(null);
 
@@ -46,8 +60,15 @@ export function SearchBox({
     function onPointer(event: MouseEvent) {
       if (!wrapRef.current?.contains(event.target as Node)) setOpen(false);
     }
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
     document.addEventListener("mousedown", onPointer);
-    return () => document.removeEventListener("mousedown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
   }, []);
 
   function go(value: string) {
@@ -60,6 +81,27 @@ export function SearchBox({
     router.push(qs ? `/search?${qs}` : "/search");
     setOpen(false);
   }
+
+  function openPanel() {
+    setRecent(readRecent());
+    setOpen(true);
+    if (!discovery) {
+      void fetch("/api/search/discover")
+        .then((response) => (response.ok ? response.json() : null))
+        .then((payload: SearchDiscovery | null) => {
+          if (payload) setDiscovery(payload);
+        })
+        .catch(() => undefined);
+    }
+  }
+
+  const groups: { key: keyof SearchDiscovery; label: string }[] = [
+    { key: "people", label: "People" },
+    { key: "serviceBrands", label: "Service brands" },
+    { key: "projects", label: "Projects" },
+    { key: "jobs", label: "Jobs" },
+    { key: "gigs", label: "Gigs" },
+  ];
 
   return (
     <div ref={wrapRef} className="relative w-full">
@@ -74,44 +116,80 @@ export function SearchBox({
         <Input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          onFocus={() => {
-            setRecent(readRecent());
-            setOpen(true);
-          }}
+          onFocus={openPanel}
           placeholder={searchPlaceholder}
           aria-label="Search people, companies, projects, jobs and skills"
           aria-autocomplete="list"
-          aria-expanded={open && recent.length > 0 && !q}
+          aria-expanded={open}
           aria-controls={listId}
-          className={cn("bg-secondary pl-9", size === "page" ? "h-12" : "h-9")}
+          className={cn("bg-surface-muted pl-9", size === "page" ? "h-11" : "h-9")}
         />
       </form>
-      {open && recent.length > 0 && !q.trim() && (
-        <ul
+      {open ? (
+        <div
           id={listId}
-          role="listbox"
-          className="absolute z-50 mt-1 w-full overflow-hidden rounded-xl border border-border bg-white py-1 shadow-lg"
+          className="absolute z-50 mt-1.5 w-full min-w-[min(100%,28rem)] overflow-hidden rounded-md border border-border bg-white shadow-md"
         >
-          <li className="px-3 py-1.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
-            Recent searches
-          </li>
-          {recent.map((item) => (
-            <li key={item} role="option" aria-selected={false}>
-              <button
-                type="button"
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
-                onClick={() => {
-                  setQ(item);
-                  go(item);
-                }}
+          <div className="grid grid-cols-2 gap-1 border-b border-border p-2 sm:grid-cols-4">
+            {CATEGORIES.map((category) => (
+              <Link
+                key={category.href}
+                href={category.href}
+                className="flex items-center gap-2 px-2 py-1.5 text-xs font-medium text-text-secondary hover:bg-surface-muted hover:text-foreground"
+                onClick={() => setOpen(false)}
               >
-                <Search className="size-3.5 text-muted-foreground" aria-hidden />
-                {item}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+                <category.icon className="size-3.5 text-muted-foreground" aria-hidden />
+                {category.label}
+              </Link>
+            ))}
+          </div>
+          {recent.length > 0 && !q.trim() ? (
+            <div className="border-b border-border py-1">
+              <p className="px-3 py-1.5 type-micro">Recent searches</p>
+              {recent.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
+                  onClick={() => {
+                    setQ(item);
+                    go(item);
+                  }}
+                >
+                  <Search className="size-3.5 text-muted-foreground" aria-hidden />
+                  {item}
+                </button>
+              ))}
+            </div>
+          ) : null}
+          {discovery ? (
+            <div className="max-h-72 overflow-y-auto p-2">
+              {groups.map((group) => {
+                const items = discovery[group.key];
+                if (!items.length) return null;
+                return (
+                  <div key={group.key} className="mb-2 last:mb-0">
+                    <p className="px-2 py-1 type-micro">{group.label}</p>
+                    {items.slice(0, 3).map((item) => (
+                      <Link
+                        key={item.id}
+                        href={item.href}
+                        className="block px-2 py-1.5 hover:bg-surface-muted"
+                        onClick={() => setOpen(false)}
+                      >
+                        <p className="truncate text-sm font-medium">{item.title}</p>
+                        {item.subtitle ? <p className="truncate text-xs text-muted-foreground">{item.subtitle}</p> : null}
+                      </Link>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="px-3 py-3 text-xs text-muted-foreground">Looking across the live network…</p>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }

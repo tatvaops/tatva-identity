@@ -3,14 +3,31 @@ import assert from "node:assert/strict";
 import { isBootstrapAdmin, isPlatformAdminOpenToSignedIn, isPlatformOperator } from "./bootstrap";
 
 describe("isPlatformAdminOpenToSignedIn", () => {
-  it("defaults to open so the console works before handles are listed", () => {
-    const previous = process.env.PLATFORM_ADMIN_OPEN;
+  it("stays closed in production until operators are listed or explicitly opened", () => {
+    const previousOpen = process.env.PLATFORM_ADMIN_OPEN;
+    const previousEnv = process.env.NODE_ENV;
     delete process.env.PLATFORM_ADMIN_OPEN;
+    process.env.NODE_ENV = "production";
+    try {
+      assert.equal(isPlatformAdminOpenToSignedIn(), false);
+    } finally {
+      if (previousOpen === undefined) delete process.env.PLATFORM_ADMIN_OPEN;
+      else process.env.PLATFORM_ADMIN_OPEN = previousOpen;
+      process.env.NODE_ENV = previousEnv;
+    }
+  });
+
+  it("defaults to open outside production so local development still works", () => {
+    const previousOpen = process.env.PLATFORM_ADMIN_OPEN;
+    const previousEnv = process.env.NODE_ENV;
+    delete process.env.PLATFORM_ADMIN_OPEN;
+    process.env.NODE_ENV = "test";
     try {
       assert.equal(isPlatformAdminOpenToSignedIn(), true);
     } finally {
-      if (previous === undefined) delete process.env.PLATFORM_ADMIN_OPEN;
-      else process.env.PLATFORM_ADMIN_OPEN = previous;
+      if (previousOpen === undefined) delete process.env.PLATFORM_ADMIN_OPEN;
+      else process.env.PLATFORM_ADMIN_OPEN = previousOpen;
+      process.env.NODE_ENV = previousEnv;
     }
   });
 

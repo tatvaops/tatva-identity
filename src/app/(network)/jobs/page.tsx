@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { JobsView } from "@/features/jobs/jobs-gigs";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/section";
 
 export default async function JobsPage({
   searchParams,
@@ -10,12 +11,16 @@ export default async function JobsPage({
   const { city, type, page } = await searchParams;
   return (
     <div>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">Jobs</h1>
-        <Button asChild>
-          <Link href="/jobs/create">Post a job</Link>
-        </Button>
-      </div>
+      <PageHeader
+        eyebrow="Opportunity"
+        title="Jobs"
+        body="Permanent and contract roles. Not the same as gigs."
+        action={
+          <Button asChild>
+            <Link href="/jobs/create">Post a job</Link>
+          </Button>
+        }
+      />
       <JobsView city={city} employmentType={type} page={Number.parseInt(page ?? "1", 10) || 1} />
     </div>
   );

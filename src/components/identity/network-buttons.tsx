@@ -13,11 +13,13 @@ export function ConnectionButton({
   initialState = "connect",
   size = "default",
   returnTo = "/people",
+  className,
 }: {
   profileId: string;
   initialState?: "connect" | "pending" | "incoming" | "connected";
   size?: "default" | "sm";
   returnTo?: string;
+  className?: string;
 }) {
   const { userId } = useSession();
   const router = useRouter();
@@ -27,7 +29,7 @@ export function ConnectionButton({
   if (!userId) {
     if (size === "sm") return null;
     return (
-      <Button size={size} variant="outline" asChild>
+      <Button size={size} variant="outline" className={className} asChild>
         <Link href={`/auth/sign-in?next=${encodeURIComponent(returnTo)}`}>Sign in to connect</Link>
       </Button>
     );
@@ -36,14 +38,14 @@ export function ConnectionButton({
 
   if (initialState === "connected") {
     return (
-      <Button size={size} variant="secondary" disabled>
+      <Button size={size} variant="secondary" disabled className={className}>
         <UserCheck /> Connected
       </Button>
     );
   }
   if (initialState === "incoming") {
     return (
-      <Button size={size} variant="outline" asChild>
+      <Button size={size} variant="outline" className={className} asChild>
         <Link href="/network?tab=pending">Respond</Link>
       </Button>
     );
@@ -53,6 +55,7 @@ export function ConnectionButton({
       <Button
         size={size}
         variant="outline"
+        className={className}
         disabled={pending}
         onClick={() =>
           start(async () => {
@@ -68,9 +71,10 @@ export function ConnectionButton({
   }
 
   return (
-    <div className="space-y-1">
+    <>
       <Button
         size={size}
+        className={className}
         disabled={pending}
         onClick={() =>
           start(async () => {
@@ -87,11 +91,11 @@ export function ConnectionButton({
         <UserPlus /> Connect
       </Button>
       {error ? (
-        <p className="text-xs text-rose-700" role="alert">
+        <p className="basis-full text-xs text-rose-700" role="alert">
           {error}
         </p>
       ) : null}
-    </div>
+    </>
   );
 }
 
@@ -101,12 +105,14 @@ export function FollowButton({
   following = false,
   size = "default",
   returnTo = "/people",
+  className,
 }: {
   personId?: string;
   organisationId?: string;
   following?: boolean;
   size?: "default" | "sm";
   returnTo?: string;
+  className?: string;
 }) {
   const { userId } = useSession();
   const router = useRouter();
@@ -114,7 +120,7 @@ export function FollowButton({
 
   if (!userId) {
     return (
-      <Button size={size} variant="outline" asChild>
+      <Button size={size} variant="outline" className={className} asChild>
         <Link href={`/auth/sign-in?next=${encodeURIComponent(returnTo)}`}>Sign in to follow</Link>
       </Button>
     );
@@ -125,6 +131,7 @@ export function FollowButton({
     <Button
       size={size}
       variant={following ? "secondary" : "outline"}
+      className={className}
       disabled={pending}
       onClick={() =>
         start(async () => {

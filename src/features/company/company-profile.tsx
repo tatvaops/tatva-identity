@@ -1,4 +1,3 @@
-import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/states/empty-state";
 import { BusinessPassport, OrganisationMetricStrip } from "@/features/company/business-passport";
@@ -68,7 +67,7 @@ export async function CompanyProfileView({
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <CompanyHeader
         org={org}
         following={following}
@@ -80,9 +79,9 @@ export async function CompanyProfileView({
       <OrganisationMetricStrip metrics={metrics} />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <Card className="px-2">
+        <div>
           <Tabs defaultValue={tab}>
-            <TabsList className="sticky top-14 z-20 bg-white px-2">
+            <TabsList className="sticky top-14 z-20 bg-background">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="services">Services</TabsTrigger>
               <TabsTrigger value="projects">Projects</TabsTrigger>
@@ -134,7 +133,7 @@ export async function CompanyProfileView({
               <OrganisationReviews reviews={reviews} organisationId={org.id} canReview={Boolean(session.userId && !canEdit)} />
             </TabsContent>
           </Tabs>
-        </Card>
+        </div>
         <OrganisationContact org={org} similar={similar} signedIn={Boolean(session.userId)} />
       </div>
     </div>

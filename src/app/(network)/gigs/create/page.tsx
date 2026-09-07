@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { GigCreateForm } from "@/features/jobs/opportunity-forms";
 import { getAuthContext } from "@/lib/data/query";
 import { listOptedInProjects } from "@/lib/data/network";
-import { listOwnedOrganisations } from "@/lib/data/workspace";
+import { listStaffOrganisations } from "@/lib/data/workspace";
 
 export default async function CreateGigPage({
   searchParams,
@@ -13,7 +13,7 @@ export default async function CreateGigPage({
   if (!session.userId) redirect("/auth/sign-in?next=/gigs/create");
   const { organisationId } = await searchParams;
   const [orgs, projects] = await Promise.all([
-    listOwnedOrganisations(session.userId),
+    listStaffOrganisations(session.userId),
     listOptedInProjects(session.userId),
   ]);
   return (

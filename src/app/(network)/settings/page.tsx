@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { getAuthContext } from "@/lib/data/query";
 import { LanguageForm } from "@/features/settings/language-form";
 import { SettingsWorkspace } from "@/features/settings/settings-workspace";
-import { listBlockedPeople, listOwnedOrganisations, loadNotificationPrefs } from "@/lib/data/workspace";
+import { listBlockedPeople, listStaffOrganisations, loadNotificationPrefs } from "@/lib/data/workspace";
 import { LOCALE_COOKIE, parseLocale } from "@/lib/i18n";
 
 export default async function SettingsPage() {
@@ -15,7 +15,7 @@ export default async function SettingsPage() {
   const locale = parseLocale((await cookies()).get(LOCALE_COOKIE)?.value);
   const [blocked, orgs, prefs] = await Promise.all([
     listBlockedPeople(session.userId),
-    listOwnedOrganisations(session.userId),
+    listStaffOrganisations(session.userId),
     loadNotificationPrefs(session.userId),
   ]);
   return (

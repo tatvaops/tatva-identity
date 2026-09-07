@@ -67,3 +67,7 @@ export function showProjects(profile: PublicProfile, viewer: ViewerRelation) {
 export function showActivity(profile: PublicProfile, viewer: ViewerRelation) {
   return audienceAllows(profile.activityVisibleTo, viewer);
 }
+
+export function showConnections(profile: PublicProfile, viewer: ViewerRelation) {
+  return audienceAllows(profile.connectionsVisibleTo, viewer);
+}

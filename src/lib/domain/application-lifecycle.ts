@@ -36,6 +36,34 @@ export function applicationStatusLabel(status: string) {
   return LABELS[normalizeApplicationStatus(status)];
 }
 
-export function operatorApplicationStatuses(_kind: "job" | "gig"): ApplicationStatus[] {
+const TERMINAL: ReadonlySet<ApplicationStatus> = new Set(["accepted", "rejected", "withdrawn"]);
+
+export function canOperatorTransition(from: string, to: string) {
+  const current = normalizeApplicationStatus(from);
+  const next = normalizeApplicationStatus(to);
+  if (current === next) return true;
+  if (TERMINAL.has(current)) return false;
+  if (next === "withdrawn") return false;
+  return true;
+}
+
+export function canApplicantWithdraw(status: string) {
+  const current = normalizeApplicationStatus(status);
+  return current === "submitted" || current === "reviewing" || current === "shortlisted" || current === "interview";
+}
+
+export function operatorApplicationStatuses(kind: "job" | "gig"): ApplicationStatus[] {
+  void kind;
   return ["submitted", "reviewing", "shortlisted", "interview", "accepted", "rejected"];
+}
+
+export function canApplyToListing(input: { closedAt?: string | null; seats?: number | null; exists?: boolean }) {
+  if (input.exists === false) return false;
+  if (input.closedAt) return false;
+  if (input.seats === 0) return false;
+  return true;
+}
+
+export function applicantMaySetStatus(nextStatus: string) {
+  return nextStatus === "withdrawn";
 }

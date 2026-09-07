@@ -37,15 +37,9 @@ export function VerificationBadge({
       <TooltipTrigger asChild>
         <span
           className={cn(
-            "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium",
+            "inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-[11px] font-medium",
             flag.state !== "verified" && "opacity-70",
-            flag.kind === "tatva" && "bg-indigo-50 text-indigo-800",
-            flag.kind === "identity" && "bg-sky-50 text-sky-800",
-            flag.kind === "employment" && "bg-slate-100 text-slate-800",
-            flag.kind === "trade" && "bg-violet-50 text-violet-800",
-            flag.kind === "project" && "bg-cyan-50 text-cyan-900",
-            flag.kind === "skill" && "bg-emerald-50 text-emerald-800",
-            flag.kind === "credential" && "bg-amber-50 text-amber-900",
+            "bg-[#ecf8f3] text-verify",
           )}
         >
           <Icon className="size-3" aria-hidden />
@@ -68,25 +62,25 @@ export function VerificationTooltip({ flag }: { flag: VerificationFlag }) {
 
 export function AvailabilityBadge({
   status,
-  labeled = true,
+  labeled = false,
 }: {
   status: string;
   labeled?: boolean;
 }) {
   const copy = AVAILABILITY_COPY[status as AvailabilityStatus] ?? AVAILABILITY_COPY.not_looking;
   const tone: Record<string, string> = {
-    not_looking: "bg-slate-100 text-slate-700",
-    open_to_opportunities: "bg-indigo-50 text-indigo-800",
-    open_to_jobs: "bg-indigo-50 text-indigo-800",
-    open_to_gigs: "bg-emerald-50 text-emerald-800",
-    available_immediately: "bg-emerald-100 text-emerald-900",
-    engaged: "bg-amber-50 text-amber-900",
-    on_leave: "bg-slate-100 text-slate-700",
+    not_looking: "bg-surface-muted text-text-secondary",
+    open_to_opportunities: "bg-secondary text-brand",
+    open_to_jobs: "bg-secondary text-brand",
+    open_to_gigs: "bg-[#ecf8f3] text-success",
+    available_immediately: "bg-[#ecf8f3] text-success",
+    engaged: "bg-[#fbf3e8] text-warning",
+    on_leave: "bg-surface-muted text-text-secondary",
   };
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold tracking-wide",
+        "inline-flex items-center rounded-sm px-1.5 py-0.5 text-[11px] font-medium",
         tone[status] ?? tone.not_looking,
       )}
       title={copy.hint}

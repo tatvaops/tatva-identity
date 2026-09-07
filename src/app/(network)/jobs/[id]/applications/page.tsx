@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { ApplicationsView } from "@/features/jobs/applications-view";
-import { getJob, getOrganisationById } from "@/lib/data/network";
+import { getJob } from "@/lib/data/network";
 import { listJobApplications, userCanManageOrganisation } from "@/lib/data/workspace";
 import { getAuthContext } from "@/lib/data/query";
 import { QueryNotice } from "@/components/states/empty-state";
@@ -12,7 +12,6 @@ export default async function JobApplicationsPage({ params }: { params: Promise<
   const job = await getJob(id);
   if (job.meta.error) return <QueryNotice configured={job.meta.configured} error={job.meta.error} />;
   if (!job.data) notFound();
-  const org = await getOrganisationById(job.data.organisationId);
   if (!(await userCanManageOrganisation(session.userId, job.data.organisationId))) redirect(`/jobs/${id}`);
   const applications = await listJobApplications(id);
   return (

@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { GigCreateForm } from "@/features/jobs/opportunity-forms";
 import { getGig } from "@/lib/data/network";
 import { getAuthContext } from "@/lib/data/query";
-import { listOwnedOrganisations, userCanManageOrganisation } from "@/lib/data/workspace";
+import { listStaffOrganisations, userCanManageOrganisation } from "@/lib/data/workspace";
 import { listOptedInProjects } from "@/lib/data/network";
 
 export default async function EditGigPage({ params }: { params: Promise<{ id: string }> }) {
@@ -14,7 +14,7 @@ export default async function EditGigPage({ params }: { params: Promise<{ id: st
   const canManage = await userCanManageOrganisation(session.userId, gig.data.organisationId);
   if (!canManage) notFound();
   const [orgs, projects] = await Promise.all([
-    listOwnedOrganisations(session.userId),
+    listStaffOrganisations(session.userId),
     listOptedInProjects(session.userId),
   ]);
   return (

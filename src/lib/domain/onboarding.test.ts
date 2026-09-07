@@ -8,6 +8,7 @@ import {
   occupationFromTitle,
   ONBOARDING_STEPS,
   profileNeedsIdentitySetup,
+  shouldClaimOnboardingHandle,
 } from "@/lib/domain/onboarding";
 
 describe("onboarding helpers", () => {
@@ -34,11 +35,18 @@ describe("onboarding helpers", () => {
     assert.equal(occupationFromTitle("contractor"), "contractor");
   });
 
-  it("keeps onboarding on a named 15-step path", () => {
-    assert.equal(ONBOARDING_STEPS.length, 15);
+  it("keeps onboarding on a short required path", () => {
+    assert.equal(ONBOARDING_STEPS.length, 7);
     assert.equal(clampOnboardingStep(-3), 0);
-    assert.equal(clampOnboardingStep(99), 14);
+    assert.equal(clampOnboardingStep(99), 6);
     assert.equal(ONBOARDING_STEPS[0]?.id, "identity");
-    assert.equal(ONBOARDING_STEPS[14]?.id, "publish");
+    assert.equal(ONBOARDING_STEPS[6]?.id, "publish");
+  });
+
+  it("does not claim a handle until the person actually chooses one", () => {
+    assert.equal(shouldClaimOnboardingHandle("dev-tester", true), false);
+    assert.equal(shouldClaimOnboardingHandle("", false), false);
+    assert.equal(shouldClaimOnboardingHandle("u-abc123def456", false), false);
+    assert.equal(shouldClaimOnboardingHandle("dev-tester", false), true);
   });
 });

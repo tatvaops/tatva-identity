@@ -39,8 +39,8 @@ export function IdentitiNetworkBar({
   const messageHref = personMessageHref(profile.id, signedIn, publicHref);
 
   return (
-    <div className="flex flex-wrap gap-3">
-      <Button asChild className="rounded-xl bg-white font-bold text-[#111a42] hover:bg-white/90">
+    <>
+      <Button asChild>
         <Link href={messageHref}>{signedIn ? "Message" : "Sign in to message"}</Link>
       </Button>
       <ConnectionButton
@@ -49,15 +49,17 @@ export function IdentitiNetworkBar({
         returnTo={publicHref}
       />
       <FollowButton personId={profile.id} following={following} returnTo={publicHref} />
-      {signedIn ? <SaveButton kind="profile" id={profile.id} saved={saved} /> : null}
       {signedIn ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon" aria-label="More profile actions" className="rounded-xl">
+            <Button variant="outline" size="icon" aria-label="More profile actions">
               <MoreHorizontal />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" className="w-48">
+            <div className="px-1 py-1">
+              <SaveButton kind="profile" id={profile.id} saved={saved} className="w-full justify-start" />
+            </div>
             <div className="px-1 py-1">
               <BlockPersonButton personId={profile.id} blocked={blocked} />
             </div>
@@ -67,6 +69,6 @@ export function IdentitiNetworkBar({
           </DropdownMenuContent>
         </DropdownMenu>
       ) : null}
-    </div>
+    </>
   );
 }

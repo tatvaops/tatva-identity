@@ -10,10 +10,12 @@ export function SaveButton({
   kind,
   id,
   saved,
+  className,
 }: {
   kind: "job" | "gig" | "organisation" | "profile" | "project";
   id: string;
   saved: boolean;
+  className?: string;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -21,6 +23,7 @@ export function SaveButton({
     <Button
       type="button"
       variant={saved ? "secondary" : "outline"}
+      className={className}
       disabled={pending}
       onClick={() =>
         start(async () => {

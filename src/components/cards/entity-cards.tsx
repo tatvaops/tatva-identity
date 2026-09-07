@@ -5,7 +5,6 @@ import { AvailabilityBadge, VerificationBadge } from "@/components/identity/veri
 import { InitialsAvatar } from "@/components/identity/visuals";
 import { ConnectionButton } from "@/components/identity/network-buttons";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import { flagsFromProfile, headerFlags } from "@/lib/domain/verification";
 import { hueFromId, initialsFromName } from "@/lib/domain/passport-strength";
 import { organisationTypeLabel } from "@/lib/domain/org-config";
@@ -52,141 +51,154 @@ export function PersonCard({
   const trade = profile.classification ?? profile.preferredRoles[0] ?? null;
   const href = personPublicHref(profile.handle, profile.occupationMode);
   return (
-    <Card className="p-4">
+    <article className="group border border-border bg-white p-4">
       <div className="flex gap-3">
         <Link href={href} aria-label={profile.fullName}>
-          <InitialsAvatar initials={initialsFromName(profile.fullName)} hue={hueFromId(profile.id)} size={48} src={profile.avatarPath} />
+          <InitialsAvatar initials={initialsFromName(profile.fullName)} hue={hueFromId(profile.id)} size={52} src={profile.avatarPath} />
         </Link>
         <div className="min-w-0 flex-1">
-          <Link href={href} className="truncate text-sm font-semibold hover:text-primary">
+          <Link href={href} className="block truncate text-[15px] font-semibold tracking-tight hover:text-brand">
             {profile.fullName}
           </Link>
-          <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{profile.headline ?? "Professional"}</p>
-          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+          <p className="mt-0.5 line-clamp-2 text-sm text-text-secondary">{profile.headline ?? "Professional"}</p>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
             <AvailabilityBadge status={profile.availabilityStatus} />
-            {flags.slice(0, 1).map((v) => (
+            {flags.slice(0, 2).map((v) => (
               <VerificationBadge key={v.kind} flag={v} compact />
             ))}
           </div>
-          {profile.city && (
-            <p className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground">
-              <MapPin className="size-3" aria-hidden />
-              {profile.city}
-            </p>
-          )}
-          {trade && <p className="mt-1 text-xs text-muted-foreground">{trade}</p>}
+          <p className="mt-2 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+            {profile.city ? (
+              <span className="inline-flex items-center gap-1">
+                <MapPin className="size-3" aria-hidden />
+                {profile.city}
+              </span>
+            ) : null}
+            {trade ? <span>{trade}</span> : null}
+          </p>
         </div>
       </div>
       <div className="mt-3">
         <ConnectionButton profileId={profile.id} initialState={connectionState} size="sm" />
       </div>
-    </Card>
+    </article>
   );
 }
 
 export function CompanyCard({ org }: { org: Organisation; following?: boolean }) {
   const href = brandPublicHref(org.passportKind ?? "other", org.slug);
   return (
-    <Card className="overflow-hidden">
-      <PhotoFrame src={org.coverPath} alt="" className="h-28" />
-      <div className="flex gap-3 p-4">
-        <Link href={href} aria-label={org.name}>
-          <InitialsAvatar initials={initialsFromName(org.name)} hue={250} size={48} className="rounded-xl" src={org.logoPath} />
-        </Link>
-        <div className="min-w-0">
-          <Link href={href} className="text-sm font-semibold hover:text-primary">
-            {org.name}
-          </Link>
-          <p className="mt-1 text-xs text-muted-foreground">{organisationTypeLabel(org.type)}</p>
-          {org.tagline && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{org.tagline}</p>}
-          <p className="mt-1 text-xs text-muted-foreground">{[org.industry, org.city].filter(Boolean).join(" · ")}</p>
+    <Link href={href} className="group block">
+      <article className="overflow-hidden border border-border bg-white">
+        <PhotoFrame src={org.coverPath} alt="" className="h-32" />
+        <div className="flex gap-3 p-4">
+          <InitialsAvatar initials={initialsFromName(org.name)} hue={250} size={44} className="rounded-md" src={org.logoPath} />
+          <div className="min-w-0">
+            <p className="truncate text-[15px] font-semibold tracking-tight group-hover:text-brand">{org.name}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{organisationTypeLabel(org.type)}</p>
+            {org.tagline ? <p className="mt-1 line-clamp-2 text-sm text-text-secondary">{org.tagline}</p> : null}
+            <p className="mt-1 text-xs text-muted-foreground">{[org.industry, org.city].filter(Boolean).join(" · ")}</p>
+          </div>
         </div>
-      </div>
-    </Card>
+      </article>
+    </Link>
   );
 }
 
 export function JobCard({ job, organisationName }: { job: JobPost; organisationName?: string }) {
   return (
-    <Card className="p-4">
-      <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Job</p>
-      <Link href={`/jobs/${job.id}`} className="mt-1 block text-sm font-semibold hover:text-primary">
+    <article className="border border-border bg-white p-4">
+      <div className="flex items-start justify-between gap-3">
+        <p className="type-micro">{organisationName ?? "Job"}</p>
+        <Badge variant={job.closedAt ? "muted" : "success"}>{job.closedAt ? "Closed" : "Open"}</Badge>
+      </div>
+      <Link href={`/jobs/${job.id}`} className="mt-1.5 block text-[15px] font-semibold tracking-tight hover:text-brand">
         {job.title}
       </Link>
-      <p className="mt-1 text-xs text-muted-foreground">
-        {[organisationName, job.city, job.salaryLabel].filter(Boolean).join(" · ")}
+      <p className="mt-1.5 text-sm text-text-secondary">
+        {[job.city, job.employmentType.replaceAll("_", " "), job.salaryLabel].filter(Boolean).join(" · ")}
       </p>
-      <div className="mt-2 flex flex-wrap gap-1">
-        <Badge>{job.employmentType.replace("_", " ")}</Badge>
-        {job.experienceLabel && <Badge variant="outline">{job.experienceLabel}</Badge>}
+      <div className="mt-2.5 flex flex-wrap gap-1">
+        <Badge variant="outline">{job.employmentType.replace("_", " ")}</Badge>
+        {job.experienceLabel ? <Badge variant="outline">{job.experienceLabel}</Badge> : null}
         {job.skills.slice(0, 3).map((skill) => (
           <Badge key={skill} variant="outline">
             {skill}
           </Badge>
         ))}
       </div>
-      <p className="mt-2 text-xs text-muted-foreground">
+      <p className="mt-2.5 text-xs text-muted-foreground">
         Posted {formatDistanceToNow(new Date(job.createdAt), { addSuffix: true })}
       </p>
-    </Card>
+    </article>
   );
 }
 
 export function GigCard({ gig, organisationName }: { gig: GigPost; organisationName?: string }) {
+  const chips = [
+    gig.trade,
+    gig.startLabel,
+    gig.shiftLabel,
+    gig.siteName,
+    gig.seats != null ? `${gig.seats} ${gig.seats === 1 ? "seat" : "seats"}` : null,
+    gig.payLabel,
+  ].filter(Boolean) as string[];
   return (
-    <Card className="border-l-4 border-l-emerald-600 p-4">
+    <article className="border-l-2 border-l-brand border-y border-r border-border bg-white p-4">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-[11px] font-medium tracking-wide text-emerald-800 uppercase">Gig</p>
-          <Link href={`/gigs/${gig.id}`} className="mt-1 block text-sm font-semibold hover:text-primary">
+          <p className="type-micro text-brand">Gig</p>
+          <Link href={`/gigs/${gig.id}`} className="mt-1 block text-[15px] font-semibold tracking-tight hover:text-brand">
             {gig.title}
           </Link>
         </div>
-        {gig.payLabel && <Badge variant="success">{gig.payLabel}</Badge>}
+        <Badge variant={gig.closedAt ? "muted" : "success"}>{gig.closedAt ? "Closed" : "Open"}</Badge>
       </div>
-      <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
-        {gig.startLabel && (
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {chips.map((chip) => (
+          <Badge key={chip} variant="outline">
+            {chip}
+          </Badge>
+        ))}
+      </div>
+      <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
+        {gig.startLabel && gig.duration ? (
           <li className="flex items-center gap-1.5">
             <Clock className="size-3" aria-hidden />
-            <span>
-              {gig.startLabel}
-              {gig.shiftLabel ? ` · ${gig.shiftLabel}` : ""}
-              {gig.duration ? ` · ${gig.duration}` : ""}
-            </span>
+            {gig.startLabel}
+            {gig.duration ? ` · ${gig.duration}` : ""}
           </li>
-        )}
+        ) : null}
         {(gig.siteName || gig.distanceKm != null) && (
           <li className="flex items-center gap-1.5">
             <MapPin className="size-3" aria-hidden />
             {[gig.siteName, gig.distanceKm != null ? `${gig.distanceKm} km` : null].filter(Boolean).join(" · ")}
           </li>
         )}
-        {gig.trade && <li>Trade: {gig.trade}</li>}
-        {gig.seats != null && <li>{gig.seats} {gig.seats === 1 ? "seat" : "seats"}</li>}
-        {organisationName && <li>{organisationName}</li>}
+        {organisationName ? <li>{organisationName}</li> : null}
       </ul>
-    </Card>
+    </article>
   );
 }
 
 export function ProjectCard({ project, roleTitle }: { project: NetworkProject; roleTitle?: string }) {
   return (
-    <Link href={`/projects/${project.slug}`} className="block">
-      <Card className="overflow-hidden transition-shadow hover:shadow-md">
-        <PhotoFrame src={project.coverImageUrl} alt="" className="h-36" />
+    <Link href={`/projects/${project.slug}`} className="group block">
+      <article className="overflow-hidden border border-border bg-white">
+        <PhotoFrame src={project.coverImageUrl} alt="" className="h-44" />
         <div className="p-4">
-          <p className="text-sm font-semibold">{project.name}</p>
-          {roleTitle && <p className="mt-1 text-xs text-muted-foreground">{roleTitle}</p>}
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="text-[15px] font-semibold tracking-tight group-hover:text-brand">{project.name}</p>
+          {roleTitle ? <p className="mt-1 text-xs text-muted-foreground">{roleTitle}</p> : null}
+          <p className="mt-1 text-sm text-text-secondary">
             {[project.locality, project.city].filter(Boolean).join(", ")}
           </p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {project.type && <Badge variant="outline">{project.type}</Badge>}
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
+            {project.type ? <Badge variant="outline">{project.type}</Badge> : null}
             {project.verified ? <Badge variant="verify">Verified project</Badge> : null}
-            <Badge>{project.status.replace("_", " ")}</Badge>
+            <Badge variant="muted">{project.status.replace("_", " ")}</Badge>
           </div>
         </div>
-      </Card>
+      </article>
     </Link>
   );
 }
@@ -196,15 +208,15 @@ export function ServiceCard({ service }: { service: OrgService }) {
     ? brandPublicHref(service.passportKind ?? "other", service.organisationSlug)
     : null;
   const body = (
-    <Card className="flex h-full flex-col p-4">
-      <p className="text-sm font-semibold">{service.name}</p>
-      {service.description && <p className="mt-1 flex-1 text-sm text-muted-foreground">{service.description}</p>}
-      {service.locations.length > 0 && (
+    <article className="flex h-full flex-col border border-border bg-white p-4">
+      <p className="text-[15px] font-semibold tracking-tight">{service.name}</p>
+      {service.description ? <p className="mt-1 flex-1 text-sm text-text-secondary">{service.description}</p> : null}
+      {service.locations.length > 0 ? (
         <p className="mt-2 text-xs text-muted-foreground">Coverage: {service.locations.join(" · ")}</p>
-      )}
-      {service.pricingModel && <p className="mt-1 text-xs">{service.pricingModel}</p>}
+      ) : null}
+      {service.pricingModel ? <p className="mt-1 text-xs">{service.pricingModel}</p> : null}
       {service.organisationName ? <p className="mt-2 text-xs text-muted-foreground">{service.organisationName}</p> : null}
-    </Card>
+    </article>
   );
   if (!href) return body;
   return (
@@ -216,18 +228,16 @@ export function ServiceCard({ service }: { service: OrgService }) {
 
 export function ProfileMiniCard({ profile }: { profile: PublicProfile }) {
   return (
-    <Card className="overflow-hidden p-4">
-      <div>
-        <InitialsAvatar initials={initialsFromName(profile.fullName)} hue={hueFromId(profile.id)} size={52} src={profile.avatarPath} />
-        <Link href={personPublicHref(profile.handle, profile.occupationMode)} className="mt-2 block text-sm font-semibold">
-          {profile.fullName}
-        </Link>
-        <p className="line-clamp-2 text-xs text-muted-foreground">{profile.headline}</p>
-        <div className="mt-2">
-          <AvailabilityBadge status={profile.availabilityStatus} />
-        </div>
+    <article className="overflow-hidden border border-border bg-white p-4">
+      <InitialsAvatar initials={initialsFromName(profile.fullName)} hue={hueFromId(profile.id)} size={48} src={profile.avatarPath} />
+      <Link href={personPublicHref(profile.handle, profile.occupationMode)} className="mt-2 block text-[15px] font-semibold tracking-tight hover:text-brand">
+        {profile.fullName}
+      </Link>
+      <p className="line-clamp-2 text-sm text-text-secondary">{profile.headline}</p>
+      <div className="mt-2">
+        <AvailabilityBadge status={profile.availabilityStatus} />
       </div>
-    </Card>
+    </article>
   );
 }
 
@@ -242,27 +252,28 @@ export function PassportStrength({
 }) {
   const verifiedCount = components.filter((c) => c.status === "verified").length;
   return (
-    <div className="overflow-hidden rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4">
-      <h2 className="text-[15px] font-semibold text-indigo-950">Professional passport</h2>
-      <p className="mt-1 text-sm text-slate-700">
-        This profile is backed by verified professional information where a check has completed.
+    <div className="border border-border bg-white p-5">
+      <p className="type-micro text-brand">Passport evidence</p>
+      <h2 className="mt-1 type-section">Professional passport</h2>
+      <p className="mt-2 text-sm leading-6 text-text-secondary">
+        This profile is backed by labelled professional information where a check has completed. Not a hidden score.
       </p>
-      <p className="mt-2 text-sm text-slate-700">
-        {verifiedCount} verified · {completeness}% of sections present. Not a hidden score.
+      <p className="mt-2 text-sm text-text-secondary">
+        {verifiedCount} verified · {completeness}% of sections present.
       </p>
       <ul className="mt-4 grid gap-2 sm:grid-cols-2">
         {components.map((c) => (
           <li key={c.id}>
             <Link
               href={hrefFor?.(c.id) ?? PASSPORT_HREF[c.id] ?? "/passport"}
-              className="flex items-center justify-between gap-3 rounded-xl border border-border bg-white px-3 py-2 text-sm hover:border-primary/40"
+              className="flex items-center justify-between gap-3 border border-border px-3 py-2 text-sm hover:border-brand/40"
             >
               <span className="font-medium">{c.label}</span>
               <span
                 className={cn(
                   "text-[11px] font-semibold tracking-wide uppercase",
-                  c.status === "verified" && "text-cyan-800",
-                  c.status === "present" && "text-indigo-800",
+                  c.status === "verified" && "text-verify",
+                  c.status === "present" && "text-brand",
                   c.status === "not_provided" && "text-muted-foreground",
                 )}
               >
@@ -298,17 +309,17 @@ export function ServiceLedger({
   }[];
 }) {
   return (
-    <ol className="relative space-y-4 border-l border-border pl-5">
+    <ol className="relative space-y-5 border-l border-border pl-5">
       {rows.map((row) => (
         <li key={row.id}>
-          <span className="absolute -left-[5px] mt-1.5 size-2.5 rounded-full bg-primary" aria-hidden />
+          <span className="absolute -left-[5px] mt-1.5 size-2.5 rounded-full bg-brand" aria-hidden />
           <p className="text-sm font-semibold">{row.projectName}</p>
           <p className="text-xs text-muted-foreground">
             {row.organisationName} · {row.role}
             {row.startLabel ? ` · ${row.startLabel}` : ""}
             {row.endLabel ? `–${row.endLabel}` : ""}
           </p>
-          <p className="mt-1 text-xs font-medium text-cyan-800">{provenanceLabel(row.verificationSource)}</p>
+          <p className="mt-1 text-xs font-medium text-verify">{provenanceLabel(row.verificationSource)}</p>
           {row.verifiedShifts != null ? (
             <p className="mt-1 text-sm">{row.verifiedShifts} verified shifts</p>
           ) : null}

@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { fail, requireUser, type ActionResult } from "@/lib/actions/shared";
 import { notify, trackEvent, limitAction } from "@/lib/actions/notify";
+import { canApplyToListing } from "@/lib/domain/application-lifecycle";
+import { isUuid } from "@/lib/domain/messaging-rules";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 async function notifyOrgStaff(
@@ -73,27 +75,36 @@ export async function requestConnection(addresseeId: string): Promise<ActionResu
 export async function acceptConnection(connectionId: string): Promise<ActionResult> {
   const auth = await requireUser();
   if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
-  const { error } = await auth.supabase
+  const { data, error } = await auth.supabase
     .from("connections")
     .update({ status: "accepted" })
     .eq("id", connectionId)
-    .eq("addressee_id", auth.ctx.userId);
+    .eq("addressee_id", auth.ctx.userId)
+    .eq("status", "pending")
+    .select("requester_id")
+    .maybeSingle();
   if (error) return fail(error.message);
-  const row = await auth.supabase.from("connections").select("requester_id").eq("id", connectionId).maybeSingle();
-  await notify(auth.supabase, row.data?.requester_id, "connection", "Connection accepted", undefined, "/network");
+  if (!data) return fail("That request is no longer pending.");
+  await notify(auth.supabase, data.requester_id, "connection", "Connection accepted", undefined, "/network");
   revalidatePath("/network");
+  revalidatePath("/professionals");
+  revalidatePath("/gig-workers");
   return { ok: true };
 }
 
 export async function declineConnection(connectionId: string): Promise<ActionResult> {
   const auth = await requireUser();
   if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
-  const { error } = await auth.supabase
+  const { data, error } = await auth.supabase
     .from("connections")
     .update({ status: "declined" })
     .eq("id", connectionId)
-    .eq("addressee_id", auth.ctx.userId);
+    .eq("addressee_id", auth.ctx.userId)
+    .eq("status", "pending")
+    .select("id")
+    .maybeSingle();
   if (error) return fail(error.message);
+  if (!data) return fail("That request is no longer pending.");
   revalidatePath("/network");
   return { ok: true };
 }
@@ -144,30 +155,51 @@ export async function toggleFollowOrganisation(organisationId: string, following
   return { ok: true };
 }
 
-export async function createPost(body: string, postType = "update", mediaPath?: string | null): Promise<ActionResult> {
+export async function createPost(
+  body: string,
+  postType = "update",
+  mediaPath?: string | null,
+  youtubeUrl?: string | null,
+): Promise<ActionResult> {
   const auth = await requireUser();
   if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
   const trimmed = body.trim();
   if (!trimmed) return fail("Write something before posting.");
+  const { youtubeVideoId } = await import("@/lib/media/youtube");
+  const video = youtubeUrl?.trim() ? youtubeUrl.trim() : null;
+  if (video && !youtubeVideoId(video)) return fail("Use a YouTube watch, short or youtu.be URL.");
   const created = await auth.supabase
     .from("posts")
     .insert({
       author_profile_id: auth.ctx.userId,
       body: trimmed,
       post_type: postType,
+      youtube_url: video,
     })
     .select("id")
     .single();
-  if (created.error || !created.data) return fail(created.error?.message ?? "Could not publish that update.");
+  const createdRow =
+    created.error && video
+      ? await auth.supabase
+          .from("posts")
+          .insert({
+            author_profile_id: auth.ctx.userId,
+            body: trimmed,
+            post_type: postType,
+          })
+          .select("id")
+          .single()
+      : created;
+  if (createdRow.error || !createdRow.data) return fail(createdRow.error?.message ?? "Could not publish that update.");
   if (mediaPath) {
     const media = await auth.supabase.from("post_media").insert({
-      post_id: created.data.id,
+      post_id: createdRow.data.id,
       storage_path: mediaPath,
     });
     if (media.error) return fail(media.error.message);
   }
   revalidatePath("/feed");
-  return { ok: true, id: created.data.id };
+  return { ok: true, id: createdRow.data.id };
 }
 
 export async function applyToJob(jobId: string): Promise<ActionResult> {
@@ -176,7 +208,8 @@ export async function applyToJob(jobId: string): Promise<ActionResult> {
   const limited = await limitAction(`apply:${auth.ctx.userId}`, 20, 60_000);
   if (limited) return limited;
   const job = await auth.supabase.from("job_posts").select("id, title, organisation_id, closed_at").eq("id", jobId).maybeSingle();
-  if (job.data?.closed_at) return fail("This job is closed.");
+  if (!job.data) return fail("This job is no longer available.");
+  if (!canApplyToListing({ closedAt: job.data.closed_at, exists: true })) return fail("This job is closed.");
   const existing = await auth.supabase
     .from("job_applications")
     .select("id, status")
@@ -223,8 +256,10 @@ export async function applyToGig(gigId: string): Promise<ActionResult> {
   const limited = await limitAction(`apply:${auth.ctx.userId}`, 20, 60_000);
   if (limited) return limited;
   const gig = await auth.supabase.from("gig_posts").select("id, title, organisation_id, closed_at, seats").eq("id", gigId).maybeSingle();
-  if (gig.data?.closed_at) return fail("This gig is closed.");
-  if (gig.data?.seats === 0) return fail("No seats left on this gig.");
+  if (!gig.data) return fail("This gig is no longer available.");
+  if (!canApplyToListing({ closedAt: gig.data.closed_at, seats: gig.data.seats, exists: true })) {
+    return fail(gig.data.closed_at ? "This gig is closed." : "No seats left on this gig.");
+  }
   const existing = await auth.supabase
     .from("gig_applications")
     .select("id, status")
@@ -268,10 +303,19 @@ export async function applyToGig(gigId: string): Promise<ActionResult> {
 export async function sendMessage(conversationId: string, body: string): Promise<ActionResult> {
   const auth = await requireUser();
   if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
+  if (!isUuid(conversationId)) return fail("That conversation is not available.");
   const trimmed = body.trim();
   if (!trimmed) return fail("Message cannot be empty.");
+  if (trimmed.length > 4000) return fail("Keep messages under 4,000 characters.");
   const limited = await limitAction(`message:${auth.ctx.userId}`, 40, 60_000);
   if (limited) return limited;
+  const member = await auth.supabase
+    .from("conversation_members")
+    .select("profile_id")
+    .eq("conversation_id", conversationId)
+    .eq("profile_id", auth.ctx.userId)
+    .maybeSingle();
+  if (!member.data) return fail("That conversation is not available.");
   const { error } = await auth.supabase.from("messages").insert({
     conversation_id: conversationId,
     sender_id: auth.ctx.userId,

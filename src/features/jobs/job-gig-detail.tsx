@@ -5,7 +5,6 @@ import { useTransition, useState } from "react";
 import Link from "next/link";
 import { CompanyCard, JobCard } from "@/components/cards/entity-cards";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useSession } from "@/components/providers/session-provider";
 import { applyToGig, applyToJob } from "@/lib/actions/network";
@@ -34,17 +33,21 @@ export function JobDetail({
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
-      <Card className="p-6">
-        <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Job</p>
-        <p className="mt-1 text-xs text-muted-foreground">{organisation?.name}</p>
-        <h1 className="mt-1 text-2xl font-semibold">{job.title}</h1>
-        {job.closedAt ? <Badge variant="outline">Closed</Badge> : null}
-        {job.easyApply && !job.closedAt ? <Badge variant="outline">Easy apply</Badge> : null}
-        <p className="mt-2 text-sm text-muted-foreground">
-          {[job.city, job.employmentType.replace("_", " ")].filter(Boolean).join(" · ")}
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+      <article>
+        <p className="type-micro text-brand">{organisation?.name ?? "Job"}</p>
+        <h1 className="type-display mt-2 text-4xl">{job.title}</h1>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          <Badge variant={job.closedAt ? "muted" : "success"}>{job.closedAt ? "Closed" : "Open"}</Badge>
+          {appliedStatus && appliedStatus !== "withdrawn" ? (
+            <Badge variant="primary">{applicationStatusLabel(appliedStatus)}</Badge>
+          ) : null}
+          {job.easyApply && !job.closedAt ? <Badge variant="outline">Easy apply</Badge> : null}
+        </div>
+        <p className="mt-3 text-sm text-text-secondary">
+          {[job.city, job.employmentType.replaceAll("_", " "), job.salaryLabel].filter(Boolean).join(" · ")}
         </p>
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-5 flex flex-wrap gap-2">
           {job.closedAt ? (
             <p className="text-sm text-muted-foreground">This job is closed and is not accepting new applications.</p>
           ) : appliedStatus && appliedStatus !== "withdrawn" ? (
@@ -119,14 +122,14 @@ export function JobDetail({
             {error}
           </p>
         )}
-        <article className="mt-6 space-y-6 text-sm leading-6">
+        <div className="mt-8 space-y-6 text-sm leading-7 text-text-secondary">
           <section>
-            <h2 className="text-[15px] font-semibold">Overview</h2>
+            <h2 className="text-[15px] font-semibold text-foreground">Overview</h2>
             <p className="mt-2">{job.description ?? "No overview yet."}</p>
           </section>
           {job.responsibilities.length > 0 && (
             <section>
-              <h2 className="text-[15px] font-semibold">Responsibilities</h2>
+              <h2 className="text-[15px] font-semibold text-foreground">Responsibilities</h2>
               <ul className="mt-2 list-disc pl-5">
                 {job.responsibilities.map((r) => (
                   <li key={r}>{r}</li>
@@ -136,7 +139,7 @@ export function JobDetail({
           )}
           {job.requirements.length > 0 && (
             <section>
-              <h2 className="text-[15px] font-semibold">Requirements</h2>
+              <h2 className="text-[15px] font-semibold text-foreground">Requirements</h2>
               <ul className="mt-2 list-disc pl-5">
                 {job.requirements.map((r) => (
                   <li key={r}>{r}</li>
@@ -146,7 +149,7 @@ export function JobDetail({
           )}
           {job.skills.length > 0 && (
             <section>
-              <h2 className="text-[15px] font-semibold">Skills</h2>
+              <h2 className="text-[15px] font-semibold text-foreground">Skills</h2>
               <div className="mt-2 flex flex-wrap gap-1">
                 {job.skills.map((skill) => (
                   <Badge key={skill} variant="outline">
@@ -158,12 +161,12 @@ export function JobDetail({
           )}
           {job.salaryLabel && (
             <section>
-              <h2 className="text-[15px] font-semibold">Compensation</h2>
+              <h2 className="text-[15px] font-semibold text-foreground">Compensation</h2>
               <p className="mt-2">{job.salaryLabel}</p>
             </section>
           )}
-        </article>
-      </Card>
+        </div>
+      </article>
       <aside className="space-y-3">
         {organisation && (
           <div>
@@ -209,10 +212,15 @@ export function GigDetail({
   ].filter((row): row is { label: string; value: string } => row !== null);
 
   return (
-    <Card className="mx-auto max-w-2xl border-l-4 border-l-emerald-600 p-6">
-      <p className="text-[11px] font-medium tracking-wide text-emerald-800 uppercase">Gig</p>
-      <h1 className="mt-1 text-2xl font-semibold">{gig.title}</h1>
-      {gig.closedAt ? <Badge variant="outline">Closed</Badge> : null}
+    <article className="mx-auto max-w-2xl border-l-2 border-l-brand border-y border-r border-border bg-white p-6">
+      <p className="type-micro text-brand">Gig</p>
+      <h1 className="type-display mt-2 text-4xl">{gig.title}</h1>
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        <Badge variant={gig.closedAt ? "muted" : "success"}>{gig.closedAt ? "Closed" : "Open"}</Badge>
+        {appliedStatus && appliedStatus !== "withdrawn" ? (
+          <Badge variant="primary">{applicationStatusLabel(appliedStatus)}</Badge>
+        ) : null}
+      </div>
       {organisation && (
         <Link href={`/org/${organisation.slug}`} className="mt-2 inline-block text-sm text-primary hover:underline">
           {organisation.name}
@@ -221,7 +229,7 @@ export function GigDetail({
       {facts.length > 0 && (
         <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {facts.map((fact) => (
-            <div key={fact.label} className="rounded-xl bg-muted/60 px-3 py-2">
+            <div key={fact.label} className="bg-surface-muted px-3 py-2">
               <dt className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{fact.label}</dt>
               <dd className="mt-0.5 text-sm font-semibold">{fact.value}</dd>
             </div>
@@ -305,6 +313,6 @@ export function GigDetail({
           {error}
         </p>
       )}
-    </Card>
+    </article>
   );
 }

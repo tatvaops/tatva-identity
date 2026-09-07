@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/states/empty-state";
 import { startGigConversation, startJobConversation } from "@/lib/actions/messaging";
 import { updateGigApplicationStatus, updateJobApplicationStatus, withdrawApplication } from "@/lib/actions/opportunity";
-import { applicationStatusLabel, normalizeApplicationStatus, operatorApplicationStatuses } from "@/lib/domain/application-lifecycle";
+import { applicationStatusLabel, canApplicantWithdraw, canOperatorTransition, normalizeApplicationStatus, operatorApplicationStatuses } from "@/lib/domain/application-lifecycle";
 import type { OpportunityApplication } from "@/lib/types/identity";
 
 export function ApplicationsView({
@@ -41,7 +41,7 @@ export function ApplicationsView({
                 key={status}
                 size="sm"
                 variant={normalizeApplicationStatus(application.status) === status ? "default" : "outline"}
-                disabled={pending}
+                disabled={pending || !canOperatorTransition(application.status, status)}
                 onClick={() =>
                   start(async () => {
                     const result =
@@ -129,7 +129,7 @@ export function MyApplicationsTable({
                 <td className="px-4 py-3">{applicationStatusLabel(row.status)}</td>
                 <td className="px-4 py-3 text-muted-foreground">{new Date(row.createdAt).toLocaleDateString()}</td>
                 <td className="px-4 py-3">
-                  {row.status !== "withdrawn" && row.status !== "accepted" && row.status !== "rejected" && row.status !== "hired" ? (
+                  {canApplicantWithdraw(row.status) ? (
                     <Button
                       size="sm"
                       variant="outline"

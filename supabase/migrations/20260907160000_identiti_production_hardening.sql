@@ -33,3 +33,5 @@ create index if not exists job_posts_org_idx on public.job_posts (organisation_i
 create index if not exists gig_posts_org_idx on public.gig_posts (organisation_id);
 create index if not exists project_views_viewer_idx on public.project_views (viewer_profile_id);
 create index if not exists professional_experiences_profile_idx on public.professional_experiences (profile_id, start_date desc);
+create index if not exists messages_conversation_created_idx on public.messages (conversation_id, created_at);
+create index if not exists notifications_profile_created_idx on public.notifications (profile_id, created_at desc);

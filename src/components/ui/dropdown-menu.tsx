@@ -14,9 +14,9 @@ export function DropdownMenuContent({
   return (
     <DropdownMenuPrimitive.Portal>
       <DropdownMenuPrimitive.Content
-        sideOffset={8}
+        sideOffset={6}
         className={cn(
-          "z-50 min-w-48 rounded-xl border border-border bg-white p-1 shadow-lg",
+          "z-50 min-w-48 rounded-md border border-border bg-white p-1 shadow-md data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
           className,
         )}
         {...props}
@@ -32,7 +32,7 @@ export function DropdownMenuItem({
   return (
     <DropdownMenuPrimitive.Item
       className={cn(
-        "flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm outline-none hover:bg-muted",
+        "flex cursor-pointer items-center gap-2 rounded-sm px-3 py-2 text-sm outline-none hover:bg-muted",
         className,
       )}
       {...props}
@@ -46,7 +46,7 @@ export function DropdownMenuLabel({
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Label>) {
   return (
     <DropdownMenuPrimitive.Label
-      className={cn("px-3 py-2 text-xs font-medium text-muted-foreground", className)}
+      className={cn("px-3 py-2 text-xs font-medium tracking-wide text-muted-foreground uppercase", className)}
       {...props}
     />
   );

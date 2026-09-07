@@ -99,7 +99,7 @@ export async function listPublicProfiles(
     if (ids.length === 0) return listOk([], 0);
     q = q.in("id", ids.slice(0, 400));
   }
-  const range = pageRange(options);
+  const range = pageRange(options, 48);
   if (range) q = q.range(range.from, range.to);
   const { data, error, count } = await q;
   if (error) return listFail(error.message);
@@ -142,7 +142,7 @@ export async function listOrganisations(
   let q = supabase.from("organisations").select(ORGANISATION_GRANTED_COLUMNS, { count: "exact" }).order("name");
   if (query) q = q.or(`name.ilike.%${query}%,tagline.ilike.%${query}%,industry.ilike.%${query}%`);
   if (type) q = q.eq("organisation_type", type);
-  const range = pageRange(options);
+  const range = pageRange(options, 48);
   if (range) q = q.range(range.from, range.to);
   const full = await q;
   if (!full.error) return listOk((full.data ?? []).map((row) => mapOrganisation(row, ctx.userId)), full.count ?? undefined);
@@ -184,12 +184,17 @@ export async function getOrganisationsByIds(ids: string[]): Promise<Organisation
   return (fallback.data ?? []).map((row) => mapOrganisation(row, ctx.userId));
 }
 
-export async function listProjects(): Promise<ListResult<NetworkProject>> {
+export async function listProjects(options: ListOptions & { query?: string } = {}): Promise<ListResult<NetworkProject>> {
   const supabase = await createServerSupabase();
   if (!supabase) return unconfiguredList();
-  const { data, error } = await supabase.from("network_projects").select("*").order("name");
+  const range = pageRange(options, 80);
+  const query = sanitizeFilter(options.query);
+  let q = supabase.from("network_projects").select("*", { count: "exact" }).order("name");
+  if (query) q = q.or(`name.ilike.%${query}%,summary.ilike.%${query}%,city.ilike.%${query}%`);
+  if (range) q = q.range(range.from, range.to);
+  const { data, error, count } = await q;
   if (error) return listFail(error.message);
-  return listOk((data ?? []).map(mapProject));
+  return listOk((data ?? []).map(mapProject), count ?? undefined);
 }
 
 export async function getProjectBySlug(slug: string): Promise<ItemResult<NetworkProject>> {
@@ -204,15 +209,17 @@ export async function getProjectBySlug(slug: string): Promise<ItemResult<Network
 }
 
 export async function listJobs(
-  filters: { city?: string; employmentType?: string } = {},
+  filters: { city?: string; employmentType?: string; query?: string } = {},
   options: ListOptions = {},
 ): Promise<ListResult<JobPost>> {
   const supabase = await createServerSupabase();
   if (!supabase) return unconfiguredList();
+  const query = sanitizeFilter(filters.query);
   let q = supabase.from("job_posts").select("*", { count: "exact" }).is("closed_at", null).order("created_at", { ascending: false });
-  if (filters.city) q = q.ilike("city", `%${filters.city}%`);
+  if (filters.city) q = q.ilike("city", `%${sanitizeFilter(filters.city)}%`);
   if (filters.employmentType) q = q.eq("employment_type", filters.employmentType);
-  const range = pageRange(options);
+  if (query) q = q.or(`title.ilike.%${query}%,description.ilike.%${query}%`);
+  const range = pageRange(options, 24);
   if (range) q = q.range(range.from, range.to);
   const { data, error, count } = await q;
   if (error) return listFail(error.message);
@@ -228,15 +235,18 @@ export async function getJob(id: string): Promise<ItemResult<JobPost>> {
 }
 
 export async function listGigs(
-  filters: { city?: string; trade?: string } = {},
+  filters: { city?: string; trade?: string; query?: string } = {},
   options: ListOptions = {},
 ): Promise<ListResult<GigPost>> {
   const supabase = await createServerSupabase();
   if (!supabase) return unconfiguredList();
+  const query = sanitizeFilter(filters.query || filters.trade);
+  const city = sanitizeFilter(filters.city);
   let q = supabase.from("gig_posts").select("*", { count: "exact" }).is("closed_at", null).order("created_at", { ascending: false });
-  if (filters.trade) q = q.ilike("trade", `%${filters.trade}%`);
-  if (filters.city) q = q.or(`site_name.ilike.%${filters.city}%,trade.ilike.%${filters.city}%`);
-  const range = pageRange(options);
+  if (filters.trade) q = q.ilike("trade", `%${sanitizeFilter(filters.trade)}%`);
+  if (city) q = q.or(`site_name.ilike.%${city}%,trade.ilike.%${city}%`);
+  if (query && !filters.trade) q = q.or(`title.ilike.%${query}%,trade.ilike.%${query}%,site_name.ilike.%${query}%`);
+  const range = pageRange(options, 24);
   if (range) q = q.range(range.from, range.to);
   const { data, error, count } = await q;
   if (error) return listFail(error.message);
@@ -519,18 +529,24 @@ export async function listOrgGigs(organisationId: string): Promise<ListResult<Gi
   return listOk((data ?? []).map(mapGig));
 }
 
-export async function listSkillsCatalog(): Promise<ListResult<SkillCatalogItem>> {
+export async function listSkillsCatalog(query?: string): Promise<ListResult<SkillCatalogItem>> {
   const supabase = await createServerSupabase();
   if (!supabase) return unconfiguredList();
-  const { data, error } = await supabase.from("skills").select("*").order("name");
+  const needle = sanitizeFilter(query);
+  let request = supabase.from("skills").select("*").order("name").limit(80);
+  if (needle) request = request.ilike("name", `%${needle}%`);
+  const { data, error } = await request;
   if (error) return listFail(error.message);
   return listOk((data ?? []).map((s) => ({ id: s.id, name: s.name, category: s.category })));
 }
 
-export async function listAllServices(): Promise<ListResult<OrgService>> {
+export async function listAllServices(query?: string): Promise<ListResult<OrgService>> {
   const supabase = await createServerSupabase();
   if (!supabase) return unconfiguredList();
-  const { data, error } = await supabase.from("organisation_services").select("*").order("name");
+  const needle = sanitizeFilter(query);
+  let request = supabase.from("organisation_services").select("*").order("name").limit(80);
+  if (needle) request = request.or(`name.ilike.%${needle}%,description.ilike.%${needle}%`);
+  const { data, error } = await request;
   if (error) return listFail(error.message);
   const orgIds = [...new Set((data ?? []).map((row) => row.organisation_id).filter(Boolean))];
   const orgs = orgIds.length
@@ -557,37 +573,34 @@ export async function listAllServices(): Promise<ListResult<OrgService>> {
 
 export async function searchNetwork(query: string) {
   const q = sanitizeFilter(query);
+  const page = { pageSize: 24 as const };
   const [people, peopleBySkill, companies, jobs, gigs, projects, posts, skills, services] = await Promise.all([
-    listPublicProfiles(q ? { query: q } : {}),
-    q ? listPublicProfiles({ skill: q }) : Promise.resolve(listOk<PublicProfile>([])),
-    listOrganisations(q || undefined),
-    listJobs(),
-    listGigs(),
-    listProjects(),
-    listFeedPosts(),
-    listSkillsCatalog(),
-    listAllServices(),
+    listPublicProfiles(q ? { query: q } : {}, page),
+    q.length >= 2 ? listPublicProfiles({ skill: q }, page) : Promise.resolve(listOk<PublicProfile>([])),
+    listOrganisations(q || undefined, undefined, page),
+    listJobs({ query: q || undefined }, page),
+    listGigs({ query: q || undefined }, page),
+    listProjects({ ...page, query: q || undefined }),
+    listFeedPosts({ pageSize: q ? 24 : 8 }),
+    listSkillsCatalog(q || undefined),
+    listAllServices(q || undefined),
   ]);
-  const ql = q.toLowerCase();
   if (q) {
     const supabase = await createServerSupabase();
     if (supabase) await trackEvent(supabase, "search_performed", "search", q.slice(0, 80));
   }
   const peopleById = new Map<string, PublicProfile>();
   for (const person of [...people.data, ...peopleBySkill.data]) peopleById.set(person.id, person);
-  const matchedJobs = q
-    ? jobs.data.filter((j) => j.title.toLowerCase().includes(ql) || j.skills.some((s) => s.toLowerCase().includes(ql)))
-    : jobs.data;
-  const matchedGigs = q ? gigs.data.filter((g) => `${g.title} ${g.trade ?? ""}`.toLowerCase().includes(ql)) : gigs.data;
+  const ql = q.toLowerCase();
   return {
     people: rankPeople([...peopleById.values()], q),
     companies: rankOrganisations(companies.data, q),
-    jobs: rankJobs(matchedJobs, q),
-    gigs: rankGigs(matchedGigs, q),
+    jobs: rankJobs(jobs.data, q),
+    gigs: rankGigs(gigs.data, q),
     projects: q ? projects.data.filter((p) => `${p.name} ${p.summary ?? ""}`.toLowerCase().includes(ql)) : projects.data,
-    posts: q ? posts.data.filter((p) => p.body.toLowerCase().includes(ql)) : posts.data.slice(0, 8),
-    skills: q ? skills.data.filter((s) => s.name.toLowerCase().includes(ql)) : skills.data,
-    services: q ? services.data.filter((s) => s.name.toLowerCase().includes(ql)) : services.data,
+    posts: q ? posts.data.filter((p) => p.body.toLowerCase().includes(ql)) : posts.data,
+    skills: skills.data,
+    services: services.data,
     meta: people.meta,
   };
 }
@@ -606,14 +619,22 @@ export async function listConversations(profileId: string): Promise<ListResult<C
     .filter((id): id is string => Boolean(id));
   const unreadByConversation = new Map<string, number>();
   if (conversationIds.length > 0) {
-    const unread = await supabase
-      .from("messages")
-      .select("conversation_id")
-      .in("conversation_id", conversationIds)
-      .neq("sender_id", profileId)
-      .is("read_at", null);
-    for (const row of unread.data ?? []) {
-      unreadByConversation.set(row.conversation_id, (unreadByConversation.get(row.conversation_id) ?? 0) + 1);
+    const counted = await supabase.rpc("unread_message_counts");
+    if (!counted.error && Array.isArray(counted.data)) {
+      for (const row of counted.data as { conversation_id: string; unread: number | string }[]) {
+        unreadByConversation.set(row.conversation_id, Number(row.unread) || 0);
+      }
+    } else {
+      const unread = await supabase
+        .from("messages")
+        .select("conversation_id")
+        .in("conversation_id", conversationIds)
+        .neq("sender_id", profileId)
+        .is("read_at", null)
+        .limit(2000);
+      for (const row of unread.data ?? []) {
+        unreadByConversation.set(row.conversation_id, (unreadByConversation.get(row.conversation_id) ?? 0) + 1);
+      }
     }
   }
   const peerIds = new Set<string>();
@@ -635,16 +656,17 @@ export async function listConversations(profileId: string): Promise<ListResult<C
       ? await supabase.from("public_profiles").select("id, handle, full_name, avatar_path, occupation_mode").in("id", [...peerIds])
       : { data: [] as { id: string; handle: string; full_name: string; avatar_path: string | null; occupation_mode: string | null }[] };
   const peerById = new Map((peers.data ?? []).map((row) => [row.id, row]));
+  const previews =
+    conversationIds.length > 0
+      ? await supabase.rpc("conversation_previews", { ids: conversationIds })
+      : { data: [] as { conversation_id: string; body: string | null; created_at: string }[], error: null };
+  const lastByConversation = new Map(
+    (previews.data ?? []).map((row) => [row.conversation_id, { body: row.body, created_at: row.created_at }]),
+  );
   for (const row of memberships ?? []) {
     const c = row.conversations as unknown as { id: string; title: string | null; kind: string; created_at: string } | null;
     if (!c) continue;
-    const { data: last } = await supabase
-      .from("messages")
-      .select("body, created_at")
-      .eq("conversation_id", c.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const last = lastByConversation.get(c.id);
     const otherId = (membersByConversation.get(c.id) ?? []).find((id) => id !== profileId);
     const peer = otherId ? peerById.get(otherId) : null;
     items.push({
@@ -665,14 +687,25 @@ export async function listConversations(profileId: string): Promise<ListResult<C
 export async function listMessages(conversationId: string): Promise<ListResult<MessageRow>> {
   const supabase = await createServerSupabase();
   if (!supabase) return unconfiguredList();
+  const session = await getAuthContext();
+  if (!session.userId) return listFail();
+  const member = await supabase
+    .from("conversation_members")
+    .select("profile_id")
+    .eq("conversation_id", conversationId)
+    .eq("profile_id", session.userId)
+    .maybeSingle();
+  if (!member.data) return listOk([]);
   const { data, error } = await supabase
     .from("messages")
     .select("*")
     .eq("conversation_id", conversationId)
-    .order("created_at");
+    .order("created_at", { ascending: false })
+    .limit(100);
   if (error) return listFail(error.message);
+  const chronological = [...(data ?? [])].reverse();
   return listOk(
-    (data ?? []).map((m) => ({
+    chronological.map((m) => ({
       id: m.id,
       conversationId: m.conversation_id,
       senderId: m.sender_id,
@@ -690,7 +723,8 @@ export async function listNotifications(profileId: string): Promise<ListResult<N
     .from("notifications")
     .select("*")
     .eq("profile_id", profileId)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(50);
   if (error) return listFail(error.message);
   return listOk(
     (data ?? []).map((n) => ({

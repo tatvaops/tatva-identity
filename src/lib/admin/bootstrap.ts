@@ -13,10 +13,12 @@ export function bootstrapAdminUserIds() {
   return splitEnv("PLATFORM_ADMIN_USER_IDS");
 }
 
-/** Temporary: any signed-in account can open /admin until PLATFORM_ADMIN_OPEN=false. */
+/** Explicit open switch. Unset means open in development only; production stays locked. */
 export function isPlatformAdminOpenToSignedIn() {
-  const raw = (process.env.PLATFORM_ADMIN_OPEN ?? "true").trim().toLowerCase();
-  return raw !== "false" && raw !== "0" && raw !== "off";
+  const raw = (process.env.PLATFORM_ADMIN_OPEN ?? "").trim().toLowerCase();
+  if (raw === "true" || raw === "1" || raw === "on") return true;
+  if (raw === "false" || raw === "0" || raw === "off") return false;
+  return process.env.NODE_ENV !== "production";
 }
 
 export function isBootstrapAdmin(input: { userId: string; handle?: string | null }) {

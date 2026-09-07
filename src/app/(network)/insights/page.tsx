@@ -8,9 +8,10 @@ import {
   countReceivedApplicationsForOrganisations,
   countUniqueProfileViews,
   listFollowers,
+  listMyGigApplications,
   listMyJobApplications,
-  listOwnedOrganisations,
   listSearchAppearances,
+  listStaffOrganisations,
 } from "@/lib/data/workspace";
 import { listConnections } from "@/lib/data/network";
 import { listExperiences, listPublicCertifications, listOptedInProjects, listProfileSkills, listRecommendations } from "@/lib/data/profile";
@@ -20,19 +21,20 @@ export default async function InsightsPage() {
   const session = await getAuthContext();
   if (!session.userId) redirect("/auth/sign-in?next=/insights");
   if (!session.profile) redirect("/onboarding");
-  const [views, uniqueViews, connections, followers, sent, skills, certs, recs, projects, experiences, orgs, appearances, projectViews] =
+  const [views, uniqueViews, connections, followers, sentJobs, sentGigs, skills, certs, recs, projects, experiences, orgs, appearances, projectViews] =
     await Promise.all([
       countProfileViews(session.userId),
       countUniqueProfileViews(session.userId),
       listConnections(session.userId),
       listFollowers(session.userId),
       listMyJobApplications(session.userId),
+      listMyGigApplications(session.userId),
       listProfileSkills(session.userId),
       listPublicCertifications(session.userId),
       listRecommendations(session.userId),
       listOptedInProjects(session.userId),
       listExperiences(session.userId),
-      listOwnedOrganisations(session.userId),
+      listStaffOrganisations(session.userId),
       listSearchAppearances(session.userId),
       countProjectViewsForProfile(session.userId),
     ]);
@@ -63,7 +65,7 @@ export default async function InsightsPage() {
         uniqueViewers={uniqueViews.data ?? 0}
         connectionCount={connections.data.length}
         followerCount={followers.data.length}
-        applicationCount={sent.data.length}
+        applicationCount={sentJobs.data.length + sentGigs.data.length}
         receivedCount={received}
         orgViewCount={orgViews}
         searchAppearanceCount={appearances.data.length}

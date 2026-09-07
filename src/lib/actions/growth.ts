@@ -6,6 +6,8 @@ import { fail, requireUser, type ActionResult } from "@/lib/actions/shared";
 import { LOCALE_COOKIE, parseLocale } from "@/lib/i18n";
 import { recommendationRequestSchema, recommendationSchema } from "@/lib/domain/workspace-schemas";
 import { notify, limitAction } from "@/lib/actions/notify";
+import { personPublicHref } from "@/lib/domain/identiti-routes";
+import { normalizeHandle } from "@/lib/domain/onboarding";
 
 export async function recordProfileViewAction(viewedProfileId: string): Promise<ActionResult> {
   const auth = await requireUser();
@@ -56,6 +58,7 @@ export async function writeRecommendation(input: unknown): Promise<ActionResult>
   if (!parsed.success) return fail("Write a short recommendation before saving.");
   const auth = await requireUser();
   if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
+  if (parsed.data.toProfileId === auth.ctx.userId) return fail("You cannot recommend yourself.");
   const { error } = await auth.supabase.from("recommendations").insert({
     from_profile_id: auth.ctx.userId,
     to_profile_id: parsed.data.toProfileId,
@@ -63,8 +66,19 @@ export async function writeRecommendation(input: unknown): Promise<ActionResult>
     body: parsed.data.body,
   });
   if (error) return fail(error.message);
-  await notify(auth.supabase, parsed.data.toProfileId, "recommendation", "New recommendation", undefined, "/people");
+  const person = await auth.supabase
+    .from("public_profiles")
+    .select("handle, occupation_mode")
+    .eq("id", parsed.data.toProfileId)
+    .maybeSingle();
+  const href = person.data
+    ? personPublicHref(person.data.handle, person.data.occupation_mode)
+    : "/passport";
+  await notify(auth.supabase, parsed.data.toProfileId, "recommendation", "New recommendation", undefined, href);
   revalidatePath("/people");
+  revalidatePath("/professionals");
+  revalidatePath("/gig-workers");
+  revalidatePath("/passport");
   return { ok: true };
 }
 
@@ -73,21 +87,36 @@ export async function requestRecommendation(input: unknown): Promise<ActionResul
   if (!parsed.success) return fail("Choose who you are asking.");
   const auth = await requireUser();
   if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
+  if (parsed.data.toProfileId === auth.ctx.userId) return fail("Ask someone else to recommend you.");
   const { error } = await auth.supabase.from("recommendation_requests").insert({
     from_profile_id: auth.ctx.userId,
     to_profile_id: parsed.data.toProfileId,
   });
   if (error) return fail(error.message);
+  const href = auth.ctx.profile
+    ? personPublicHref(auth.ctx.profile.handle, auth.ctx.profile.occupationMode)
+    : "/passport";
   await notify(
     auth.supabase,
     parsed.data.toProfileId,
     "recommendation_request",
     "Recommendation requested",
     `${auth.ctx.profile?.fullName ?? "Someone"} asked you to write a recommendation.`,
-    `/people/${auth.ctx.profile?.handle ?? ""}`,
+    href,
   );
   revalidatePath("/people");
+  revalidatePath("/passport");
   return { ok: true };
+}
+
+export async function requestRecommendationByHandle(handle: string): Promise<ActionResult> {
+  const auth = await requireUser();
+  if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
+  const normalized = normalizeHandle(handle);
+  if (normalized.length < 2) return fail("Enter a public handle.");
+  const person = await auth.supabase.from("public_profiles").select("id").eq("handle", normalized).maybeSingle();
+  if (!person.data) return fail("No professional uses that handle.");
+  return requestRecommendation({ toProfileId: person.data.id });
 }
 
 export async function recordOrganisationView(organisationId: string): Promise<ActionResult> {

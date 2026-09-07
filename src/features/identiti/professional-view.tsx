@@ -1,12 +1,14 @@
 import Link from "next/link";
-import { BadgeCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { InitialsAvatar } from "@/components/identity/visuals";
+import { Badge } from "@/components/ui/badge";
+import { InitialsAvatar, CoverBand } from "@/components/identity/visuals";
 import { PhotoFrame } from "@/components/identity/media-photo";
+import { ProofStrip } from "@/components/ui/section";
 import { hueFromId, initialsFromName } from "@/lib/domain/passport-strength";
 import { brandPublicHref } from "@/lib/domain/identiti-routes";
 import { IdentitiNetworkBar } from "@/features/identiti/identiti-network-bar";
-import { IdentitiChip, IdentitiSection } from "@/features/identiti/identiti-chrome";
+import { IdentitiChip, IdentitiSection, visibleAbout } from "@/features/identiti/identiti-chrome";
+import { RecommendForm } from "@/features/profile/recommend-form";
 import { availabilityLabel } from "@/lib/domain/availability";
 import { showAvailability, viewerFromNetwork } from "@/lib/domain/visibility";
 import type { Experience, Post, ProfileCertification, ProfileEducation, ProfileService, ProfileSkill, PublicProfile, RecommendationRow } from "@/lib/types/identity";
@@ -53,81 +55,92 @@ export function ProfessionalView({
   const verifiedProjects = projects.filter((project) => project.verified);
   const viewer = viewerFromNetwork({ isOwner, connectionState, isRecruiter });
   const availability = showAvailability(profile, viewer) ? availabilityLabel(profile.availabilityStatus) : null;
+  const about = visibleAbout(profile.about);
   return (
-    <div className="space-y-6 pb-14">
-      <section className="overflow-hidden rounded-[28px] border border-[#e2e5ef] bg-white shadow-[0_18px_60px_rgba(20,28,73,.09)]">
-        <div className="bg-[#111a42] p-8 text-white md:p-10">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/70">Professional</p>
-          <div className="mt-4 flex flex-wrap items-start gap-4">
-            <InitialsAvatar initials={initialsFromName(profile.fullName)} hue={hueFromId(profile.id)} size={80} src={profile.avatarPath} />
-            <div>
-              <div className="flex flex-wrap gap-2">
-                {profile.identityVerified ? (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                    <BadgeCheck className="size-3" /> Identity verified
-                  </span>
-                ) : null}
-                {profile.employmentVerified ? <IdentitiChip>Employment verified</IdentitiChip> : null}
-              </div>
-              <h1 className="mt-3 text-4xl font-black tracking-tight">{profile.fullName}</h1>
-              <p className="mt-2 text-white/80">{profile.headline}</p>
-              <p className="mt-1 text-sm text-white/60">
-                {[
-                  profile.specialisation ?? profile.preferredRoles[0] ?? profile.professionalTitle,
-                  profile.city,
-                  employer?.name,
-                  profile.yearsExperience ? `${profile.yearsExperience} yrs` : null,
-                  availability,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </p>
-              {profile.industriesServed.length > 0 ? (
-                <p className="mt-2 text-sm text-white/70">Industries: {profile.industriesServed.join(", ")}</p>
+    <div className="space-y-10 pb-14">
+      <section className="overflow-hidden border border-border bg-white">
+        <CoverBand tone="office" className="h-40 md:h-48" src={profile.coverPath} />
+        <div className="px-5 pb-6 sm:px-7">
+          <div className="-mt-10 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+            <InitialsAvatar
+              initials={initialsFromName(profile.fullName)}
+              hue={hueFromId(profile.id)}
+              size={96}
+              src={profile.avatarPath}
+              className="ring-4 ring-white"
+            />
+            <div className="flex flex-wrap gap-2">
+              <Button asChild variant="secondary">
+                <Link href={`/passport/${profile.handle}`}>Career passport</Link>
+              </Button>
+              {isOwner ? (
+                <Button asChild>
+                  <Link href="/passport">Edit passport</Link>
+                </Button>
               ) : null}
-              {employer ? (
-                <p className="mt-2 text-sm">
-                  Works with{" "}
-                  <Link href={brandPublicHref(employer.passportKind, employer.slug)} className="underline">
-                    {employer.name}
-                  </Link>
-                </p>
-              ) : null}
+              <IdentitiNetworkBar
+                profile={profile}
+                connectionState={connectionState}
+                following={following}
+                signedIn={signedIn}
+                isOwner={isOwner}
+                saved={saved}
+                blocked={blocked}
+              />
             </div>
           </div>
-          <p className="mt-6 max-w-3xl text-white/90">{profile.about}</p>
-          {profile.languages.length > 0 ? (
-            <p className="mt-3 text-sm text-white/70">Languages: {profile.languages.join(", ")}</p>
-          ) : null}
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Button asChild variant="secondary" className="rounded-xl font-bold">
-              <Link href={`/passport/${profile.handle}`}>Career passport</Link>
-            </Button>
-            {isOwner ? (
-              <Button asChild className="rounded-xl bg-white font-bold text-[#111a42] hover:bg-white/90">
-                <Link href="/passport">Edit passport</Link>
-              </Button>
-            ) : null}
-            <IdentitiNetworkBar
-              profile={profile}
-              connectionState={connectionState}
-              following={following}
-              signedIn={signedIn}
-              isOwner={isOwner}
-              saved={saved}
-              blocked={blocked}
-            />
+          <p className="mt-5 type-micro text-brand">Professional</p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {profile.identityVerified ? <Badge variant="verify">Verified identity</Badge> : null}
+            {profile.employmentVerified ? <Badge variant="verify">Verified employment</Badge> : null}
           </div>
+          <h1 className="type-display mt-3 text-4xl sm:text-5xl">{profile.fullName}</h1>
+          <p className="mt-2 text-base text-text-secondary">{profile.headline}</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {[
+              profile.specialisation ?? profile.preferredRoles[0] ?? profile.professionalTitle,
+              profile.city,
+              employer?.name,
+              profile.yearsExperience ? `${profile.yearsExperience} yrs` : null,
+              availability,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
+          {employer ? (
+            <p className="mt-2 text-sm">
+              Works with{" "}
+              <Link href={brandPublicHref(employer.passportKind, employer.slug)} className="font-medium text-brand hover:underline">
+                {employer.name}
+              </Link>
+            </p>
+          ) : null}
         </div>
-        <div className="grid grid-cols-2 gap-y-5 px-5 py-5 sm:grid-cols-3 sm:px-7">
-          <Stat value={String(verifiedProjects.length || projects.length)} label="Named projects" />
-          <Stat value={experiences.filter((item) => item.source === "organisation_verified").length ? "Employer confirmed" : experiences.length ? "Self declared" : "—"} label="Work history" />
-          <Stat value={certifications.length ? String(certifications.length) : "—"} label="Claimed credentials" />
-        </div>
+        <ProofStrip
+          items={[
+            { label: "Experience", value: experiences.length ? String(experiences.length) : "—" },
+            { label: "Projects", value: String(verifiedProjects.length || projects.length || "—") },
+            { label: "Skills", value: skills.length ? String(skills.length) : "—" },
+            { label: "Certifications", value: certifications.length ? String(certifications.length) : "—" },
+            { label: "Reviews", value: recommendations.length ? String(recommendations.length) : "—" },
+          ]}
+        />
       </section>
 
+      {about ? (
+        <IdentitiSection eyebrow="About" title="Professional summary">
+          <p className="max-w-3xl text-[17px] leading-8 text-text-secondary">{about}</p>
+          {profile.languages.length > 0 ? (
+            <p className="mt-3 text-sm text-muted-foreground">Languages: {profile.languages.join(", ")}</p>
+          ) : null}
+          {profile.industriesServed.length > 0 ? (
+            <p className="mt-1 text-sm text-muted-foreground">Industries: {profile.industriesServed.join(", ")}</p>
+          ) : null}
+        </IdentitiSection>
+      ) : null}
+
       {skills.length > 0 ? (
-        <IdentitiSection eyebrow="Capabilities" title="Skills">
+        <IdentitiSection eyebrow="Expertise" title="Skills">
           <div className="flex flex-wrap gap-2">
             {skills.map((skill) => (
               <IdentitiChip key={skill.id}>
@@ -139,10 +152,10 @@ export function ProfessionalView({
           </div>
         </IdentitiSection>
       ) : isOwner ? (
-        <IdentitiSection eyebrow="Capabilities" title="Skills">
-          <p className="text-sm text-[#747a95]">
+        <IdentitiSection eyebrow="Expertise" title="Skills">
+          <p className="text-sm text-muted-foreground">
             No skills listed yet.{" "}
-            <Link href="/passport?section=skills" className="font-semibold text-[#2437d4]">
+            <Link href="/passport?section=skills" className="font-medium text-brand hover:underline">
               Add skills to your passport
             </Link>
           </p>
@@ -150,13 +163,13 @@ export function ProfessionalView({
       ) : null}
 
       {services.length > 0 ? (
-        <IdentitiSection eyebrow="What they offer" title="Services">
+        <IdentitiSection eyebrow="What they offer" title="Professional services">
           <div className="grid gap-3 md:grid-cols-2">
             {services.map((service) => (
-              <div key={service.id} className="rounded-xl border border-[#eceef4] p-4">
-                <p className="font-bold text-[#111a42]">{service.name}</p>
-                {service.description ? <p className="mt-1 text-sm text-[#747a95]">{service.description}</p> : null}
-                <p className="mt-2 text-xs text-[#7a7f99]">
+              <div key={service.id} className="border border-border p-4">
+                <p className="font-semibold">{service.name}</p>
+                {service.description ? <p className="mt-1 text-sm text-text-secondary">{service.description}</p> : null}
+                <p className="mt-2 text-xs text-muted-foreground">
                   {[service.availabilityLabel, service.locations.join(", ")].filter(Boolean).join(" · ")}
                 </p>
               </div>
@@ -165,23 +178,23 @@ export function ProfessionalView({
         </IdentitiSection>
       ) : null}
 
-      <IdentitiSection eyebrow="Proof of work" title="Featured work">
+      <IdentitiSection eyebrow="Work" title="Featured projects">
         {projects.length === 0 ? (
-          <p className="text-sm text-[#747a95]">
+          <p className="text-sm text-muted-foreground">
             No opted-in projects are public yet.{" "}
-            <Link href="/projects" className="font-semibold text-[#2437d4]">
+            <Link href="/projects" className="font-medium text-brand hover:underline">
               Browse projects
             </Link>
           </p>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
             {projects.map((project) => (
-              <Link key={project.id} href={`/projects/${project.slug}`} className="overflow-hidden rounded-2xl border border-[#e4e6ef]">
-                <PhotoFrame src={project.coverImageUrl} alt="" className="h-40" />
-                <div className="p-5">
+              <Link key={project.id} href={`/projects/${project.slug}`} className="group overflow-hidden border border-border">
+                <PhotoFrame src={project.coverImageUrl} alt="" className="h-48" />
+                <div className="p-4">
                   {project.type ? <IdentitiChip>{project.type}</IdentitiChip> : null}
-                  <h3 className="mt-2 text-lg font-bold text-[#111a42]">{project.name}</h3>
-                  <p className="text-sm text-[#747a95]">{[project.city, project.valueLabel].filter(Boolean).join(" · ")}</p>
+                  <h3 className="mt-2 text-lg font-semibold tracking-tight group-hover:text-brand">{project.name}</h3>
+                  <p className="text-sm text-muted-foreground">{[project.city, project.valueLabel].filter(Boolean).join(" · ")}</p>
                 </div>
               </Link>
             ))}
@@ -190,13 +203,14 @@ export function ProfessionalView({
       </IdentitiSection>
 
       {experiences.length > 0 ? (
-        <IdentitiSection eyebrow="Career passport" title="Selected outcomes">
-          <ol className="space-y-4">
+        <IdentitiSection eyebrow="Career" title="Work history">
+          <ol className="relative space-y-5 border-l border-border pl-5">
             {experiences.map((item) => (
-              <li key={item.id} className="rounded-xl border border-[#eceef4] p-4">
-                <p className="font-bold text-[#111a42]">{item.title}</p>
-                <p className="text-sm text-[#747a95]">{item.organisationNameText}</p>
-                <p className="mt-1 text-xs text-[#7a7f99]">
+              <li key={item.id}>
+                <span className="absolute -left-[5px] mt-1.5 size-2.5 rounded-full bg-brand" aria-hidden />
+                <p className="font-semibold">{item.title}</p>
+                <p className="text-sm text-text-secondary">{item.organisationNameText}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
                   {[item.startDate, item.endDate ?? "Present"].filter(Boolean).join(" — ")}
                   {item.source === "organisation_verified" ? " · Employer confirmed" : " · Self declared"}
                 </p>
@@ -207,12 +221,12 @@ export function ProfessionalView({
       ) : null}
 
       {certifications.length > 0 ? (
-        <IdentitiSection title="Credentials">
+        <IdentitiSection eyebrow="Evidence" title="Credentials">
           <div className="grid gap-3 md:grid-cols-2">
             {certifications.map((item) => (
-              <div key={item.id} className="rounded-xl border border-[#eceef4] p-4">
-                <p className="font-bold text-[#111a42]">{item.name}</p>
-                <p className="text-sm text-[#747a95]">{[item.issuer, item.expiryDate ? `Valid through ${item.expiryDate}` : null].filter(Boolean).join(" · ")}</p>
+              <div key={item.id} className="border border-border p-4">
+                <p className="font-semibold">{item.name}</p>
+                <p className="text-sm text-muted-foreground">{[item.issuer, item.expiryDate ? `Valid through ${item.expiryDate}` : null].filter(Boolean).join(" · ")}</p>
               </div>
             ))}
           </div>
@@ -223,54 +237,45 @@ export function ProfessionalView({
         <IdentitiSection title="Education and training">
           <div className="grid gap-3 md:grid-cols-2">
             {education.map((item) => (
-              <div key={item.id} className="rounded-xl border border-[#eceef4] p-4">
-                <p className="font-bold text-[#111a42]">{item.institution}</p>
-                <p className="text-sm text-[#747a95]">{[item.qualification, item.course, item.fieldOfStudy].filter(Boolean).join(" · ")}</p>
+              <div key={item.id} className="border border-border p-4">
+                <p className="font-semibold">{item.institution}</p>
+                <p className="text-sm text-muted-foreground">{[item.qualification, item.course, item.fieldOfStudy].filter(Boolean).join(" · ")}</p>
               </div>
             ))}
           </div>
         </IdentitiSection>
       ) : null}
 
-      {recommendations.length > 0 ? (
+      {recommendations.length > 0 || (signedIn && !isOwner) ? (
         <IdentitiSection title="Peer endorsements">
           <div className="space-y-3">
             {recommendations.map((item) => (
-              <div key={item.id} className="rounded-xl bg-[#f7f8fb] p-4">
-                <p className="text-xs font-semibold text-[#616ee7]">{item.relationship ?? "Peer"}</p>
-                <p className="mt-2 text-sm leading-6 text-[#303757]">{item.body}</p>
+              <div key={item.id} className="border-l-2 border-l-brand bg-surface-muted px-4 py-4">
+                <p className="type-micro text-brand">{item.relationship ?? "Peer"}</p>
+                <p className="mt-2 text-sm leading-7 text-text-secondary">{item.body}</p>
               </div>
             ))}
+            {signedIn && !isOwner ? <RecommendForm toProfileId={profile.id} /> : null}
           </div>
         </IdentitiSection>
       ) : null}
 
       <IdentitiSection eyebrow="Activity" title="Recent posts">
         {posts.length === 0 ? (
-          <p className="text-sm text-[#747a95]">
-            No public posts yet. When this person publishes an update, it appears here from the live feed — not as
-            manufactured activity.
+          <p className="text-sm text-muted-foreground">
+            No public posts yet. When this person publishes an update, it appears here from the live feed.
           </p>
         ) : (
-          <ul className="space-y-3">
+          <ul className="divide-y divide-border border border-border">
             {posts.slice(0, 6).map((post) => (
-              <li key={post.id} className="rounded-xl border border-[#eceef4] p-4">
-                <p className="text-sm leading-6 text-[#303757]">{post.body}</p>
-                <p className="mt-2 text-xs text-[#7a7f99]">{new Date(post.createdAt).toLocaleDateString()}</p>
+              <li key={post.id} className="p-4">
+                <p className="text-sm leading-6 text-text-secondary">{post.body}</p>
+                <p className="mt-2 text-xs text-muted-foreground">{new Date(post.createdAt).toLocaleDateString()}</p>
               </li>
             ))}
           </ul>
         )}
       </IdentitiSection>
-    </div>
-  );
-}
-
-function Stat({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="min-w-0">
-      <div className="text-xl font-extrabold tracking-tight text-[#111a42]">{value}</div>
-      <div className="mt-1 text-xs leading-5 text-[#7a7f99]">{label}</div>
     </div>
   );
 }

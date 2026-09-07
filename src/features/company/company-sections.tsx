@@ -12,6 +12,7 @@ import { QuoteBoundary } from "@/features/company/quote-boundary";
 import { VendorContactForm } from "@/features/company/vendor-contact-form";
 import { CompanyActionBar } from "@/features/company/company-actions";
 import { hueFromId, initialsFromName } from "@/lib/domain/passport-strength";
+import { organisationTypeLabel } from "@/lib/domain/org-config";
 import type {
   GigPost,
   JobPost,
@@ -40,11 +41,11 @@ export function CompanyHeader({
   saved?: boolean;
 }) {
   return (
-    <Card className="overflow-hidden">
-          <CoverBand tone="office" className="h-36 md:h-44" src={org.coverPath} />
-      <div className="px-4 pb-5 md:px-6">
+    <section className="overflow-hidden border border-border bg-white">
+      <CoverBand tone="office" className="h-44 md:h-56" src={org.coverPath} />
+      <div className="px-5 pb-6 md:px-7">
         <div className="-mt-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <InitialsAvatar initials={initialsFromName(org.name)} hue={hueFromId(org.id)} size={96} src={org.logoPath} className="rounded-2xl ring-4 ring-white" />
+          <InitialsAvatar initials={initialsFromName(org.name)} hue={hueFromId(org.id)} size={88} src={org.logoPath} className="rounded-md ring-4 ring-white" />
           <div className="flex flex-wrap gap-2">
             {canEdit ? (
               <>
@@ -71,16 +72,14 @@ export function CompanyHeader({
             />
           </div>
         </div>
-        <h1 className="mt-4 text-2xl font-semibold tracking-tight">{org.name}</h1>
-        {org.tagline && <p className="mt-2 text-sm text-foreground">{org.tagline}</p>}
-        {verifiedCredential && (
-          <Badge variant="verify" className="mt-2">
-            Business verification on file
-          </Badge>
-        )}
-        <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-          <span>{org.type.replaceAll("_", " ")}</span>
-          {org.industry && <span>{org.industry}</span>}
+        <p className="mt-5 type-micro text-brand">{organisationTypeLabel(org.type)}</p>
+        <h1 className="type-display mt-2 text-4xl">{org.name}</h1>
+        {org.tagline ? <p className="mt-2 text-base text-text-secondary">{org.tagline}</p> : null}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {verifiedCredential ? <Badge variant="verify">Verified organisation</Badge> : null}
+          {org.industry ? <Badge variant="outline">{org.industry}</Badge> : null}
+        </div>
+        <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
           {org.city && (
             <span className="inline-flex items-center gap-1">
               <MapPin className="size-3.5" />
@@ -90,14 +89,16 @@ export function CompanyHeader({
           {org.foundedYear && <span>Founded {org.foundedYear}</span>}
           {org.teamSizeLabel && <span>{org.teamSizeLabel}</span>}
         </p>
-        <Link className="mt-2 inline-block text-sm text-primary hover:underline" href={`/org/${org.slug}/passport`}>
-          Public business passport
-        </Link>
-        <Link className="mt-2 ml-3 inline-block text-sm text-primary hover:underline" href={`/companies/${org.slug}/followers`}>
-          Followers
-        </Link>
+        <div className="mt-3 flex flex-wrap gap-4 text-sm">
+          <Link className="font-medium text-brand hover:underline" href={`/org/${org.slug}/passport`}>
+            Public business passport
+          </Link>
+          <Link className="font-medium text-brand hover:underline" href={`/companies/${org.slug}/followers`}>
+            Followers
+          </Link>
+        </div>
       </div>
-    </Card>
+    </section>
   );
 }
 

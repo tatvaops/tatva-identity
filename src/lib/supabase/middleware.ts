@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
+import { safeNextPath } from "@/lib/auth/next-path";
 import { supabaseAnonKey, supabaseUrl } from "@/lib/supabase/env";
 
 export async function updateSession(request: NextRequest) {
@@ -33,7 +34,7 @@ export async function updateSession(request: NextRequest) {
 
   if (user && pathname.startsWith("/auth/sign-in")) {
     const destination = request.nextUrl.clone();
-    destination.pathname = "/feed";
+    destination.pathname = safeNextPath(request.nextUrl.searchParams.get("next"));
     destination.search = "";
     return NextResponse.redirect(destination);
   }
@@ -64,7 +65,7 @@ export async function updateSession(request: NextRequest) {
   if (needsAuth && !user) {
     const redirect = request.nextUrl.clone();
     redirect.pathname = "/auth/sign-in";
-    redirect.searchParams.set("next", pathname);
+    redirect.searchParams.set("next", safeNextPath(pathname));
     return NextResponse.redirect(redirect);
   }
 
@@ -75,7 +76,8 @@ export async function updateSession(request: NextRequest) {
       if (unnamed) {
         const setup = request.nextUrl.clone();
         setup.pathname = "/onboarding";
-        setup.search = "";
+        const intended = safeNextPath(pathname);
+        setup.search = intended !== "/feed" && intended !== "/onboarding" ? `?next=${encodeURIComponent(intended)}` : "";
         return NextResponse.redirect(setup);
       }
     }

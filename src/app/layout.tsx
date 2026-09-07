@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Source_Serif_4 } from "next/font/google";
 import { cookies } from "next/headers";
 import { AppProviders } from "@/components/providers/app-providers";
 import { product } from "@/lib/config";
@@ -9,6 +9,12 @@ import "./globals.css";
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
+});
+
+const display = Source_Serif_4({
+  subsets: ["latin"],
+  variable: "--font-display",
+  weight: ["400", "600"],
 });
 
 export const metadata: Metadata = {
@@ -23,14 +29,14 @@ export const viewport: Viewport = {
   viewportFit: "cover",
   width: "device-width",
   initialScale: 1,
-  themeColor: "#ffffff",
+  themeColor: "#111a42",
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = parseLocale((await cookies()).get(LOCALE_COOKIE)?.value);
   return (
     <html lang={locale}>
-      <body className={`${inter.variable} font-sans`}>
+      <body className={`${inter.variable} ${display.variable} font-sans`}>
         <AppProviders locale={locale}>{children}</AppProviders>
       </body>
     </html>

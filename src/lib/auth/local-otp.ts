@@ -5,7 +5,12 @@ const OTP_TTL_MS = 5 * 60 * 1000;
 const MAX_ATTEMPTS = 3;
 
 function hmacSecret() {
-  return process.env.OTP_HMAC_SECRET?.trim() || process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || "tatva-local-otp";
+  const secret = process.env.OTP_HMAC_SECRET?.trim() || process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (secret) return secret;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("OTP_HMAC_SECRET is required when local OTP is enabled.");
+  }
+  return "tatva-local-otp";
 }
 
 function otpHash(digits: string, otp: string) {
