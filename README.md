@@ -170,6 +170,7 @@ Writes go through the **service role** after `requirePlatformAdmin()`. Actions a
 | **People** | **Add a live person** (Indian mobile, name, handle, occupation, portrait/cover upload). Hide, verify ID. Detail: photos, portfolio, experience, wallet certs, supervisor reviews, skill facts |
 | **Organisations** | **Add a live company / service brand / product brand** (cover, logo). Hide. Detail: passport kind, media, products, YouTube videos, strengths, labelled AI pulse, credentials, name people on projects |
 | **Projects** | **Add a live project** (cover upload, YouTube URL, client/contractor). Mark verified, QC notes |
+| **Site journals** | Review draft/pending weekly diaries and **publish**. Not a Vertex site |
 | **Jobs & gigs** | **Publish** a job or gig against an organisation; Close / Reopen. Does not hire or staff a site |
 | **Contacts** | Vendor enquiries and messages; job applications; gig applications |
 | **Moderation** | **Publish a feed post** (person or org author, optional image); hide posts; action reports |
@@ -336,6 +337,8 @@ Default Next port is 3000. Apply **all** files in `supabase/migrations/` on the 
 | `20260907180000_identiti_integrity.sql` | Notification prefs, search appearance attribution, privacy RLS |
 | `20260907180000_profile_owner_grants.sql` | Owner grants for onboarding/privacy/notification columns |
 | `20260907200000_identiti_security_repair.sql` | Conversation IDOR, GSTIN grants, applicant withdraw, staff job updates |
+| `20260908120000_identity_public_video.sql` | Public bucket allows MP4/WebM walkthrough uploads |
+| `20260908180000_site_journals.sql` | Site journals, weekly entries, field notes, RLS |
 
 Reload IDENTITI sample: `select public.seed_identiti_marketplace();`  
 Hide demo without delete: `update public.platform_settings set seed_data_enabled = false;` (or Admin → Settings).  
