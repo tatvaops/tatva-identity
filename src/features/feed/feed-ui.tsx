@@ -63,6 +63,7 @@ export function PostComposer({ openOnMount = false }: { openOnMount?: boolean })
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const photoInput = useRef<HTMLInputElement>(null);
+  const videoInput = useRef<HTMLInputElement>(null);
   const [photoPath, setPhotoPath] = useState<string | null>(null);
   const [youtubeUrl, setYoutubeUrl] = useState("");
 
@@ -103,6 +104,7 @@ export function PostComposer({ openOnMount = false }: { openOnMount?: boolean })
               size="sm"
               onClick={() => {
                 if (label === "Photo") photoInput.current?.click();
+                else if (label === "Video") videoInput.current?.click();
                 else if (label === "Project") {
                   setPostType("project_completion");
                   setOpen(true);
@@ -111,9 +113,6 @@ export function PostComposer({ openOnMount = false }: { openOnMount?: boolean })
                   setOpen(true);
                 } else if (label === "Credential") {
                   setPostType("certification");
-                  setOpen(true);
-                } else if (label === "Video") {
-                  setPostType("site_progress");
                   setOpen(true);
                 } else setOpen(true);
               }}
@@ -140,6 +139,29 @@ export function PostComposer({ openOnMount = false }: { openOnMount?: boolean })
                   return;
                 }
                 setPhotoPath(result.id ?? null);
+                setOpen(true);
+              });
+            }}
+          />
+          <input
+            ref={videoInput}
+            type="file"
+            accept="video/mp4,video/webm"
+            className="hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (!file) return;
+              start(async () => {
+                const data = new FormData();
+                data.set("file", file);
+                data.set("kind", "video");
+                const result = await uploadPublicImage(data);
+                if (!result.ok) {
+                  setError(result.error);
+                  return;
+                }
+                setYoutubeUrl(result.id ?? "");
+                setPostType("site_progress");
                 setOpen(true);
               });
             }}
@@ -171,16 +193,40 @@ export function PostComposer({ openOnMount = false }: { openOnMount?: boolean })
             className="mt-3 min-h-32"
           />
           <label className="mt-3 block text-sm font-medium" htmlFor="post-video">
-            YouTube video (optional)
+            Video (optional)
           </label>
           <Input
             id="post-video"
             value={youtubeUrl}
             onChange={(event) => setYoutubeUrl(event.target.value)}
-            placeholder="https://www.youtube.com/watch?v=…"
+            placeholder="https://www.youtube.com/watch?v=… or upload from this device"
             className="mt-1"
           />
+          <input
+            type="file"
+            accept="video/mp4,video/webm"
+            className="mt-2 block w-full text-xs file:mr-2 file:rounded-md file:border-0 file:bg-zinc-100 file:px-2 file:py-1 file:text-xs"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (!file) return;
+              start(async () => {
+                const data = new FormData();
+                data.set("file", file);
+                data.set("kind", "video");
+                const result = await uploadPublicImage(data);
+                if (!result.ok) {
+                  setError(result.error);
+                  return;
+                }
+                setYoutubeUrl(result.id ?? "");
+              });
+            }}
+          />
+          <p className="mt-1 text-xs text-muted-foreground">Upload from this device (MP4 or WebM, under 50 MB)</p>
           {photoPath ? <p className="mt-2 text-xs text-muted-foreground">Photo attached and will publish with this update.</p> : null}
+          {youtubeUrl && !youtubeUrl.startsWith("http") ? (
+            <p className="mt-2 text-xs text-muted-foreground">Video attached and will publish with this update.</p>
+          ) : null}
           {error && <p className="mt-2 text-sm text-rose-700">{error}</p>}
           <div className="mt-4 flex justify-end">
             <Button

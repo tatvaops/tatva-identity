@@ -12,6 +12,7 @@ import { slugify } from "@/lib/domain/slug";
 import { organisationTypes } from "@/lib/domain/workspace-schemas";
 
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+const VIDEO_TYPES = new Set(["video/mp4", "video/webm"]);
 const OCCUPATION_MODES = new Set(["white_collar", "blue_collar", "freelancer", "contractor"]);
 const PASSPORT_KINDS = new Set(["service_brand", "product_brand", "other"]);
 const PROJECT_STATUSES = new Set(["completed", "in_progress", "handover"]);
@@ -56,6 +57,8 @@ function extensionFor(type: string) {
   if (type === "image/png") return "png";
   if (type === "image/webp") return "webp";
   if (type === "image/gif") return "gif";
+  if (type === "video/webm") return "webm";
+  if (type === "video/mp4") return "mp4";
   return "jpg";
 }
 
@@ -131,15 +134,23 @@ export async function adminUploadPublicFile(formData: FormData): Promise<ActionR
   const gate = await gated();
   if (!gate.ok) return gate.result;
   const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) return fail("Choose an image first.");
-  if (file.size > 5 * 1024 * 1024) return fail("Keep images under 5 MB.");
-  if (!IMAGE_TYPES.has(file.type)) return fail("Use a JPEG, PNG, WebP or GIF image.");
+  const kind = String(formData.get("kind") ?? "image");
+  const video = kind === "video" || VIDEO_TYPES.has(file instanceof File ? file.type : "");
+  if (!(file instanceof File) || file.size === 0) return fail(video ? "Choose a video first." : "Choose an image first.");
+  if (video) {
+    if (file.size > 50 * 1024 * 1024) return fail("Keep videos under 50 MB.");
+    if (!VIDEO_TYPES.has(file.type)) return fail("Use an MP4 or WebM video.");
+  } else {
+    if (file.size > 5 * 1024 * 1024) return fail("Keep images under 5 MB.");
+    if (!IMAGE_TYPES.has(file.type)) return fail("Use a JPEG, PNG, WebP or GIF image.");
+  }
   const path = `${gate.actorId}/admin-${Date.now()}.${extensionFor(file.type)}`;
   const uploaded = await gate.auth.admin.storage.from("identity-public").upload(path, file, {
     upsert: true,
     contentType: file.type,
   });
-  if (uploaded.error) return fail("Could not store that image. Try a smaller JPEG or PNG.");
+  if (uploaded.error) return fail(video ? "Could not store that video. Try a shorter MP4." : "Could not store that image. Try a smaller JPEG or PNG.");
+  await operatorAudit(gate.auth.admin, gate.actorId, "upload_public_file", "storage", path);
   return { ok: true, id: path };
 }
 

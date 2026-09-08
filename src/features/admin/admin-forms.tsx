@@ -462,7 +462,7 @@ export function AdminProjectMediaForm({
       }}
     >
       <AdminMediaField name="coverImageUrl" label="Project cover" defaultValue={coverImageUrl} placeholder="https://… project cover" />
-      <Input name="youtubeUrl" defaultValue={youtubeUrl ?? ""} placeholder="https://www.youtube.com/watch?v=…" aria-label="YouTube URL" />
+      <AdminMediaField name="youtubeUrl" label="Walkthrough video" kind="video" defaultValue={youtubeUrl} />
       <Input name="valueLabel" defaultValue={valueLabel ?? ""} placeholder="Value label" aria-label="Value label" />
       <Textarea name="qcNotes" defaultValue={qcNotes ?? ""} placeholder="QC notes" className="min-h-16" aria-label="QC notes" />
       <Textarea name="testimonial" defaultValue={testimonial ?? ""} placeholder="Client note" className="min-h-16" aria-label="Client note" />
@@ -779,7 +779,7 @@ export function AdminVideoForm({ organisationId }: { organisationId: string }) {
       }}
     >
       <Input name="title" placeholder="Showreel title" aria-label="Video title" />
-      <Input name="youtubeUrl" placeholder="https://www.youtube.com/watch?v=…" aria-label="YouTube URL" />
+      <AdminMediaField name="youtubeUrl" label="Walkthrough video" kind="video" />
       <Input name="duration" placeholder="Duration" aria-label="Duration" />
       <Button type="submit" size="sm" disabled={pending}>
         Add video

@@ -5,6 +5,7 @@ import { fail, requireUser, type ActionResult } from "@/lib/actions/shared";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 const PUBLIC_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+const VIDEO_TYPES = new Set(["video/mp4", "video/webm"]);
 const PRIVATE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
 
 function extensionFor(type: string) {
@@ -12,6 +13,8 @@ function extensionFor(type: string) {
   if (type === "image/webp") return "webp";
   if (type === "image/gif") return "gif";
   if (type === "application/pdf") return "pdf";
+  if (type === "video/webm") return "webm";
+  if (type === "video/mp4") return "mp4";
   return "jpg";
 }
 
@@ -28,22 +31,28 @@ export async function uploadPublicImage(formData: FormData): Promise<ActionResul
   if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
   const file = formData.get("file");
   const kind = String(formData.get("kind") ?? "avatar");
-  if (!(file instanceof File) || file.size === 0) return fail("Choose an image first.");
-  if (file.size > 5 * 1024 * 1024) return fail("Keep images under 5 MB.");
-  if (!PUBLIC_TYPES.has(file.type)) return fail("Use a JPEG, PNG or WebP image.");
+  const video = kind === "video" || VIDEO_TYPES.has(file instanceof File ? file.type : "");
+  if (!(file instanceof File) || file.size === 0) return fail(video ? "Choose a video first." : "Choose an image first.");
+  if (video) {
+    if (file.size > 50 * 1024 * 1024) return fail("Keep videos under 50 MB.");
+    if (!VIDEO_TYPES.has(file.type)) return fail("Use an MP4 or WebM video.");
+  } else {
+    if (file.size > 5 * 1024 * 1024) return fail("Keep images under 5 MB.");
+    if (!PUBLIC_TYPES.has(file.type)) return fail("Use a JPEG, PNG or WebP image.");
+  }
   const path = `${auth.ctx.userId}/${kind}-${Date.now()}.${extensionFor(file.type)}`;
   const uploaded = await auth.supabase.storage.from("identity-public").upload(path, file, {
     upsert: true,
     contentType: file.type,
   });
   if (uploaded.error) return fail(uploaded.error.message);
-  if (kind === "avatar") {
+  if (!video && kind === "avatar") {
     await auth.supabase.from("profiles").update({ avatar_path: path }).eq("id", auth.ctx.userId);
   }
-  if (kind === "cover") {
+  if (!video && kind === "cover") {
     await auth.supabase.from("profiles").update({ cover_path: path }).eq("id", auth.ctx.userId);
   }
-  if (kind === "org-logo" || kind === "org-cover") {
+  if (!video && (kind === "org-logo" || kind === "org-cover")) {
     const slug = String(formData.get("slug") ?? "");
     if (!slug) return fail("Choose the organisation first.");
     const organisationId = await organisationIdIfStaff(auth.supabase, slug, auth.ctx.userId);

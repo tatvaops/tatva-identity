@@ -124,7 +124,7 @@ export function AdminCreatePersonForm() {
           <option value="blue_collar">Gig / site worker</option>
           <option value="contractor">Contractor</option>
         </Select>
-        <Input name="website" placeholder="https:// website (optional)" aria-label="Website" />
+        <Input name="website" placeholder="https://your-studio.in (website URL)" aria-label="Website" />
         <div className="md:col-span-2">
           <Textarea name="about" placeholder="About" className="min-h-20" aria-label="About" />
         </div>
@@ -276,7 +276,7 @@ export function AdminCreateOrganisationForm() {
         <Input name="categoryLabel" placeholder="Category label" aria-label="Category label" />
         <Input name="city" placeholder="City" aria-label="City" />
         <Input name="state" placeholder="State" aria-label="State" />
-        <Input name="website" placeholder="https:// website" aria-label="Website" />
+        <Input name="website" placeholder="https://your-studio.in (website URL)" aria-label="Website" />
         <Input name="servingRegions" placeholder="Serving regions" aria-label="Serving regions" />
         <div className="md:col-span-2">
           <Textarea name="about" placeholder="About" className="min-h-20" aria-label="About" />
@@ -339,7 +339,7 @@ export function AdminCreateProjectForm({ organisations }: { organisations: Choic
         </Select>
         <Input name="valueLabel" placeholder="Value label" aria-label="Value label" />
         <Input name="durationLabel" placeholder="Duration label" aria-label="Duration label" />
-        <Input name="youtubeUrl" placeholder="https://www.youtube.com/watch?v=…" aria-label="YouTube URL" />
+        <AdminMediaField name="youtubeUrl" label="Walkthrough video" kind="video" />
         <Select name="clientOrganisationId" label="Client organisation">
           <option value="">No client organisation</option>
           {organisations.map((org) => (

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { youtubeEmbedUrl, youtubeVideoId } from "./youtube";
+import { isPlayableVideoRef, isUploadedVideoRef, youtubeEmbedUrl, youtubeVideoId } from "./youtube";
 
 describe("youtubeVideoId", () => {
   it("accepts watch, short and embed URLs", () => {
@@ -22,5 +22,14 @@ describe("youtubeEmbedUrl", () => {
       youtubeEmbedUrl("https://youtu.be/dQw4w9WgXcQ"),
       "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
     );
+  });
+});
+
+describe("isPlayableVideoRef", () => {
+  it("accepts YouTube URLs and uploaded mp4/webm paths", () => {
+    assert.equal(isPlayableVideoRef("https://youtu.be/dQw4w9WgXcQ"), true);
+    assert.equal(isUploadedVideoRef("user/admin-1.mp4"), true);
+    assert.equal(isPlayableVideoRef("user/admin-1.webm"), true);
+    assert.equal(isPlayableVideoRef("https://example.com/photo.jpg"), false);
   });
 });

@@ -165,9 +165,9 @@ export async function createPost(
   if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
   const trimmed = body.trim();
   if (!trimmed) return fail("Write something before posting.");
-  const { youtubeVideoId } = await import("@/lib/media/youtube");
+  const { isPlayableVideoRef } = await import("@/lib/media/youtube");
   const video = youtubeUrl?.trim() ? youtubeUrl.trim() : null;
-  if (video && !youtubeVideoId(video)) return fail("Use a YouTube watch, short or youtu.be URL.");
+  if (video && !isPlayableVideoRef(video)) return fail("Use a YouTube URL or upload an MP4/WebM video.");
   const created = await auth.supabase
     .from("posts")
     .insert({

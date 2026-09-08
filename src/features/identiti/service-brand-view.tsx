@@ -15,6 +15,7 @@ import { VendorContactForm } from "@/features/company/vendor-contact-form";
 import { PersonCard } from "@/components/cards/entity-cards";
 import { PhotoFrame } from "@/components/identity/media-photo";
 import { IdentitiChip, IdentitiSection, OverlayHero, StarRating, formatInr } from "@/features/identiti/identiti-chrome";
+import { publicMediaUrl } from "@/lib/media/public-url";
 
 const FIT_COPY: Record<string, string> = { strong: "Strong match", good: "Good match", clarify: "Clarify" };
 const FIT_TONE: Record<string, string> = {
@@ -96,7 +97,7 @@ export function ServiceBrandView({
           action={
             showreel ? (
               <a
-                href={showreel.youtube_url}
+                href={publicMediaUrl(showreel.youtube_url) ?? showreel.youtube_url}
                 target="_blank"
                 rel="noreferrer"
                 className="flex items-center gap-2 rounded-full bg-white/92 px-4 py-2 text-sm font-bold text-[#111a42] shadow-lg backdrop-blur"
@@ -236,7 +237,7 @@ export function ServiceBrandView({
             )}
             {showreel ? (
               <a
-                href={showreel.youtube_url}
+                href={publicMediaUrl(showreel.youtube_url) ?? showreel.youtube_url}
                 target="_blank"
                 rel="noreferrer"
                 className="mt-4 grid gap-3 rounded-2xl bg-[#111a42] p-4 text-white sm:grid-cols-[1fr_auto] sm:items-center sm:p-5"

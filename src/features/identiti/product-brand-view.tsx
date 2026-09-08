@@ -9,6 +9,7 @@ import { SaveButton } from "@/components/identity/save-button";
 import { VendorContactForm } from "@/features/company/vendor-contact-form";
 import { PersonCard } from "@/components/cards/entity-cards";
 import { presentAiReview } from "@/lib/domain/ai-review";
+import { publicMediaUrl } from "@/lib/media/public-url";
 import type { IdentitiBrand, IdentitiProject } from "@/lib/data/identiti";
 import type { AiReviewRecord, AiReviewSource } from "@/lib/domain/ai-review";
 import type { PublicProfile } from "@/lib/types/identity";
@@ -189,7 +190,7 @@ export function ProductBrandView({
       ) : null}
 
       {factory ? (
-        <a href={factory.youtube_url} target="_blank" rel="noreferrer" className="grid gap-3 rounded-2xl bg-[#111a42] p-5 text-white sm:grid-cols-[1fr_auto] sm:items-center">
+        <a href={publicMediaUrl(factory.youtube_url) ?? factory.youtube_url} target="_blank" rel="noreferrer" className="grid gap-3 rounded-2xl bg-[#111a42] p-5 text-white sm:grid-cols-[1fr_auto] sm:items-center">
           <div className="flex items-center gap-4">
             <CirclePlay className="size-8" />
             <div>

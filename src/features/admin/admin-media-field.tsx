@@ -9,29 +9,36 @@ export function AdminMediaField({
   label,
   defaultValue,
   placeholder,
+  kind = "image",
 }: {
   name: string;
   label: string;
   defaultValue?: string | null;
   placeholder?: string;
+  kind?: "image" | "video";
 }) {
   const [value, setValue] = useState(defaultValue ?? "");
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const video = kind === "video";
+  let hint = "Upload from this device (JPEG, PNG, WebP or GIF, under 5 MB)";
+  if (video) hint = "Upload from this device (MP4 or WebM, under 50 MB)";
+  if (pending) hint = "Uploading…";
+  const fileAccept = video ? "video/mp4,video/webm" : "image/jpeg,image/png,image/webp,image/gif";
   return (
     <div className="grid gap-1">
       <Input
         name={name}
         value={value}
         onChange={(event) => setValue(event.target.value)}
-        placeholder={placeholder ?? `https://… or upload ${label.toLowerCase()}`}
+        placeholder={placeholder ?? (video ? "https://www.youtube.com/watch?v=… or upload a video" : `https://… or upload ${label.toLowerCase()}`)}
         aria-label={label}
       />
       <label className="text-xs text-muted-foreground">
         <span className="sr-only">Upload {label}</span>
         <input
           type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
+          accept={fileAccept}
           disabled={pending}
           className="mt-1 block w-full text-xs file:mr-2 file:rounded-md file:border-0 file:bg-zinc-100 file:px-2 file:py-1 file:text-xs"
           onChange={(event) => {
@@ -39,6 +46,7 @@ export function AdminMediaField({
             if (!file) return;
             const form = new FormData();
             form.set("file", file);
+            form.set("kind", kind);
             start(async () => {
               const result = await adminUploadPublicFile(form);
               if (!result.ok) setError(result.error);
@@ -49,7 +57,7 @@ export function AdminMediaField({
             });
           }}
         />
-        {pending ? "Uploading…" : "Upload from this device (JPEG, PNG, WebP or GIF, under 5 MB)"}
+        {hint}
       </label>
       {error ? (
         <p className="text-xs text-rose-700" role="alert">

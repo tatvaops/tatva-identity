@@ -33,6 +33,24 @@ export function youtubeEmbedUrl(value: string | null | undefined): string | null
   return id ? `https://www.youtube-nocookie.com/embed/${id}` : null;
 }
 
+export function isUploadedVideoRef(value: string | null | undefined): boolean {
+  if (!value) return false;
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  const path = (() => {
+    try {
+      return new URL(trimmed).pathname;
+    } catch {
+      return trimmed.split("?")[0] ?? trimmed;
+    }
+  })();
+  return /\.(mp4|webm)$/i.test(path);
+}
+
+export function isPlayableVideoRef(value: string | null | undefined): boolean {
+  return Boolean(youtubeVideoId(value) || isUploadedVideoRef(value));
+}
+
 function isYoutubeId(value: string) {
   return /^[\w-]{11}$/.test(value);
 }
