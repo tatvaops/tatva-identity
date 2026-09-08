@@ -3,11 +3,8 @@ import assert from "node:assert/strict";
 import { isBootstrapAdmin, isPlatformAdminOpenToSignedIn, isPlatformOperator } from "./bootstrap";
 
 describe("isPlatformAdminOpenToSignedIn", () => {
-  it("stays closed in production until operators are listed or explicitly opened", () => {
-    assert.equal(isPlatformAdminOpenToSignedIn({ NODE_ENV: "production" }), false);
-  });
-
-  it("defaults to open outside production so local development still works", () => {
+  it("defaults to open so signed-in users can reach /admin", () => {
+    assert.equal(isPlatformAdminOpenToSignedIn({ NODE_ENV: "production" }), true);
     assert.equal(isPlatformAdminOpenToSignedIn({ NODE_ENV: "test" }), true);
   });
 
@@ -15,7 +12,7 @@ describe("isPlatformAdminOpenToSignedIn", () => {
     assert.equal(isPlatformAdminOpenToSignedIn({ NODE_ENV: "test", PLATFORM_ADMIN_OPEN: "false" }), false);
   });
 
-  it("can be opened explicitly in production", () => {
+  it("stays open when explicitly set true", () => {
     assert.equal(isPlatformAdminOpenToSignedIn({ NODE_ENV: "production", PLATFORM_ADMIN_OPEN: "true" }), true);
   });
 });

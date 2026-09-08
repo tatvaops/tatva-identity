@@ -155,8 +155,8 @@ URL: `/admin`. Sign-in is always required. Anonymous users redirect to `/auth/si
 
 | Mode | Env | Behaviour |
 | --- | --- | --- |
-| Temporarily open | `PLATFORM_ADMIN_OPEN=true` | **Any signed-in account** can use the console. Banner warns operators |
-| Locked (production default) | `PLATFORM_ADMIN_OPEN` unset in production, or `false`, plus `PLATFORM_ADMIN_HANDLES` and/or `PLATFORM_ADMIN_USER_IDS` | Only listed handles / user IDs; first visit upserts `platform_admins` |
+| Temporarily open (current default) | `PLATFORM_ADMIN_OPEN` unset or `true` | **Any signed-in account** can use the console. Banner warns operators |
+| Locked | `PLATFORM_ADMIN_OPEN=false`, plus `PLATFORM_ADMIN_HANDLES` and/or `PLATFORM_ADMIN_USER_IDS` | Only listed handles / user IDs; first visit upserts `platform_admins` |
 | Grant more | Settings | Enter a public handle |
 
 Writes go through the **service role** after `requirePlatformAdmin()`. Actions are rate-limited and written to `audit_logs`.
@@ -383,7 +383,7 @@ docs/                  Architecture, data model, security, Vantage protocol
 | Vantage JWT verify on `/forums/new?context=` | IDENTITI mints; Vantage must verify |
 | Vantage partner hub REST API | Keep `VANTAGE_API_BASE_URL` empty |
 | Payments, sponsored listings, vector search, graph AI | Out of scope |
-| Locking `/admin` to named operators | Production default is locked. Set `PLATFORM_ADMIN_OPEN=true` only for a controlled launch window |
+| Locking `/admin` to named operators | Still open to every signed-in account. Set `PLATFORM_ADMIN_OPEN=false` and list handles when ready |
 
 ---
 
