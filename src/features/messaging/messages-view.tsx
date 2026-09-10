@@ -48,7 +48,7 @@ export function MessagesView({
   people = [],
   peopleQuery = "",
   startError = null,
-}: {
+}: Readonly<{
   conversations: ConversationSummary[];
   activeId: string | null;
   messages: MessageRow[];
@@ -56,12 +56,12 @@ export function MessagesView({
   people?: PublicProfile[];
   peopleQuery?: string;
   startError?: string | null;
-}) {
+}>) {
   const router = useRouter();
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(startError);
   const [pending, start] = useTransition();
-  const active = conversations.find((c) => c.id === activeId) ?? conversations[0] ?? null;
+  const active = activeId ? conversations.find((c) => c.id === activeId) ?? null : null;
   const currentId = active?.id ?? null;
 
   useEffect(() => {
@@ -90,7 +90,7 @@ export function MessagesView({
         />
       ) : (
         <div className="grid h-[calc(100vh-11rem)] overflow-hidden border border-border bg-white lg:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
-          <aside className="overflow-y-auto border-r border-border">
+          <aside className={cn("overflow-y-auto border-r border-border", currentId ? "hidden lg:block" : "block")}>
             <ul>
               {conversations.map((c) => (
                 <li key={c.id}>
@@ -126,9 +126,12 @@ export function MessagesView({
               ))}
             </ul>
           </aside>
-          <section className="flex min-h-0 flex-col">
+          <section className={cn("min-h-0 flex-col", currentId ? "flex" : "hidden lg:flex")}>
             <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
               <div className="flex items-center gap-3">
+                <Button size="sm" variant="ghost" className="lg:hidden" onClick={() => router.push("/messages")} aria-label="Back to conversations">
+                  Back
+                </Button>
                 <InitialsAvatar
                   initials={initialsFromName(active?.title ?? "C")}
                   hue={hueFromId(currentId ?? "x")}
@@ -217,13 +220,13 @@ function CardPicker({
   pending,
   start,
   setError,
-}: {
+}: Readonly<{
   people: PublicProfile[];
   peopleQuery: string;
   pending: boolean;
   start: ReturnType<typeof useTransition>[1];
   setError: (value: string | null) => void;
-}) {
+}>) {
   const router = useRouter();
   return (
     <div className="border border-border bg-white p-4">

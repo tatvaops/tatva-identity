@@ -11,23 +11,20 @@ import {
   createSiteJournalEntrySchema,
   createSiteJournalSchema,
 } from "@/lib/domain/site-journal";
+import { SITE_JOURNALS_PATH, siteJournalPath } from "@/lib/domain/site-journal-routes";
 import { isUuid } from "@/lib/domain/messaging-rules";
 
 function revalidateJournals(slug?: string) {
-  revalidatePath("/projects");
-  revalidatePath("/journals");
+  revalidatePath(SITE_JOURNALS_PATH);
   revalidatePath("/admin/site-journals");
-  if (slug) {
-    revalidatePath(`/projects/${slug}`);
-    revalidatePath(`/journals/${slug}`);
-  }
+  if (slug) revalidatePath(siteJournalPath(slug));
 }
 
 export async function createSiteJournalAction(input: unknown): Promise<ActionResult> {
-  const limited = await limitAction("site-journal-create", 8, 60_000);
-  if (limited) return limited;
   const auth = await requireUser();
   if (auth.error || !auth.supabase || !auth.ctx.userId || !auth.ctx.profile) return fail(auth.error ?? "Unavailable");
+  const limited = await limitAction(`site-journal-create:${auth.ctx.userId}`, 8, 60_000);
+  if (limited) return limited;
   const parsed = createSiteJournalSchema.safeParse(input);
   if (!parsed.success) return fail("Enter a title, start date and the project facts you have.");
   const start = parsed.data.timeline_start_date;
@@ -64,10 +61,10 @@ export async function createSiteJournalAction(input: unknown): Promise<ActionRes
 }
 
 export async function addSiteJournalEntryAction(slug: string, input: unknown): Promise<ActionResult> {
-  const limited = await limitAction("site-journal-entry", 20, 60_000);
-  if (limited) return limited;
   const auth = await requireUser();
   if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
+  const limited = await limitAction(`site-journal-entry:${auth.ctx.userId}`, 20, 60_000);
+  if (limited) return limited;
   const parsed = createSiteJournalEntrySchema.safeParse(input);
   if (!parsed.success) return fail("Enter the week, type, title and what happened on site.");
   const journal = await auth.supabase.from("site_journals").select("id, slug, status, owner_id").eq("slug", slug).maybeSingle();
@@ -116,10 +113,10 @@ export async function submitSiteJournalAction(slug: string): Promise<ActionResul
 }
 
 export async function addFieldNoteAction(slug: string, entryId: string, input: unknown): Promise<ActionResult> {
-  const limited = await limitAction("site-journal-note", 30, 60_000);
-  if (limited) return limited;
   const auth = await requireUser();
   if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
+  const limited = await limitAction(`site-journal-note:${auth.ctx.userId}`, 30, 60_000);
+  if (limited) return limited;
   if (!isUuid(entryId)) return fail("That entry is not available.");
   const parsed = createFieldNoteSchema.safeParse(input);
   if (!parsed.success) return fail("Write a field note before posting.");
@@ -127,7 +124,7 @@ export async function addFieldNoteAction(slug: string, entryId: string, input: u
   if (!entry.data) return fail("That entry is not available.");
   const journal = await auth.supabase.from("site_journals").select("slug").eq("id", entry.data.journal_id).eq("slug", slug).maybeSingle();
   if (!journal.data) return fail("That journal is not available.");
-  let parentId: string | null = parsed.data.parent_comment_id ?? null;
+  const parentId: string | null = parsed.data.parent_comment_id ?? null;
   if (parentId) {
     if (!isUuid(parentId)) return fail("That reply target is not available.");
     const parent = await auth.supabase

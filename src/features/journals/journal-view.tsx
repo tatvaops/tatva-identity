@@ -6,6 +6,7 @@ import { YoutubeEmbed } from "@/components/identity/youtube-embed";
 import { PageHeader } from "@/components/ui/section";
 import { EntryFieldNotes, SiteJournalEntryComposer, SubmitJournalButton } from "@/features/journals/journal-forms";
 import type { FieldNoteView, SiteJournalProject } from "@/lib/domain/site-journal";
+import { siteJournalPath } from "@/lib/domain/site-journal-routes";
 
 function healthVariant(health: SiteJournalProject["health"]) {
   if (health === "risk") return "danger" as const;
@@ -13,17 +14,23 @@ function healthVariant(health: SiteJournalProject["health"]) {
   return "success" as const;
 }
 
+function riskVariant(risk: "low" | "medium" | "high") {
+  if (risk === "high") return "danger" as const;
+  if (risk === "medium") return "warning" as const;
+  return "outline" as const;
+}
+
 export function SiteJournalView({
   journal,
   notes,
   signedIn,
   viewerId,
-}: {
+}: Readonly<{
   journal: SiteJournalProject;
   notes: Record<string, FieldNoteView[]>;
   signedIn: boolean;
   viewerId?: string | null;
-}) {
+}>) {
   const owner = journal.canEdit && journal.ownerId === viewerId;
   return (
     <div className="space-y-6 pb-14">
@@ -68,7 +75,7 @@ export function SiteJournalView({
               <div className="flex flex-wrap gap-1.5">
                 <Badge variant="outline">Week {entry.weekNumber}</Badge>
                 <Badge variant="muted">{entry.entryType}</Badge>
-                <Badge variant={entry.riskLevel === "high" ? "danger" : entry.riskLevel === "medium" ? "warning" : "outline"}>
+                <Badge variant={riskVariant(entry.riskLevel)}>
                   {entry.riskLevel} risk
                 </Badge>
               </div>
@@ -100,7 +107,7 @@ export function SiteJournalView({
           <h2 className="type-card">Related journals</h2>
           <div className="mt-3 flex flex-wrap gap-2">
             {journal.similarProjects.map((slug) => (
-              <Link key={slug} href={`/projects/${slug}`} className="text-sm font-medium text-brand hover:underline">
+              <Link key={slug} href={siteJournalPath(slug)} className="text-sm font-medium text-brand hover:underline">
                 {slug}
               </Link>
             ))}

@@ -61,7 +61,7 @@ Demo rows are labelled demonstration data. They are not fabricated work history 
 
 ## Platform operations (`/admin`)
 
-Signed-in platform operators only. Bootstrap the first operator with `PLATFORM_ADMIN_HANDLES` or `PLATFORM_ADMIN_USER_IDS`, then grant others from Settings. All writes go through the service role after `requirePlatformAdmin()`. Hidden profiles/orgs/posts stay off public discovery. Identity / employment / trade flags can be set by a reviewer here. Hire, Quote and Vertex tables are not in this console.
+The temporary development default keeps `/admin` open to signed-in accounts. This is intentionally deferred and must not be treated as production-safe. Before production, set `PLATFORM_ADMIN_OPEN=false` and bootstrap the first operator with `PLATFORM_ADMIN_HANDLES` or `PLATFORM_ADMIN_USER_IDS`, then grant others from Settings. All writes go through the service role after `requirePlatformAdmin()`. Hidden profiles/orgs/posts stay off public discovery. Identity / employment / trade flags can be set by a reviewer here. Hire, Quote and Vertex tables are not in this console.
 
 ---
 
@@ -89,3 +89,17 @@ Apply `20260905120000_identiti_marketplace.sql` and `20260905121000_identiti_see
 8. Open `/service-brands/aurum-habitat` after the IDENTITI seed. Confirm requirement fit, featured projects, labelled AI pulse and trust breakdown.
 9. Signed-out Discuss → sign-in. Signed-in Discuss → Vantage `/forums/new?context=` or an honest “signing key not configured” page. View discussions stays pending until a slug is mapped.
 10. `/admin/forums` can store a thread slug. `/admin` organisation page can set AI source. Settings can mint a webhook credential (plaintext once).
+
+## Quality and release checks
+
+Run these locally before deploying:
+
+```text
+npm test
+npm run lint
+npx tsc --noEmit
+npm run build
+git diff --check
+```
+
+Validate database-dependent changes against a staging Supabase project before applying them to live. At minimum, verify anonymous, signed-in owner, contributor, and unrelated-user access for site journals; upload limits for images and MP4/WebM; and the public/private storage policies. The repository has domain tests but does not yet replace browser E2E or a staging RLS test suite.

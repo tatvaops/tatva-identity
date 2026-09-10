@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Wordmark } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,11 @@ export function SignInForm() {
     search.get("error") === "link" ? "That sign-in link is invalid or expired. Request a WhatsApp code instead." : null,
   );
   const [devOtp, setDevOtp] = useState<string | null>(null);
+  const codeRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (step === "code") codeRef.current?.focus();
+  }, [step]);
 
   let submitLabel = "Sign in";
   if (pending) submitLabel = "Working…";
@@ -41,7 +46,9 @@ export function SignInForm() {
       <Wordmark />
       <p className="mt-6 type-micro text-brand">Passport access</p>
       <h1 className="mt-2 type-page">Sign in</h1>
-      <p className="mt-1 text-sm text-muted-foreground">{helpText}</p>
+      <p id="sign-in-help" className="mt-1 text-sm text-muted-foreground">
+        {helpText}
+      </p>
       <form
         className="mt-4 space-y-3"
         onSubmit={async (event) => {
@@ -101,7 +108,11 @@ export function SignInForm() {
           <span className="grid h-10 place-items-center rounded-lg border border-input bg-muted px-3 text-sm text-muted-foreground">
             +91
           </span>
+          <label htmlFor="phone" className="sr-only">
+            Mobile number
+          </label>
           <Input
+            id="phone"
             type="tel"
             inputMode="numeric"
             autoComplete="tel"
@@ -110,22 +121,27 @@ export function SignInForm() {
             value={phone}
             onChange={(event) => setPhone(digitsOnly(event.target.value).slice(0, 10))}
             placeholder="9876543210"
-            aria-label="Mobile number"
             disabled={pending || step === "code"}
           />
         </div>
         {step === "code" ? (
-          <Input
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            required
-            maxLength={6}
-            value={code}
-            onChange={(event) => setCode(extractOtp(event.target.value))}
-            placeholder="6-digit code"
-            aria-label="WhatsApp code"
-            disabled={pending}
-          />
+          <>
+            <label htmlFor="otp-code" className="sr-only">
+              WhatsApp code
+            </label>
+            <Input
+              ref={codeRef}
+              id="otp-code"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              required
+              maxLength={6}
+              value={code}
+              onChange={(event) => setCode(extractOtp(event.target.value))}
+              placeholder="6-digit code"
+              disabled={pending}
+            />
+          </>
         ) : null}
         <Button type="submit" className="w-full" disabled={pending}>
           {submitLabel}
@@ -135,7 +151,7 @@ export function SignInForm() {
         <output className="mt-3 block text-sm text-slate-700">Dev code: {devOtp}</output>
       ) : null}
       {error ? (
-        <p className="mt-3 text-sm text-rose-700" role="alert">
+        <p className="mt-3 text-sm text-rose-700" role="alert" aria-live="assertive">
           {error}
         </p>
       ) : null}

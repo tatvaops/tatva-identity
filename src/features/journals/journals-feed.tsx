@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/states/empty-state";
 import { PageHeader } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
 import type { SiteJournalProject } from "@/lib/domain/site-journal";
+import { NEW_SITE_JOURNAL_PATH, SITE_JOURNALS_PATH, siteJournalPath } from "@/lib/domain/site-journal-routes";
 
 function healthVariant(health: SiteJournalProject["health"]) {
   if (health === "risk") return "danger" as const;
@@ -16,9 +17,9 @@ function healthVariant(health: SiteJournalProject["health"]) {
   return "success" as const;
 }
 
-export function JournalCard({ journal }: { journal: SiteJournalProject }) {
+export function JournalCard({ journal }: Readonly<{ journal: SiteJournalProject }>) {
   return (
-    <Link href={`/projects/${journal.slug}`}>
+    <Link href={siteJournalPath(journal.slug)}>
       <Card className="overflow-hidden">
         <PhotoFrame src={journal.mediaCover || null} alt="" className="h-40" />
         <div className="space-y-2 p-4">
@@ -49,14 +50,14 @@ export function JournalsFeedView({
   pulse,
   signedIn,
   filters,
-}: {
+}: Readonly<{
   journals: SiteJournalProject[];
   cities: string[];
   types: string[];
   pulse: { published: number; watch: number; risk: number; cities: number };
   signedIn: boolean;
   filters: { q?: string; city?: string; projectType?: string; risk?: string };
-}) {
+}>) {
   const router = useRouter();
   return (
     <div>
@@ -67,11 +68,11 @@ export function JournalsFeedView({
         action={
           signedIn ? (
             <Button asChild>
-              <Link href="/projects/new">Start a journal</Link>
+              <Link href={NEW_SITE_JOURNAL_PATH}>Start a journal</Link>
             </Button>
           ) : (
             <Button asChild variant="outline">
-              <Link href="/auth/sign-in?next=/projects/new">Sign in to start</Link>
+              <Link href={`/auth/sign-in?next=${encodeURIComponent(NEW_SITE_JOURNAL_PATH)}`}>Sign in to start</Link>
             </Button>
           )
         }
@@ -96,10 +97,12 @@ export function JournalsFeedView({
           const form = new FormData(event.currentTarget);
           const next = new URLSearchParams();
           for (const key of ["q", "city", "projectType", "risk"] as const) {
-            const value = String(form.get(key) ?? "").trim();
+            const raw = form.get(key);
+            const value = typeof raw === "string" ? raw.trim() : "";
             if (value && value !== "all") next.set(key, value);
           }
-          router.push(`/projects${next.toString() ? `?${next}` : ""}`);
+          const query = next.toString();
+          router.push(query ? `${SITE_JOURNALS_PATH}?${query}` : SITE_JOURNALS_PATH);
         }}
       >
         <input

@@ -51,11 +51,15 @@ export async function kvDel(key: string) {
 }
 
 export async function kvIncr(key: string, ttlMs: number) {
-  const client = await redis();
-  if (client) {
-    const count = await client.incr(key);
-    if (count === 1) await client.pexpire(key, ttlMs);
-    return count;
+  try {
+    const client = await redis();
+    if (client) {
+      const count = await client.incr(key);
+      if (count === 1) await client.pexpire(key, ttlMs);
+      return count;
+    }
+  } catch {
+    // Fall back to a bounded local limiter when Redis is unavailable.
   }
   const now = Date.now();
   prune(now);

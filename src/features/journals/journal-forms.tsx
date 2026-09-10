@@ -15,8 +15,14 @@ import {
   submitSiteJournalAction,
 } from "@/lib/actions/site-journals";
 import { ENTRY_TYPES, type FieldNoteView } from "@/lib/domain/site-journal";
+import { siteJournalPath } from "@/lib/domain/site-journal-routes";
 
-function FormError({ error }: { error: string | null }) {
+function formValue(form: FormData, name: string, fallback = "") {
+  const value = form.get(name);
+  return typeof value === "string" ? value : fallback;
+}
+
+function FormError({ error }: Readonly<{ error: string | null }>) {
   if (!error) return null;
   return (
     <p className="text-sm text-rose-700" role="alert">
@@ -39,22 +45,22 @@ export function SiteJournalCreateForm() {
           const form = new FormData(event.currentTarget);
           start(async () => {
             const result = await createSiteJournalAction({
-              title: String(form.get("title") ?? ""),
-              description: String(form.get("description") ?? ""),
-              cover_media: cover || String(form.get("cover_media") ?? ""),
-              project_type: String(form.get("project_type") ?? ""),
-              city: String(form.get("city") ?? ""),
-              region: String(form.get("region") ?? ""),
-              budget_range: String(form.get("budget_range") ?? ""),
-              timeline_start_date: String(form.get("timeline_start_date") ?? ""),
-              tags: String(form.get("tags") ?? "")
+              title: formValue(form, "title"),
+              description: formValue(form, "description"),
+              cover_media: cover || formValue(form, "cover_media"),
+              project_type: formValue(form, "project_type"),
+              city: formValue(form, "city"),
+              region: formValue(form, "region"),
+              budget_range: formValue(form, "budget_range"),
+              timeline_start_date: formValue(form, "timeline_start_date"),
+              tags: formValue(form, "tags")
                 .split(",")
                 .map((item) => item.trim())
                 .filter(Boolean),
-              visibility: String(form.get("visibility") ?? "public"),
+              visibility: formValue(form, "visibility", "public"),
             });
             if (!result.ok) setError(result.error);
-            else router.push(`/projects/${result.id}`);
+            else router.push(siteJournalPath(result.id ?? ""));
           });
         }}
       >
@@ -110,7 +116,7 @@ export function SiteJournalCreateForm() {
   );
 }
 
-export function SiteJournalEntryComposer({ slug }: { slug: string }) {
+export function SiteJournalEntryComposer({ slug }: Readonly<{ slug: string }>) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -124,18 +130,18 @@ export function SiteJournalEntryComposer({ slug }: { slug: string }) {
           const form = new FormData(event.currentTarget);
           start(async () => {
             const result = await addSiteJournalEntryAction(slug, {
-              week_number: String(form.get("week_number") ?? ""),
-              entry_type: String(form.get("entry_type") ?? ""),
-              title: String(form.get("title") ?? ""),
-              content: String(form.get("content") ?? ""),
-              risk_level: String(form.get("risk_level") ?? "low"),
-              tags: String(form.get("tags") ?? "")
+              week_number: formValue(form, "week_number"),
+              entry_type: formValue(form, "entry_type"),
+              title: formValue(form, "title"),
+              content: formValue(form, "content"),
+              risk_level: formValue(form, "risk_level", "low"),
+              tags: formValue(form, "tags")
                 .split(",")
                 .map((item) => item.trim())
                 .filter(Boolean),
               location_context: {
-                city: String(form.get("location_city") ?? ""),
-                region: String(form.get("location_region") ?? ""),
+                city: formValue(form, "location_city"),
+                region: formValue(form, "location_region"),
               },
             });
             if (!result.ok) setError(result.error);
@@ -176,7 +182,7 @@ export function SiteJournalEntryComposer({ slug }: { slug: string }) {
   );
 }
 
-export function SubmitJournalButton({ slug }: { slug: string }) {
+export function SubmitJournalButton({ slug }: Readonly<{ slug: string }>) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -206,13 +212,13 @@ export function EntryFieldNotes({
   notes,
   signedIn,
   viewerId,
-}: {
+}: Readonly<{
   slug: string;
   entryId: string;
   notes: FieldNoteView[];
   signedIn: boolean;
   viewerId?: string | null;
-}) {
+}>) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -255,7 +261,7 @@ export function EntryFieldNotes({
             const form = new FormData(event.currentTarget);
             start(async () => {
               const result = await addFieldNoteAction(slug, entryId, {
-                content: String(form.get("content") ?? ""),
+                content: formValue(form, "content"),
               });
               if (!result.ok) setError(result.error);
               else {

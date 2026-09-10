@@ -6,7 +6,7 @@ Live development site: [https://tatva-identity-dev.vercel.app](https://tatva-ide
 Repository: [https://github.com/tatvaops/tatva-identity](https://github.com/tatvaops/tatva-identity)  
 Vantage (separate product): [https://vantage.withtatva.ai](https://vantage.withtatva.ai)
 
-This README is the operator and engineering map of the platform as built. Deeper notes live in `docs/`.
+This README is the operator and engineering map of the platform as built. Deeper notes live in `docs/`. Release validation is documented in [`docs/release-readiness.md`](docs/release-readiness.md).
 
 ---
 
@@ -61,7 +61,7 @@ Browser
 | Host | **Vercel only.** There is no Render worker or separate API process |
 | Database | Supabase Postgres. Schema in `supabase/migrations/` |
 | Auth | WhatsApp OTP → `auth.admin.createUser` → magic-link cookie session |
-| Storage | `identity-public` (images, 5 MB, jpeg/png/webp/gif), `identity-private` (owner documents) |
+| Storage | `identity-public` (images up to 5 MB; MP4/WebM videos up to 50 MB), `identity-private` (owner documents) |
 | UI | Tailwind v4, tokens in `src/app/globals.css` (page wrap 1480px, primary `#2437d4`) |
 | Tests | `npm test` (Node test runner via `tsx`) |
 
@@ -71,7 +71,7 @@ Browser
 
 ## 4. Public network (what a visitor sees)
 
-Primary header: Service brand, Product brand, Professional, Gig worker, Projects, Brand forum, Admin control (operators), Profile. Feed, Jobs, Gigs, Messages, Companies sit in account / secondary navigation.
+Primary header: Service brand, Product brand, Professional, Gig worker, Projects, Site journals, Brand forum, Admin control (operators), Profile. Feed, Jobs, Gigs, Messages, Companies sit in account / secondary navigation.
 
 ### 4.1 Directories and profiles
 
@@ -91,6 +91,7 @@ Primary header: Service brand, Product brand, Professional, Gig worker, Projects
 | `/companies`, `/companies/[slug]` | All organisation types; edit, jobs, gigs, reviews |
 | `/org/[slug]` | Alias onto the company / brand passport |
 | `/projects`, `/projects/[id]` | Network projects (covers, YouTube, QC notes). Not a Vertex site record |
+| `/journals`, `/journals/[slug]`, `/journals/new` | Site journals (weekly execution diaries). Separate from verified project identity |
 | `/jobs`, `/jobs/[id]`, `/jobs/create` | Permanent / contract listings. Close without deleting |
 | `/gigs`, `/gigs/[id]`, `/gigs/create` | Shift / crew listings. Seats, trade, site name |
 | `/services` | Organisation and profile services catalogue |
@@ -192,9 +193,9 @@ Occupation: Professional (`white_collar`), Freelancer, Gig / site worker (`blue_
 
 ### 5.4 Media
 
-Public photos: upload JPEG/PNG/WebP/GIF under 5 MB into `identity-public`, or paste an `https://` URL. Storage paths are resolved by `publicMediaUrl`.
+Public photos: upload JPEG/PNG/WebP/GIF under 5 MB into `identity-public`, or paste an `https://` URL. Walkthrough videos may be MP4/WebM uploads up to 50 MB; website and YouTube references remain URLs. Storage paths are resolved by `publicMediaUrl`.
 
-Video on this product is a **YouTube URL** (project walkthrough, organisation showreel). The public bucket does not accept `video/mp4`.
+Video on this product may be a YouTube URL or an MP4/WebM upload where the feature supports device uploads. The public bucket limits uploaded videos to 50 MB.
 
 Broken seed Unsplash IDs are remapped in `src/lib/media/public-url.ts`. `PhotoFrame` hides on load error so empty navy panels do not appear.
 

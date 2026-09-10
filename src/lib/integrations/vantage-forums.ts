@@ -115,8 +115,11 @@ export async function fetchVantageHub(entityType: ForumEntityType, entityId: str
     const response = await fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
+      signal: AbortSignal.timeout(5_000),
     });
     if (!response.ok) return null;
+    const contentLength = Number(response.headers.get("content-length") ?? "0");
+    if (contentLength > 64_000) return null;
     const body = (await response.json()) as {
       thread_slug?: string;
       canonical_url?: string;

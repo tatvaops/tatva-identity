@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, Briefcase, Building2, Hammer, MessageCircle, Search, UserRound } from "lucide-react";
+import { Bell, Briefcase, Building2, Hammer, Menu, MessageCircle, Search, UserRound } from "lucide-react";
 import { InitialsAvatar } from "@/components/identity/visuals";
 import { Button } from "@/components/ui/button";
 import {
@@ -60,6 +60,7 @@ export function GlobalHeader() {
     { href: "/professionals", label: "Professionals" },
     { href: "/gig-workers", label: "Gig workers" },
     { href: "/projects", label: "Projects" },
+    { href: "/journals", label: "Site journals" },
     { href: "/forums", label: "Vantage" },
     ...(isPlatformAdmin ? [{ href: "/admin", label: "Admin" }] : []),
   ];
@@ -151,6 +152,9 @@ export function GlobalHeader() {
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/companies">Companies</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/journals">Site journals</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
@@ -255,7 +259,7 @@ export function MobileBottomNav() {
       className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-white pb-[env(safe-area-inset-bottom)] lg:hidden"
       aria-label="Mobile"
     >
-      <ul className="grid grid-cols-5">
+      <ul className="grid grid-cols-6">
         {items.map((item) => {
           const active = item.match(pathname);
           return (
@@ -274,6 +278,50 @@ export function MobileBottomNav() {
             </li>
           );
         })}
+        <li>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="flex min-h-14 w-full flex-col items-center justify-center gap-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground"
+                aria-label="More navigation"
+              >
+                <Menu className="size-5" aria-hidden />
+                More
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="top" align="end" className="mb-2">
+              <DropdownMenuLabel>Explore</DropdownMenuLabel>
+              <DropdownMenuItem asChild>
+                <Link href="/service-brands">Service brands</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/product-brands">Product brands</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/journals">Site journals</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/forums">Vantage</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/companies">Companies</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/services">Services</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/search">Search</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/notifications">Notifications</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/settings">Settings</Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </li>
       </ul>
     </nav>
   );

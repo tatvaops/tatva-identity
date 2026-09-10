@@ -1,10 +1,9 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { ProjectProfileView } from "@/features/projects/project-profile";
 import { RecordProjectView } from "@/features/projects/record-project-view";
-import { SiteJournalView } from "@/features/journals/journal-view";
 import { getProjectBySlug } from "@/lib/data/network";
-import { getSiteJournalBySlug, listFieldNotesByEntries } from "@/lib/data/site-journals";
+import { getSiteJournalBySlug } from "@/lib/data/site-journals";
 import { listProductUsesForProject } from "@/lib/data/identiti";
 import { isSaved, listProjectCompanies, listProjectMedia, listProjectPeople } from "@/lib/data/workspace";
 import { listFeedPosts } from "@/lib/data/discovery";
@@ -23,15 +22,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description: project.data.summary,
       path: `/projects/${project.data.slug}`,
       image: project.data.coverImageUrl,
-    });
-  }
-  const journal = await getSiteJournalBySlug(id, true);
-  if (journal.data) {
-    return entityMetadata({
-      title: journal.data.title,
-      description: journal.data.aiSummary,
-      path: `/projects/${journal.data.slug}`,
-      image: journal.data.mediaCover || null,
     });
   }
   return { title: "Project" };
@@ -72,14 +62,7 @@ export default async function ProjectPage({ params }: PageProps) {
     );
   }
   const journal = await getSiteJournalBySlug(id, true);
-  if (journal.meta.error) return <QueryNotice configured={journal.meta.configured} error={journal.meta.error} />;
-  if (!journal.data) {
-    if (!project.meta.configured) return <QueryNotice configured={false} error={null} />;
-    notFound();
-  }
-  const session = await getAuthContext();
-  const notes = await listFieldNotesByEntries(journal.data.timelineEntries.map((entry) => entry.id));
-  return (
-    <SiteJournalView journal={journal.data} notes={notes} signedIn={Boolean(session.userId)} viewerId={session.userId} />
-  );
+  if (journal.data) redirect(`/journals/${journal.data.slug}`);
+  if (!project.meta.configured) return <QueryNotice configured={false} error={null} />;
+  notFound();
 }

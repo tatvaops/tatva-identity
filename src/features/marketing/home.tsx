@@ -52,6 +52,7 @@ export function MarketingHome({
               ["/service-brands", "Service brands"],
               ["/product-brands", "Product brands"],
               ["/projects", "Projects"],
+              ["/journals", "Site journals"],
               ["/jobs", "Jobs"],
               ["/gigs", "Gigs"],
             ].map(([href, label]) => (

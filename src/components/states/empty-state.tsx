@@ -7,18 +7,20 @@ export function EmptyState({
   body,
   action,
   className,
-}: {
+}: Readonly<{
   title: string;
   body: string;
   action?: ReactNode;
   className?: string;
-}) {
+}>) {
   return (
-    <div className={cn("border border-dashed border-border-strong bg-surface-muted/60 px-6 py-10 text-left", className)}>
+    <output
+      className={cn("border border-dashed border-border-strong bg-surface-muted/60 px-6 py-10 text-left", className)}
+    >
       <p className="type-micro">{title}</p>
       <p className="mt-2 max-w-lg text-sm leading-6 text-text-secondary">{body}</p>
       {action ? <div className="mt-4">{action}</div> : null}
-    </div>
+    </output>
   );
 }
 
@@ -26,11 +28,11 @@ export function ErrorState({
   title = "Couldn't load this page",
   message,
   onRetry,
-}: {
+}: Readonly<{
   title?: string;
   message?: string;
   onRetry?: () => void;
-}) {
+}>) {
   return (
     <div className="border border-border bg-white px-6 py-10" role="alert">
       <p className="type-section">{title}</p>
@@ -44,11 +46,11 @@ export function ErrorState({
   );
 }
 
-export function QueryNotice({ configured, error }: { configured: boolean; error: string | null }) {
+export function QueryNotice({ configured, error }: Readonly<{ configured: boolean; error: string | null }>) {
   if (error) return <ErrorState message={error} />;
   if (!configured) {
     return (
-      <p className="mb-4 text-sm text-muted-foreground">
+      <p className="mb-4 text-sm text-muted-foreground" role="status" aria-live="polite">
         Live data requires Supabase. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY, then apply
         supabase/migrations.
       </p>

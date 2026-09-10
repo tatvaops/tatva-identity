@@ -91,9 +91,17 @@ export const createSiteJournalEntrySchema = z.object({
 
 export const createFieldNoteSchema = z.object({
   content: z.string().trim().min(1).max(2000),
-  parent_comment_id: z.string().uuid().nullable().optional(),
+  parent_comment_id: z.uuid().nullable().optional(),
   author_name: z.string().trim().max(120).optional(),
 });
+
+export function sanitizeJournalSearchTerm(query: string) {
+  return query
+    .replace(/[^a-zA-Z0-9@_\-\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 80);
+}
 
 export const adminJournalPatchSchema = z.object({
   status: z.enum(JOURNAL_STATUSES).optional(),
@@ -307,7 +315,7 @@ export function toSiteJournalProject(input: {
     tags: journal.tags ?? [],
     relatedExperts: [],
     similarProjects: similarSlugs,
-    recommendations: similarSlugs.slice(0, 3).map((slug) => `/projects/${slug}`),
+    recommendations: similarSlugs.slice(0, 3).map((slug) => `/journals/${encodeURIComponent(slug)}`),
     timelineEntries,
     canEdit: Boolean(viewerId && (viewerId === journal.owner_id || contributorIds.has(viewerId))),
   };

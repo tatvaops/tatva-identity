@@ -8,6 +8,11 @@ const PUBLIC_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gi
 const VIDEO_TYPES = new Set(["video/mp4", "video/webm"]);
 const PRIVATE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
 
+function formValue(formData: FormData, name: string, fallback = "") {
+  const value = formData.get(name);
+  return typeof value === "string" ? value : fallback;
+}
+
 function extensionFor(type: string) {
   if (type === "image/png") return "png";
   if (type === "image/webp") return "webp";
@@ -30,7 +35,7 @@ export async function uploadPublicImage(formData: FormData): Promise<ActionResul
   const auth = await requireUser();
   if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
   const file = formData.get("file");
-  const kind = String(formData.get("kind") ?? "avatar");
+  const kind = formValue(formData, "kind", "avatar");
   const video = kind === "video" || VIDEO_TYPES.has(file instanceof File ? file.type : "");
   if (!(file instanceof File) || file.size === 0) return fail(video ? "Choose a video first." : "Choose an image first.");
   if (video) {
@@ -40,6 +45,13 @@ export async function uploadPublicImage(formData: FormData): Promise<ActionResul
     if (file.size > 5 * 1024 * 1024) return fail("Keep images under 5 MB.");
     if (!PUBLIC_TYPES.has(file.type)) return fail("Use a JPEG, PNG or WebP image.");
   }
+  let organisationId: string | null = null;
+  if (!video && (kind === "org-logo" || kind === "org-cover")) {
+    const slug = formValue(formData, "slug").trim();
+    if (!slug) return fail("Choose the organisation first.");
+    organisationId = await organisationIdIfStaff(auth.supabase, slug, auth.ctx.userId);
+    if (!organisationId) return fail("You cannot update this organisation.");
+  }
   const path = `${auth.ctx.userId}/${kind}-${Date.now()}.${extensionFor(file.type)}`;
   const uploaded = await auth.supabase.storage.from("identity-public").upload(path, file, {
     upsert: true,
@@ -47,21 +59,28 @@ export async function uploadPublicImage(formData: FormData): Promise<ActionResul
   });
   if (uploaded.error) return fail(uploaded.error.message);
   if (!video && kind === "avatar") {
-    await auth.supabase.from("profiles").update({ avatar_path: path }).eq("id", auth.ctx.userId);
+    const updated = await auth.supabase.from("profiles").update({ avatar_path: path }).eq("id", auth.ctx.userId);
+    if (updated.error) {
+      await auth.supabase.storage.from("identity-public").remove([path]);
+      return fail("The image uploaded, but the profile could not be updated.");
+    }
   }
   if (!video && kind === "cover") {
-    await auth.supabase.from("profiles").update({ cover_path: path }).eq("id", auth.ctx.userId);
+    const updated = await auth.supabase.from("profiles").update({ cover_path: path }).eq("id", auth.ctx.userId);
+    if (updated.error) {
+      await auth.supabase.storage.from("identity-public").remove([path]);
+      return fail("The image uploaded, but the profile could not be updated.");
+    }
   }
   if (!video && (kind === "org-logo" || kind === "org-cover")) {
-    const slug = String(formData.get("slug") ?? "");
-    if (!slug) return fail("Choose the organisation first.");
-    const organisationId = await organisationIdIfStaff(auth.supabase, slug, auth.ctx.userId);
-    if (!organisationId) return fail("You cannot update this organisation.");
     const updated = await auth.supabase
       .from("organisations")
       .update(kind === "org-logo" ? { logo_path: path } : { cover_path: path })
       .eq("id", organisationId);
-    if (updated.error) return fail(updated.error.message);
+    if (updated.error) {
+      await auth.supabase.storage.from("identity-public").remove([path]);
+      return fail("The image uploaded, but the organisation could not be updated.");
+    }
   }
   revalidatePath("/people");
   revalidatePath("/professionals");
@@ -75,7 +94,7 @@ export async function uploadPrivateDocument(formData: FormData): Promise<ActionR
   const auth = await requireUser();
   if (auth.error || !auth.supabase || !auth.ctx.userId) return fail(auth.error ?? "Unavailable");
   const file = formData.get("file");
-  const label = String(formData.get("label") ?? "Document").trim() || "Document";
+  const label = formValue(formData, "label", "Document").trim() || "Document";
   if (!(file instanceof File) || file.size === 0) return fail("Choose a file first.");
   if (file.size > 10 * 1024 * 1024) return fail("Keep files under 10 MB.");
   if (!PRIVATE_TYPES.has(file.type)) return fail("Use a JPEG, PNG, WebP or PDF.");
@@ -90,7 +109,10 @@ export async function uploadPrivateDocument(formData: FormData): Promise<ActionR
     label,
     storage_path: path,
   });
-  if (error) return fail(error.message);
+  if (error) {
+    await auth.supabase.storage.from("identity-private").remove([path]);
+    return fail("The document uploaded, but it could not be registered.");
+  }
   revalidatePath("/passport");
   revalidatePath("/passport/documents");
   return { ok: true };
@@ -119,7 +141,8 @@ export async function deletePrivateDocument(documentId: string): Promise<ActionR
     .eq("id", documentId)
     .maybeSingle();
   if (!document.data || document.data.profile_id !== auth.ctx.userId) return fail("Document not found.");
-  await auth.supabase.storage.from("identity-private").remove([document.data.storage_path]);
+  const removed = await auth.supabase.storage.from("identity-private").remove([document.data.storage_path]);
+  if (removed.error) return fail("Could not remove that document.");
   const { error } = await auth.supabase.from("profile_documents").delete().eq("id", documentId).eq("profile_id", auth.ctx.userId);
   if (error) return fail(error.message);
   revalidatePath("/passport");

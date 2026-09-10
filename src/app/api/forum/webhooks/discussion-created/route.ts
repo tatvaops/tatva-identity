@@ -3,6 +3,17 @@ import { timingSafeEqual } from "node:crypto";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { isForumEntityType } from "@/lib/domain/identiti-routes";
 import { hashCredential } from "@/lib/domain/forum-token";
+import { rateLimit } from "@/lib/auth/rate-limit";
+import { z } from "zod";
+
+const webhookSchema = z.object({
+  entity_type: z.string().max(40),
+  entity_id: z.uuid(),
+  forum_hub_id: z.string().max(120).optional().nullable(),
+  forum_thread_id: z.string().max(120).optional().nullable(),
+  thread_slug: z.string().trim().max(200).optional().nullable(),
+  canonical_url: z.url().max(2000).optional().nullable(),
+});
 
 function bearer(request: Request) {
   const header = request.headers.get("authorization") ?? "";
@@ -34,26 +45,28 @@ async function authorized(token: string) {
 }
 
 export async function POST(request: Request) {
+  const limited = await rateLimit({ key: "forum-webhook", max: 120, windowMs: 60_000 });
+  if (!limited.ok) {
+    return NextResponse.json(
+      { error: "Too many webhook requests" },
+      { status: 429, headers: { "Retry-After": String(limited.retryAfterSec) } },
+    );
+  }
   const token = bearer(request);
   if (!(await authorized(token))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  let body: {
-    entity_type?: string;
-    entity_id?: string;
-    forum_hub_id?: string;
-    forum_thread_id?: string;
-    thread_slug?: string;
-    canonical_url?: string;
-  };
+  let rawBody: unknown;
   try {
-    body = await request.json();
+    rawBody = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
-  if (!body.entity_type || !isForumEntityType(body.entity_type) || !body.entity_id) {
-    return NextResponse.json({ error: "entity_type and entity_id are required" }, { status: 400 });
+  const parsed = webhookSchema.safeParse(rawBody);
+  if (!parsed.success || !isForumEntityType(parsed.data?.entity_type ?? "")) {
+    return NextResponse.json({ error: "Invalid forum mapping payload" }, { status: 400 });
   }
+  const body = parsed.data;
   const admin = createAdminSupabase();
   if (!admin) return NextResponse.json({ error: "Unavailable" }, { status: 503 });
   const patch = {

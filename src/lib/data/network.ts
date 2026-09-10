@@ -61,6 +61,9 @@ export type PeopleFilters = {
 
 export type ConnectionState = "connect" | "pending" | "incoming" | "connected";
 
+const NETWORK_PROJECT_COLUMNS =
+  "id, slug, name, summary, project_type, status, city, locality, verified, client_organisation_id, main_contractor_id, cover_image_url, youtube_url, value_label, duration_label, qc_notes, testimonial";
+
 function sanitizeFilter(value?: string) {
   if (!value) return "";
   return value.replace(/[%_,.()"'\\]/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
@@ -189,7 +192,7 @@ export async function listProjects(options: ListOptions & { query?: string } = {
   if (!supabase) return unconfiguredList();
   const range = pageRange(options, 80);
   const query = sanitizeFilter(options.query);
-  let q = supabase.from("network_projects").select("*", { count: "exact" }).order("name");
+  let q = supabase.from("network_projects").select(NETWORK_PROJECT_COLUMNS, { count: "exact" }).order("name");
   if (query) q = q.or(`name.ilike.%${query}%,summary.ilike.%${query}%,city.ilike.%${query}%`);
   if (range) q = q.range(range.from, range.to);
   const { data, error, count } = await q;
@@ -200,10 +203,10 @@ export async function listProjects(options: ListOptions & { query?: string } = {
 export async function getProjectBySlug(slug: string): Promise<ItemResult<NetworkProject>> {
   const supabase = await createServerSupabase();
   if (!supabase) return unconfiguredItem();
-  const { data, error } = await supabase.from("network_projects").select("*").eq("slug", slug).maybeSingle();
+  const { data, error } = await supabase.from("network_projects").select(NETWORK_PROJECT_COLUMNS).eq("slug", slug).maybeSingle();
   if (error) return itemFail(error.message);
   if (data) return itemOk(mapProject(data));
-  const byId = await supabase.from("network_projects").select("*").eq("id", slug).maybeSingle();
+  const byId = await supabase.from("network_projects").select(NETWORK_PROJECT_COLUMNS).eq("id", slug).maybeSingle();
   if (byId.error) return itemFail(byId.error.message);
   return itemOk(byId.data ? mapProject(byId.data) : null);
 }

@@ -7,6 +7,7 @@ import { requirePlatformAdminResult } from "@/lib/admin/access";
 import { adminJournalPatchSchema, adminEntryPatchSchema } from "@/lib/domain/site-journal";
 import { isUuid } from "@/lib/domain/messaging-rules";
 import type { SiteJournalRow } from "@/lib/domain/site-journal";
+import { SITE_JOURNALS_PATH } from "@/lib/domain/site-journal-routes";
 
 async function gated() {
   const limited = await limitAction("admin-write", 80, 60_000);
@@ -22,8 +23,7 @@ async function gated() {
 function revalidate() {
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/site-journals");
-  revalidatePath("/projects");
-  revalidatePath("/journals");
+  revalidatePath(SITE_JOURNALS_PATH, "layout");
 }
 
 export async function listAdminSiteJournals(filters: { status?: string; q?: string } = {}) {

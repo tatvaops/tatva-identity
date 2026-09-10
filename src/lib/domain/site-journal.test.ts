@@ -6,6 +6,7 @@ import {
   createSiteJournalSchema,
   mapHealthToUi,
   progressPercent,
+  sanitizeJournalSearchTerm,
   toSiteJournalProject,
   timelineStage,
   type SiteJournalEntryRow,
@@ -90,6 +91,11 @@ describe("site journal mapping", () => {
       }).success,
       true,
     );
+  });
+
+  it("sanitizes journal search input for PostgREST filters", () => {
+    assert.equal(sanitizeJournalSearchTerm("steel%,(delay). Hyderabad"), "steel delay Hyderabad");
+    assert.equal(sanitizeJournalSearchTerm("x".repeat(100)).length, 80);
   });
 
   it("gates submit and entries by status", () => {

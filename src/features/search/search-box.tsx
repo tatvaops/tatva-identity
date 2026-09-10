@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Building2, Briefcase, Hammer, Search, UserRound } from "lucide-react";
+import { BookOpen, Building2, Briefcase, Hammer, Search, UserRound } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { searchPlaceholder } from "@/lib/config";
@@ -18,6 +18,7 @@ const CATEGORIES = [
   { href: "/service-brands", label: "Service brands", icon: Building2 },
   { href: "/product-brands", label: "Product brands", icon: Briefcase },
   { href: "/projects", label: "Projects", icon: Hammer },
+  { href: "/journals", label: "Site journals", icon: BookOpen },
   { href: "/jobs", label: "Jobs", icon: Briefcase },
   { href: "/gigs", label: "Gigs", icon: Hammer },
   { href: "/services", label: "Services", icon: Search },
@@ -43,16 +44,18 @@ export function SearchBox({
   initialQuery = "",
   size = "header",
   entity,
-}: {
+}: Readonly<{
   initialQuery?: string;
   size?: "header" | "page";
   entity?: string;
-}) {
+}>) {
   const router = useRouter();
   const [q, setQ] = useState(initialQuery);
   const [open, setOpen] = useState(false);
   const [recent, setRecent] = useState<string[]>([]);
   const [discovery, setDiscovery] = useState<SearchDiscovery | null>(null);
+  const [discoveryLoading, setDiscoveryLoading] = useState(false);
+  const [discoveryError, setDiscoveryError] = useState(false);
   const listId = useId();
   const wrapRef = useRef<HTMLDivElement>(null);
 
@@ -86,12 +89,16 @@ export function SearchBox({
     setRecent(readRecent());
     setOpen(true);
     if (!discovery) {
+      setDiscoveryLoading(true);
+      setDiscoveryError(false);
       void fetch("/api/search/discover")
-        .then((response) => (response.ok ? response.json() : null))
-        .then((payload: SearchDiscovery | null) => {
-          if (payload) setDiscovery(payload);
+        .then(async (response) => {
+          if (!response.ok) throw new Error("Discovery request failed");
+          return (await response.json()) as SearchDiscovery;
         })
-        .catch(() => undefined);
+        .then((payload) => setDiscovery(payload))
+        .catch(() => setDiscoveryError(true))
+        .finally(() => setDiscoveryLoading(false));
     }
   }
 
@@ -122,12 +129,15 @@ export function SearchBox({
           aria-autocomplete="list"
           aria-expanded={open}
           aria-controls={listId}
+          aria-haspopup="listbox"
           className={cn("bg-surface-muted pl-9", size === "page" ? "h-11" : "h-9")}
         />
       </form>
       {open ? (
         <div
           id={listId}
+          role="listbox"
+          aria-label="Search discovery"
           className="absolute z-50 mt-1.5 w-full min-w-[min(100%,28rem)] overflow-hidden rounded-md border border-border bg-white shadow-md"
         >
           <div className="grid grid-cols-2 gap-1 border-b border-border p-2 sm:grid-cols-4">
@@ -137,6 +147,8 @@ export function SearchBox({
                 href={category.href}
                 className="flex items-center gap-2 px-2 py-1.5 text-xs font-medium text-text-secondary hover:bg-surface-muted hover:text-foreground"
                 onClick={() => setOpen(false)}
+                role="option"
+                aria-selected="false"
               >
                 <category.icon className="size-3.5 text-muted-foreground" aria-hidden />
                 {category.label}
@@ -155,6 +167,8 @@ export function SearchBox({
                     setQ(item);
                     go(item);
                   }}
+                  role="option"
+                  aria-selected="false"
                 >
                   <Search className="size-3.5 text-muted-foreground" aria-hidden />
                   {item}
@@ -176,6 +190,8 @@ export function SearchBox({
                         href={item.href}
                         className="block px-2 py-1.5 hover:bg-surface-muted"
                         onClick={() => setOpen(false)}
+                        role="option"
+                        aria-selected="false"
                       >
                         <p className="truncate text-sm font-medium">{item.title}</p>
                         {item.subtitle ? <p className="truncate text-xs text-muted-foreground">{item.subtitle}</p> : null}
@@ -185,9 +201,15 @@ export function SearchBox({
                 );
               })}
             </div>
-          ) : (
-            <p className="px-3 py-3 text-xs text-muted-foreground">Looking across the live network…</p>
-          )}
+          ) : discoveryLoading ? (
+            <p className="px-3 py-3 text-xs text-muted-foreground" role="status" aria-live="polite">
+              Looking across the live network…
+            </p>
+          ) : discoveryError ? (
+            <p className="px-3 py-3 text-xs text-rose-700" role="alert">
+              Discovery is temporarily unavailable. Press Enter to search instead.
+            </p>
+          ) : null}
         </div>
       ) : null}
     </div>

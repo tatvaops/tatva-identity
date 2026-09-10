@@ -3,14 +3,15 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { AdminHeader, AdminTable, adminDate } from "@/features/admin/admin-chrome";
+import { AdminTable, adminDate } from "@/features/admin/admin-chrome";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/states/empty-state";
 import { adminPatchSiteJournal } from "@/lib/admin/site-journal-actions";
 import type { SiteJournalRow } from "@/lib/domain/site-journal";
+import { siteJournalPath } from "@/lib/domain/site-journal-routes";
 
-export function SiteJournalsTable({ rows }: { rows: SiteJournalRow[] }) {
+export function SiteJournalsTable({ rows }: Readonly<{ rows: SiteJournalRow[] }>) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -23,7 +24,7 @@ export function SiteJournalsTable({ rows }: { rows: SiteJournalRow[] }) {
         {rows.map((row) => (
           <tr key={row.id}>
             <td className="px-3 py-3">
-              <Link href={`/projects/${row.slug}`} className="font-medium hover:text-primary">
+              <Link href={siteJournalPath(row.slug)} className="font-medium hover:text-primary">
                 {row.title}
               </Link>
             </td>
