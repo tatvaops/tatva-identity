@@ -7,7 +7,7 @@ import { AdminTable, adminDate } from "@/features/admin/admin-chrome";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/states/empty-state";
-import { adminPatchSiteJournal } from "@/lib/admin/site-journal-actions";
+import { adminPatchSiteJournal, adminPublishSiteJournalWithAi } from "@/lib/admin/site-journal-actions";
 import type { SiteJournalRow } from "@/lib/domain/site-journal";
 import { siteJournalPath } from "@/lib/domain/site-journal-routes";
 
@@ -37,19 +37,35 @@ export function SiteJournalsTable({ rows }: Readonly<{ rows: SiteJournalRow[] }>
             <td className="px-3 py-3">
               <div className="flex flex-wrap gap-1">
                 {row.status === "pending_review" || row.status === "draft" ? (
-                  <Button
-                    size="sm"
-                    disabled={pending}
-                    onClick={() =>
-                      start(async () => {
-                        const result = await adminPatchSiteJournal(row.id, { status: "published" });
-                        if (!result.ok) setError(result.error);
-                        else router.refresh();
-                      })
-                    }
-                  >
-                    Publish
-                  </Button>
+                  <>
+                    <Button
+                      size="sm"
+                      disabled={pending}
+                      onClick={() =>
+                        start(async () => {
+                          const result = await adminPublishSiteJournalWithAi(row.id);
+                          if (!result.ok) setError(result.error);
+                          else router.refresh();
+                        })
+                      }
+                    >
+                      Publish with AI
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={pending}
+                      onClick={() =>
+                        start(async () => {
+                          const result = await adminPatchSiteJournal(row.id, { status: "published" });
+                          if (!result.ok) setError(result.error);
+                          else router.refresh();
+                        })
+                      }
+                    >
+                      Publish
+                    </Button>
+                  </>
                 ) : null}
                 {row.status === "published" ? (
                   <Button

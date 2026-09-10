@@ -49,7 +49,16 @@ export function SiteJournalView({
         <Badge variant="muted">Week {journal.timeline.week}</Badge>
         <Badge variant="muted">{journal.timeline.progressPercent}%</Badge>
       </div>
-      {journal.mediaCover ? <PhotoFrame src={journal.mediaCover} alt="" className="h-64 md:h-80" /> : null}
+      {journal.mediaCover ? (
+        <PhotoFrame src={journal.mediaCover} alt={`${journal.title} site journal cover`} className="h-64 md:h-80" />
+      ) : null}
+      {journal.aiSummary ? (
+        <Card className="border-brand/20 bg-brand/5 p-4">
+          <p className="type-micro text-brand">AI-assisted summary</p>
+          <p className="mt-2 text-sm leading-6 text-text-secondary">{journal.aiSummary}</p>
+          <p className="mt-2 text-xs text-muted-foreground">Generated only from journal fields and weekly entries.</p>
+        </Card>
+      ) : null}
       <div className="grid gap-3 md:grid-cols-3">
         <Card className="p-4 text-sm">
           <p className="type-micro text-muted-foreground">Procurement</p>

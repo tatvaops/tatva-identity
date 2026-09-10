@@ -6,7 +6,7 @@ Live development site: [https://tatva-identity-dev.vercel.app](https://tatva-ide
 Repository: [https://github.com/tatvaops/tatva-identity](https://github.com/tatvaops/tatva-identity)  
 Vantage (separate product): [https://vantage.withtatva.ai](https://vantage.withtatva.ai)
 
-This README is the operator and engineering map of the platform as built. Deeper notes live in `docs/`. Release validation is documented in [`docs/release-readiness.md`](docs/release-readiness.md).
+This README is the operator and engineering map of the platform as built. Deeper notes live in `docs/`. Release validation is documented in [`docs/release-readiness.md`](docs/release-readiness.md). Site Journal “Publish with AI” uses Groq when `GROQ_API_KEY` is configured and falls back to evidence-only generation when it is not.
 
 ---
 

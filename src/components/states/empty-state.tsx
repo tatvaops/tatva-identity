@@ -14,13 +14,15 @@ export function EmptyState({
   className?: string;
 }>) {
   return (
-    <output
+    <div
       className={cn("border border-dashed border-border-strong bg-surface-muted/60 px-6 py-10 text-left", className)}
+      role="status"
+      aria-live="polite"
     >
       <p className="type-micro">{title}</p>
       <p className="mt-2 max-w-lg text-sm leading-6 text-text-secondary">{body}</p>
       {action ? <div className="mt-4">{action}</div> : null}
-    </output>
+    </div>
   );
 }
 

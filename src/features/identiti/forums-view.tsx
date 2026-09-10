@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/states/empty-state";
+import { PhotoFrame } from "@/components/identity/media-photo";
 import { existingThreadUrl, vantageForumsOrigin } from "@/lib/domain/forum";
 import { IdentitiChip, IdentitiSection } from "@/features/identiti/identiti-chrome";
 import { brandPublicHref } from "@/lib/domain/identiti-routes";
@@ -19,12 +20,12 @@ export function ForumsHubView({
   products,
   links,
   signedIn,
-}: {
+}: Readonly<{
   brands: IdentitiBrand[];
   products: { id: string; slug: string; name: string; organisation_id: string }[];
   links: ForumRow[];
   signedIn: boolean;
-}) {
+}>) {
   const byEntity = new Map(links.map((row) => [`${row.entity_type}:${row.entity_id}`, row]));
   const featured = brands[0] ?? null;
   const featuredType = featured?.passportKind === "product_brand" ? "product_brand" : "service_brand";
@@ -58,7 +59,10 @@ export function ForumsHubView({
         </p>
       </section>
 
-      <IdentitiSection eyebrow="Community threads" title="Search brand discussions">
+      <IdentitiSection eyebrow="Community threads" title="Brand discussions">
+        <p className="mb-4 text-sm text-muted-foreground">
+          Browse mapped Vantage threads or start a signed discussion for a brand or product.
+        </p>
         {brands.length === 0 ? (
           <EmptyState title="No brand hubs yet" body="When a service or product brand is published, a forum entry appears here." />
         ) : (
@@ -82,18 +86,25 @@ export function ForumsHubView({
                   : null,
               );
               return (
-                <div key={brand.id} className="flex flex-col gap-4 border border-border p-5 md:flex-row md:items-center md:justify-between">
-                  <div>
+                <div key={brand.id} className="flex flex-col gap-4 border border-border bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between md:p-5">
+                  <div className="flex min-w-0 items-center gap-4">
+                    <PhotoFrame
+                      src={brand.coverPath || brand.logoPath}
+                      alt={`${brand.name} cover`}
+                      className="hidden h-16 w-20 shrink-0 sm:block"
+                    />
+                    <div className="min-w-0">
                     <div className="flex flex-wrap gap-2">
                       <IdentitiChip>{entityType.replace("_", " ")}</IdentitiChip>
                       <IdentitiChip active={Boolean(existing)}>{existing ? "Thread mapped" : "Pending mapping"}</IdentitiChip>
                     </div>
                     <h2 className="mt-2 text-lg font-bold text-[#111a42]">{brand.name}</h2>
                     <p className="text-sm text-[#747a95]">{brand.tagline || brand.city}</p>
+                    </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Button asChild variant="outline" className="rounded-xl font-bold">
-                      <Link href={`/forum/go/${entityType}/${brand.id}`}>{existing ? "Open discussion" : "View mapping"}</Link>
+                      <Link href={`/forum/go/${entityType}/${brand.id}`}>{existing ? "Open discussion" : "View status"}</Link>
                     </Button>
                     <Button asChild className="rounded-xl font-bold">
                       <Link href={signedIn ? `/forum/new/${entityType}/${brand.id}` : `/auth/sign-in?next=/forums`}>
@@ -123,18 +134,25 @@ export function ForumsHubView({
                   : null,
               );
               return (
-                <div key={product.id} className="flex flex-col gap-4 rounded-2xl border border-[#eceef4] p-5 md:flex-row md:items-center md:justify-between">
-                  <div>
+                <div key={product.id} className="flex flex-col gap-4 rounded-2xl border border-[#eceef4] bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between md:p-5">
+                  <div className="flex min-w-0 items-center gap-4">
+                    <PhotoFrame
+                      src={brand?.coverPath || brand?.logoPath}
+                      alt={`${product.name} product context`}
+                      className="hidden h-16 w-20 shrink-0 sm:block"
+                    />
+                    <div className="min-w-0">
                     <div className="flex flex-wrap gap-2">
                       <IdentitiChip>product</IdentitiChip>
                       <IdentitiChip active={Boolean(existing)}>{existing ? "Thread mapped" : "Pending mapping"}</IdentitiChip>
                     </div>
                     <h2 className="mt-2 text-lg font-bold text-[#111a42]">{product.name}</h2>
                     <p className="text-sm text-[#747a95]">{brand?.name ?? "Product"}</p>
+                    </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Button asChild variant="outline" className="rounded-xl font-bold">
-                      <Link href={`/forum/go/product/${product.id}`}>{existing ? "Open discussion" : "View mapping"}</Link>
+                      <Link href={`/forum/go/product/${product.id}`}>{existing ? "Open discussion" : "View status"}</Link>
                     </Button>
                     <Button asChild className="rounded-xl font-bold">
                       <Link href={signedIn ? `/forum/new/product/${product.id}` : `/auth/sign-in?next=/forums`}>

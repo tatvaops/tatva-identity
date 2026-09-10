@@ -229,7 +229,11 @@ export function PassportView({
       )}
       {current === "skills" && (
         <div className="space-y-3">
-          <div className="flex justify-end">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="type-micro text-brand">Passport section</p>
+              <h2 className="type-section">Skills</h2>
+            </div>
             <ProfileSectionEdit kind="skill" label="Add skill" />
           </div>
           {skills.length === 0 ? (

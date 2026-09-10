@@ -4,6 +4,8 @@ import {
   canAddEntry,
   canSubmitJournal,
   createSiteJournalSchema,
+  generateSiteJournalAiInsight,
+  generateSiteJournalAiSummary,
   mapHealthToUi,
   progressPercent,
   sanitizeJournalSearchTerm,
@@ -96,6 +98,13 @@ describe("site journal mapping", () => {
   it("sanitizes journal search input for PostgREST filters", () => {
     assert.equal(sanitizeJournalSearchTerm("steel%,(delay). Hyderabad"), "steel delay Hyderabad");
     assert.equal(sanitizeJournalSearchTerm("x".repeat(100)).length, 80);
+  });
+
+  it("creates evidence-only AI publication copy from journal facts", () => {
+    const summary = generateSiteJournalAiSummary(journal, [entry]);
+    assert.match(summary, /AI-assisted, evidence-only summary/);
+    assert.match(summary, /Steel supplier changed/);
+    assert.match(generateSiteJournalAiInsight(entry), /medium risk/);
   });
 
   it("gates submit and entries by status", () => {

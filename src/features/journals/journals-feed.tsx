@@ -21,7 +21,7 @@ export function JournalCard({ journal }: Readonly<{ journal: SiteJournalProject 
   return (
     <Link href={siteJournalPath(journal.slug)}>
       <Card className="overflow-hidden">
-        <PhotoFrame src={journal.mediaCover || null} alt="" className="h-40" />
+        <PhotoFrame src={journal.mediaCover || null} alt={`${journal.title} site journal cover`} className="h-40" />
         <div className="space-y-2 p-4">
           <div className="flex flex-wrap gap-1.5">
             <Badge variant={healthVariant(journal.health)}>{journal.health}</Badge>

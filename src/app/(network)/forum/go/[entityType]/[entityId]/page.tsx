@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { PhotoFrame } from "@/components/identity/media-photo";
 import { getAuthContext } from "@/lib/data/query";
 import { resolveForumTarget } from "@/lib/data/identiti";
 import { isForumEntityType } from "@/lib/domain/identiti-routes";
@@ -9,9 +10,9 @@ import { outboundDiscussionUrl, resolveForumLink } from "@/lib/integrations/vant
 
 export default async function ForumGoPage({
   params,
-}: {
+}: Readonly<{
   params: Promise<{ entityType: string; entityId: string }>;
-}) {
+}>) {
   const { entityType, entityId } = await params;
   if (!isForumEntityType(entityType)) notFound();
   const target = await resolveForumTarget(entityType, entityId);
@@ -21,12 +22,18 @@ export default async function ForumGoPage({
   if (existing) redirect(existing);
   const session = await getAuthContext();
   return (
-    <Card className="mx-auto max-w-xl p-6">
+    <Card className="mx-auto max-w-xl overflow-hidden">
+      <PhotoFrame
+        src={target.brand.coverPath || target.brand.logoPath}
+        alt={`${target.brand.name} cover`}
+        className="h-36"
+      />
+      <div className="p-6">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Vantage Forums</p>
-      <h1 className="mt-2 text-2xl font-semibold">Discussion is not mapped yet</h1>
+      <h1 className="mt-2 text-2xl font-semibold">No Vantage thread mapped yet</h1>
       <p className="mt-3 text-sm text-muted-foreground">
-        IDENTITI does not host this thread. When Vantage returns a thread slug for {target.brand.name}, this page will
-        send you there. No API key is placed in the URL.
+        {target.brand.name} does not have a linked Vantage thread yet. IDENTITI does not host forum content; once a
+        thread is mapped, this link will take you directly to Vantage. No API key is placed in the URL.
       </p>
       <div className="mt-6 flex flex-wrap gap-2">
         <Button asChild>
@@ -35,8 +42,9 @@ export default async function ForumGoPage({
           </Link>
         </Button>
         <Button asChild variant="outline">
-          <Link href={target.returnPath}>Back to profile</Link>
+          <Link href={target.returnPath}>Back to {target.brand.name}</Link>
         </Button>
+      </div>
       </div>
     </Card>
   );

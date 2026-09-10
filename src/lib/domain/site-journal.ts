@@ -271,6 +271,7 @@ export function toSiteJournalProject(input: {
   const procurement = timelineEntries.find((entry) => /procurement|vendor|material/i.test(entry.entryType));
   const execution = timelineEntries.find((entry) => /execution|milestone|labor/i.test(entry.entryType));
   const highRisk = timelineEntries.find((entry) => entry.riskLevel === "high");
+  const firstImage = timelineEntries.flatMap((entry) => entry.media).find((media) => media.type === "image");
   const contributorIds = new Set<string>([journal.owner_id, ...entries.map((row) => row.created_by)]);
   return {
     id: journal.id,
@@ -311,7 +312,7 @@ export function toSiteJournalProject(input: {
       : "No weather tag on recent entries.",
     activeDiscussionCount: Object.values(noteCounts).reduce((sum, count) => sum + count, 0),
     updatePreview: timelineEntries[0]?.content.slice(0, 180) || journal.description?.slice(0, 180) || "",
-    mediaCover: journal.cover_media ?? "",
+    mediaCover: journal.cover_media ?? firstImage?.url ?? "",
     tags: journal.tags ?? [],
     relatedExperts: [],
     similarProjects: similarSlugs,
@@ -327,4 +328,28 @@ export function canSubmitJournal(status: JournalStatus) {
 
 export function canAddEntry(status: JournalStatus) {
   return status === "draft" || status === "pending_review" || status === "published";
+}
+
+export function generateSiteJournalAiSummary(journal: SiteJournalRow, entries: SiteJournalEntryRow[]) {
+  const latest = [...entries].sort(
+    (a, b) => b.week_number - a.week_number || b.created_at.localeCompare(a.created_at),
+  )[0];
+  const facts = [journal.project_type, journal.city, journal.region, journal.budget_range].filter(Boolean).join(" · ");
+  const latestUpdate = latest
+    ? `Latest field update (week ${latest.week_number}): ${latest.title}. ${latest.content.slice(0, 260)}`
+    : "No weekly field entry has been added yet.";
+  const journalFacts = facts ? ` — ${facts}` : "";
+  return [
+    "AI-assisted, evidence-only summary.",
+    `${journal.title}${journalFacts}.`,
+    latestUpdate,
+    `Current health: ${mapHealthToUi(journal.health_status)}.`,
+  ].join(" ");
+}
+
+export function generateSiteJournalAiInsight(entry: SiteJournalEntryRow) {
+  let risk = "low";
+  if (entry.risk_level === "medium") risk = "medium";
+  if (entry.risk_level === "high") risk = "high";
+  return `AI-assisted, evidence-only insight: ${risk} risk recorded in the ${entry.entry_type.toLowerCase()} update.`;
 }
