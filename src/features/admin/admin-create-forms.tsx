@@ -403,6 +403,8 @@ export function AdminCreateJobForm({ organisations }: { organisations: Choice[] 
               salaryLabel: String(form.get("salaryLabel") ?? ""),
               skills: String(form.get("skills") ?? ""),
               description: String(form.get("description") ?? ""),
+              responsibilities: String(form.get("responsibilities") ?? ""),
+              requirements: String(form.get("requirements") ?? ""),
             }),
           );
         }}
@@ -430,6 +432,22 @@ export function AdminCreateJobForm({ organisations }: { organisations: Choice[] 
         </div>
         <div className="md:col-span-2">
           <Textarea name="description" placeholder="Description" className="min-h-20" aria-label="Description" />
+        </div>
+        <div className="md:col-span-2">
+          <Textarea
+            name="responsibilities"
+            placeholder="Responsibilities, one per line"
+            className="min-h-24"
+            aria-label="Responsibilities"
+          />
+        </div>
+        <div className="md:col-span-2">
+          <Textarea
+            name="requirements"
+            placeholder="Requirements, one per line"
+            className="min-h-24"
+            aria-label="Requirements"
+          />
         </div>
         <div className="md:col-span-2">
           <Button type="submit" disabled={pending}>

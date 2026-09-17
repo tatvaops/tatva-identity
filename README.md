@@ -71,7 +71,7 @@ Browser
 
 ## 4. Public network (what a visitor sees)
 
-Primary header: Service brand, Product brand, Professional, Gig worker, Projects, Site journals, Brand forum, Admin control (operators), Profile. Feed, Jobs, Gigs, Messages, Companies sit in account / secondary navigation.
+Primary header: Service brands, Product brands, Professionals, Gig workers, Projects, Site journals, Careers, Brand forum, Admin (operators). Feed, Jobs, Gigs, Messages, Companies, Notifications, Saved, Applications, Insights and Profile sit in Work / account navigation. Mobile uses Discover, People, Careers, Proof, Inbox and More.
 
 ### 4.1 Directories and profiles
 
@@ -92,6 +92,7 @@ Primary header: Service brand, Product brand, Professional, Gig worker, Projects
 | `/org/[slug]` | Alias onto the company / brand passport |
 | `/projects`, `/projects/[id]` | Network projects (covers, YouTube, QC notes). Not a Vertex site record |
 | `/journals`, `/journals/[slug]`, `/journals/new` | Site journals (weekly execution diaries). Separate from verified project identity |
+| `/careers`, `/careers/[id]` | Global careers portal and shareable job application links |
 | `/jobs`, `/jobs/[id]`, `/jobs/create` | Permanent / contract listings. Close without deleting |
 | `/gigs`, `/gigs/[id]`, `/gigs/create` | Shift / crew listings. Seats, trade, site name |
 | `/services` | Organisation and profile services catalogue |
@@ -99,6 +100,23 @@ Primary header: Service brand, Product brand, Professional, Gig worker, Projects
 | `/search` | Weighted ranking over people, orgs, jobs, gigs (not vector search) |
 
 Occupation routing: `personPublicHref(handle, occupationMode)` sends gig occupations to `/gig-workers/…` and others to `/professionals/…`.
+
+### 4.1.1 Global careers portal
+
+`/careers` is the public, cross-platform entry point for all open roles posted by organisations on IDENTITI. It uses the same live job data and application pipeline as `/jobs`, but gives HR and external job portals a dedicated careers destination.
+
+- HR publishes from **Admin → Jobs & gigs → Add a job**.
+- A job includes the organisation, title, location, employment type, experience, salary label, skills, description, responsibilities and requirements.
+- Admin can use **Copy apply link** to share `/careers/[job-id]` on LinkedIn, job boards, websites and social channels.
+- The share link opens the public job detail and sends candidates through sign-in/WhatsApp OTP before applying.
+- Applications are stored against the job and appear to candidates under `/applications` and operators under **Admin → Contacts**.
+- Closing a job immediately stops new applications while preserving the public application history.
+
+The `/careers/[job-id]` URL is deliberately stable and redirects to the canonical job detail route, so HR can keep sharing one link even if the internal job navigation changes.
+
+### 4.1.2 Product experience direction
+
+IDENTITI UI follows a proof-led design system: editorial typography (Source Serif display + Inter UI), ink surfaces for brand moments, restrained borders, and labelled verification — not mysterious scores. Empty, loading and unavailable states stay honest (including Vertex Hire/Quote and unmapped Vantage threads). Visual redesigns must not invent data or change product boundaries.
 
 ### 4.2 Signed-in workspace
 

@@ -11,6 +11,7 @@ import { applyToGig, applyToJob } from "@/lib/actions/network";
 import { closeGigPost, closeJobPost, reopenGigPost, reopenJobPost } from "@/lib/actions/opportunity";
 import { SaveButton } from "@/components/identity/save-button";
 import { applicationStatusLabel } from "@/lib/domain/application-lifecycle";
+import { ShareJobButton } from "@/features/jobs/share-job-button";
 import type { GigPost, JobPost, Organisation } from "@/lib/types/identity";
 
 export function JobDetail({
@@ -76,6 +77,7 @@ export function JobDetail({
             </Button>
           )}
           {userId ? <SaveButton kind="job" id={job.id} saved={saved} /> : null}
+          <ShareJobButton jobId={job.id} />
           {canManage ? (
             <Button variant="outline" asChild>
               <Link href={`/jobs/${job.id}/edit`}>Edit job</Link>

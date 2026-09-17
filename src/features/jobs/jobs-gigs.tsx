@@ -11,19 +11,26 @@ export async function JobsView({
   city,
   employmentType,
   page = 1,
-}: {
+  basePath = "/jobs",
+}: Readonly<{
   city?: string;
   employmentType?: string;
   page?: number;
-}) {
+  basePath?: "/jobs" | "/careers";
+}>) {
   const jobs = await listJobs({ city, employmentType }, { page, pageSize: PAGE_SIZE });
   const names = await Promise.all(jobs.data.map((j) => getOrganisationById(j.organisationId)));
+  const isCareers = basePath === "/careers";
   return (
     <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
       <FilterDrawer title="Filters">
-        <form method="get" className="h-fit space-y-5 border border-border bg-white p-4 text-sm">
-          <p className="font-semibold text-foreground">Jobs</p>
-          <p className="text-muted-foreground">Permanent and contract roles. Not the same as gigs.</p>
+        <form method="get" className="h-fit space-y-5 border border-border bg-white p-5 text-sm">
+          <p className="font-semibold text-foreground">{isCareers ? "Careers" : "Jobs"}</p>
+          <p className="text-muted-foreground">
+            {isCareers
+              ? "Open roles across the network. Share the apply link from Admin or the job page."
+              : "Permanent and contract roles. Not the same as gigs."}
+          </p>
           <fieldset className="space-y-2">
             <legend className="font-semibold text-foreground">Location</legend>
             <label className="sr-only" htmlFor="job-city">
@@ -58,11 +65,25 @@ export async function JobsView({
       <div className="space-y-3">
         <QueryNotice configured={jobs.meta.configured} error={jobs.meta.error} />
         {jobs.data.length === 0 ? (
-          <EmptyState title="No jobs yet" body="Open roles will appear when organisations publish them." />
+          <EmptyState
+            title={isCareers ? "No open careers yet" : "No jobs yet"}
+            body={
+              isCareers
+                ? "When an organisation publishes a role, it appears here with a shareable apply link."
+                : "Open roles will appear when organisations publish them."
+            }
+          />
         ) : (
-          jobs.data.map((j, i) => <JobCard key={j.id} job={j} organisationName={names[i]?.data?.name} />)
+          jobs.data.map((j, i) => (
+            <JobCard
+              key={j.id}
+              job={j}
+              organisationName={names[i]?.data?.name}
+              hrefBase={isCareers ? "/careers" : "/jobs"}
+            />
+          ))
         )}
-        <PageNav path="/jobs" page={page} hasMore={jobs.data.length === PAGE_SIZE} params={{ city, type: employmentType }} />
+        <PageNav path={basePath} page={page} hasMore={jobs.data.length === PAGE_SIZE} params={{ city, type: employmentType }} />
       </div>
     </div>
   );

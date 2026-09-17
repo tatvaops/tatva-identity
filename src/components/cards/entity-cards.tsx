@@ -105,29 +105,37 @@ export function CompanyCard({ org }: { org: Organisation; following?: boolean })
   );
 }
 
-export function JobCard({ job, organisationName }: { job: JobPost; organisationName?: string }) {
+export function JobCard({
+  job,
+  organisationName,
+  hrefBase = "/jobs",
+}: Readonly<{ job: JobPost; organisationName?: string; hrefBase?: "/jobs" | "/careers" }>) {
   return (
-    <article className="border border-border bg-white p-4">
+    <article className="lift border border-border bg-white p-5">
       <div className="flex items-start justify-between gap-3">
-        <p className="type-micro">{organisationName ?? "Job"}</p>
+        <p className="type-micro">{organisationName ?? "Organisation"}</p>
         <Badge variant={job.closedAt ? "muted" : "success"}>{job.closedAt ? "Closed" : "Open"}</Badge>
       </div>
-      <Link href={`/jobs/${job.id}`} className="mt-1.5 block text-[15px] font-semibold tracking-tight hover:text-brand">
+      <Link
+        href={`${hrefBase}/${job.id}`}
+        className="mt-2 block text-[16px] font-semibold tracking-tight hover:text-brand"
+      >
         {job.title}
       </Link>
-      <p className="mt-1.5 text-sm text-text-secondary">
-        {[job.city, job.employmentType.replaceAll("_", " "), job.salaryLabel].filter(Boolean).join(" · ")}
+      <p className="mt-2 text-sm text-text-secondary">
+        {[job.city, job.employmentType.replaceAll("_", " "), job.experienceLabel, job.salaryLabel]
+          .filter(Boolean)
+          .join(" · ")}
       </p>
-      <div className="mt-2.5 flex flex-wrap gap-1">
-        <Badge variant="outline">{job.employmentType.replace("_", " ")}</Badge>
-        {job.experienceLabel ? <Badge variant="outline">{job.experienceLabel}</Badge> : null}
-        {job.skills.slice(0, 3).map((skill) => (
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        <Badge variant="outline">{job.employmentType.replaceAll("_", " ")}</Badge>
+        {job.skills.slice(0, 4).map((skill) => (
           <Badge key={skill} variant="outline">
             {skill}
           </Badge>
         ))}
       </div>
-      <p className="mt-2.5 text-xs text-muted-foreground">
+      <p className="mt-3 text-xs text-muted-foreground">
         Posted {formatDistanceToNow(new Date(job.createdAt), { addSuffix: true })}
       </p>
     </article>

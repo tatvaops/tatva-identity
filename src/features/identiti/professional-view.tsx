@@ -33,7 +33,7 @@ export function ProfessionalView({
   isRecruiter = false,
   saved = false,
   blocked = false,
-}: {
+}: Readonly<{
   profile: PublicProfile;
   projects: IdentitiProject[];
   employer: IdentitiBrand | null;
@@ -51,7 +51,7 @@ export function ProfessionalView({
   isRecruiter?: boolean;
   saved?: boolean;
   blocked?: boolean;
-}) {
+}>) {
   const verifiedProjects = projects.filter((project) => project.verified);
   const viewer = viewerFromNetwork({ isOwner, connectionState, isRecruiter });
   const availability = showAvailability(profile, viewer) ? availabilityLabel(profile.availabilityStatus) : null;
@@ -59,13 +59,13 @@ export function ProfessionalView({
   return (
     <div className="space-y-10 pb-14">
       <section className="overflow-hidden border border-border bg-white">
-        <CoverBand tone="office" className="h-40 md:h-48" src={profile.coverPath} />
-        <div className="px-5 pb-6 sm:px-7">
-          <div className="-mt-10 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+        <CoverBand tone="office" className="h-44 md:h-52" src={profile.coverPath} />
+        <div className="px-5 pb-7 sm:px-7">
+          <div className="-mt-12 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
             <InitialsAvatar
               initials={initialsFromName(profile.fullName)}
               hue={hueFromId(profile.id)}
-              size={96}
+              size={104}
               src={profile.avatarPath}
               className="ring-4 ring-white"
             />
@@ -89,14 +89,17 @@ export function ProfessionalView({
               />
             </div>
           </div>
-          <p className="mt-5 type-micro text-brand">Professional</p>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            {profile.identityVerified ? <Badge variant="verify">Verified identity</Badge> : null}
-            {profile.employmentVerified ? <Badge variant="verify">Verified employment</Badge> : null}
+          <p className="mt-6 type-micro text-brand">Professional passport</p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {profile.identityVerified ? <Badge variant="verify">Identity verified</Badge> : null}
+            {profile.employmentVerified ? <Badge variant="verify">Employment verified</Badge> : null}
+            {!profile.identityVerified && !profile.employmentVerified ? (
+              <span className="text-xs text-muted-foreground">Verification not completed yet</span>
+            ) : null}
           </div>
           <h1 className="type-display mt-3 text-4xl sm:text-5xl">{profile.fullName}</h1>
-          <p className="mt-2 text-base text-text-secondary">{profile.headline}</p>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="mt-3 max-w-2xl text-base leading-7 text-text-secondary">{profile.headline}</p>
+          <p className="mt-3 text-sm text-muted-foreground">
             {[
               profile.specialisation ?? profile.preferredRoles[0] ?? profile.professionalTitle,
               profile.city,

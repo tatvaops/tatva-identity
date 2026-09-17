@@ -5,6 +5,7 @@ import { AdminActionButton } from "@/features/admin/admin-action";
 import { EmptyState } from "@/components/states/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { AdminCreateGigForm, AdminCreateJobForm } from "@/features/admin/admin-create-forms";
+import { CopyJobLinkButton } from "@/features/admin/copy-job-link-button";
 import { adminCloseGig, adminCloseJob } from "@/lib/admin/actions";
 import { listAdminChoices, listAdminGigs, listAdminJobs } from "@/lib/admin/data";
 
@@ -16,7 +17,7 @@ export default async function AdminOpportunitiesPage() {
     <div>
       <AdminHeader
         title="Jobs & gigs"
-        body="Publish a live listing or close one that should not stay public. This does not hire, quote, or staff a site."
+        body="Publish a live listing, copy a public Careers apply link for HR, or close one that should not stay public. This does not hire, quote, or staff a site."
       />
       <AdminCreateJobForm organisations={choices.organisations} />
       <AdminCreateGigForm organisations={choices.organisations} projects={choices.projects} />
@@ -44,6 +45,7 @@ export default async function AdminOpportunitiesPage() {
                   label={row.closed_at ? "Reopen" : "Close"}
                   action={adminCloseJob.bind(null, row.id, !row.closed_at)}
                 />
+                <CopyJobLinkButton jobId={row.id} />
               </td>
             </tr>
           ))}

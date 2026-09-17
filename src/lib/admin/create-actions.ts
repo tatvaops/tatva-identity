@@ -328,6 +328,8 @@ export async function adminCreateJob(input: {
   salaryLabel?: string;
   skills?: string;
   description?: string;
+  responsibilities?: string;
+  requirements?: string;
 }): Promise<ActionResult> {
   const gate = await gated();
   if (!gate.ok) return gate.result;
@@ -346,6 +348,8 @@ export async function adminCreateJob(input: {
       salary_label: input.salaryLabel?.trim() || null,
       skills: splitList(input.skills ?? ""),
       description: input.description?.trim() || null,
+      responsibilities: splitList(input.responsibilities ?? ""),
+      requirements: splitList(input.requirements ?? ""),
     })
     .select("id")
     .single();

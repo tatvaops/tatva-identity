@@ -11,19 +11,19 @@ export function PageHeader({
   body,
   action,
   className,
-}: {
+}: Readonly<{
   eyebrow?: string;
   title: string;
   body?: string;
   action?: ReactNode;
   className?: string;
-}) {
+}>) {
   return (
-    <header className={cn("mb-6 flex flex-wrap items-end justify-between gap-4", className)}>
+    <header className={cn("mb-7 flex flex-wrap items-end justify-between gap-4", className)}>
       <div className="min-w-0 max-w-3xl">
         {eyebrow ? <Eyebrow className="mb-2">{eyebrow}</Eyebrow> : null}
-        <h1 className="type-page sm:text-[2rem]">{title}</h1>
-        {body ? <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">{body}</p> : null}
+        <h1 className="type-page sm:text-[2.05rem]">{title}</h1>
+        {body ? <p className="mt-2.5 max-w-2xl text-sm leading-6 text-text-secondary sm:text-[15px]">{body}</p> : null}
       </div>
       {action ? <div className="flex flex-wrap items-center gap-2">{action}</div> : null}
     </header>

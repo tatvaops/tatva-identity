@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
-export function SkeletonPulse({ className }: { className?: string }) {
-  return <div className={cn("animate-pulse rounded-md bg-secondary", className)} />;
+export function SkeletonPulse({ className }: Readonly<{ className?: string }>) {
+  return <div className={cn("skeleton-shimmer rounded-md", className)} />;
 }
 
 export function CardSkeleton() {

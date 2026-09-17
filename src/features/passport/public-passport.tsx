@@ -64,15 +64,17 @@ export async function PublicPassportView({
   const verifiedExperience = experiences.filter((e) => e.source === "organisation_verified");
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4">
-      <Card className="overflow-hidden print:shadow-none">
-        {profile.coverPath ? <CoverBand tone="site" className="h-28" src={profile.coverPath} /> : null}
-        <div className="px-5 pb-5">
-          <div className={`${profile.coverPath ? "-mt-10" : "pt-5"} flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between`}>
+    <div className="mx-auto max-w-3xl space-y-5">
+      <article className="overflow-hidden border border-border bg-white print:shadow-none">
+        {profile.coverPath ? <CoverBand tone="site" className="h-36" src={profile.coverPath} /> : (
+          <div className="h-28 ink-wash" aria-hidden />
+        )}
+        <div className="px-5 pb-6 sm:px-6">
+          <div className="-mt-12 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <InitialsAvatar
               initials={initialsFromName(profile.fullName)}
               hue={hueFromId(profile.id)}
-              size={88}
+              size={96}
               className="ring-4 ring-white"
               src={profile.avatarPath}
             />
@@ -80,35 +82,29 @@ export async function PublicPassportView({
               <PassportQr url={url} />
             </div>
           </div>
-          <p className="mt-4 text-[11px] font-semibold tracking-[0.16em] text-indigo-800 uppercase">
-            {product.name} professional passport
-          </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">{profile.fullName}</h1>
-          {profile.headline && <p className="mt-1 text-sm text-foreground">{profile.headline}</p>}
+          <p className="type-micro mt-5 text-brand">{product.name} professional passport</p>
+          <h1 className="type-display mt-2 text-3xl text-foreground sm:text-4xl">{profile.fullName}</h1>
+          {profile.headline ? <p className="mt-2 text-[15px] leading-6 text-text-secondary">{profile.headline}</p> : null}
           {profile.city || profile.languages.length > 0 || profile.specialisation ? (
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-2 text-sm text-muted-foreground">
               {[profile.city, profile.specialisation, profile.languages.length > 0 ? profile.languages.join(", ") : null]
                 .filter(Boolean)
                 .join(" · ")}
             </p>
           ) : null}
-          {showAvailability ? (
-            <div className="mt-3">
-              <AvailabilityBadge status={profile.availabilityStatus} />
-            </div>
-          ) : null}
-          <div className="mt-2 flex flex-wrap gap-1.5">
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            {showAvailability ? <AvailabilityBadge status={profile.availabilityStatus} /> : null}
             {flags.length === 0 ? (
               <p className="text-xs text-muted-foreground">Verification has not been completed yet.</p>
             ) : (
               flags.map((flag) => <VerificationBadge key={flag.kind} flag={flag} />)
             )}
           </div>
-          <p className="mt-3 text-xs text-muted-foreground">
+          <p className="mt-4 text-xs leading-5 text-muted-foreground">
             Limited public view. Identity documents, rates and private files are never shown here.
           </p>
         </div>
-      </Card>
+      </article>
 
       <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_200px]">
         <PassportStrength
